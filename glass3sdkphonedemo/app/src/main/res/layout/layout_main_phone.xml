@@ -1,0 +1,865 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+
+    <!-- 主要内容区域 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <!-- 顶部标题栏 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="24dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="设备"
+                    android:textColor="#333333"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/iv_add"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:src="@mipmap/ic_input_add" />
+
+                <ImageView
+                    android:id="@+id/iv_setting"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@mipmap/icon_setting" />
+
+            </LinearLayout>
+
+            <!-- 连接提示 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:background="#E3F2FD"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="12dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@android:drawable/ic_dialog_info" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="未连接，如何连接眼镜"
+                    android:textColor="#1976D2"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@android:drawable/ic_menu_more" />
+
+            </LinearLayout>
+
+            <!-- Rokid Glass3 设备卡片 -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <!-- 眼镜图标 -->
+                <ImageView
+                    android:layout_width="200dp"
+                    android:layout_height="120dp"
+                    android:layout_marginBottom="20dp"
+                    android:scaleType="centerInside"
+                    android:src="@mipmap/icon_rokid_big"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tv_device_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="90dp"
+                    android:layout_marginBottom="20dp"
+                    android:text="Rokid Glass3"
+                    android:textColor="#757575"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/iv_connect"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:src="@mipmap/icon_to_connect2"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/tv_device_name" />
+
+                <LinearLayout
+                    android:id="@+id/llConnectInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/tv_device_name">
+
+                    <TextView
+                        android:id="@+id/btConnect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:background="@drawable/btn_connect"
+                        android:gravity="center"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="6dp"
+                        android:text="蓝牙已连接"
+                        android:textColor="#007AFF"
+                        android:textSize="13sp" />
+
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/btP2PConnect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginStart="16dp"
+                        android:background="@drawable/btn_connect"
+                        android:gravity="center"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="6dp"
+                        android:text="WIFI未连接"
+                        android:textColor="#007AFF"
+                        android:textSize="13sp" />
+
+                    <ImageView
+                        android:id="@+id/iv_dl"
+                        android:layout_width="22dp"
+                        android:layout_height="14dp"
+                        android:layout_marginStart="16dp"
+                        tools:src="@mipmap/icon_dianchi" />
+
+                    <TextView
+                        android:id="@+id/tvDl"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:gravity="center"
+                        android:textColor="#333333"
+                        android:textSize="12sp"
+                        tools:text="眼镜电量：10%" />
+
+                </LinearLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+            <!-- 功能模块网格 -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <!-- 垂直辅助线（定义左右分栏基准） -->
+                <androidx.constraintlayout.widget.Guideline
+                    android:id="@+id/guideline_vertical"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:layout_constraintGuide_percent="0.5" /> <!-- 使用百分比确保真正居中 -->
+
+                <!-- 水平辅助线（分隔控制行与功能行） -->
+                <androidx.constraintlayout.widget.Guideline
+                    android:id="@+id/guideline_horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    app:layout_constraintGuide_begin="90dp" />
+
+                <!-- 水平辅助线（分隔第一行功能卡片） -->
+                <androidx.constraintlayout.widget.Guideline
+                    android:id="@+id/guideline_horizontal_second"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    app:layout_constraintGuide_begin="198dp" />
+
+                <!-- 新增：音量控制 (顶部左侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/volume_control"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/volumeicon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="16dp"
+                        android:src="@mipmap/ic_device_volume"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:layout_width="27dp"
+                        android:layout_height="23dp"
+                        android:layout_marginStart="12dp"
+                        android:text="音量"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        app:layout_constraintBottom_toBottomOf="@+id/volumeicon"
+                        app:layout_constraintHorizontal_bias="0.0"
+                        app:layout_constraintStart_toEndOf="@+id/volumeicon"
+                        app:layout_constraintTop_toTopOf="@+id/volumeicon" />
+
+                    <androidx.appcompat.widget.AppCompatSeekBar
+                        android:id="@+id/volume_seekbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="10dp"
+                        android:layout_marginBottom="8dp"
+                        android:maxHeight="12dp"
+                        android:minHeight="12dp"
+                        android:progressDrawable="@drawable/ic_slider_progress"
+                        android:splitTrack="false"
+                        android:thumb="@drawable/ic_slider_thumb"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- 新增：亮度控制 (顶部右侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/brightness_control"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/lighticon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="16dp"
+                        android:src="@mipmap/ic_device_ctr_light"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:layout_width="27dp"
+                        android:layout_height="23dp"
+                        android:layout_marginStart="12dp"
+                        android:text="亮度"
+                        android:textColor="#666666"
+                        android:textSize="12sp"
+                        app:layout_constraintBottom_toBottomOf="@+id/lighticon"
+                        app:layout_constraintHorizontal_bias="0.0"
+                        app:layout_constraintStart_toEndOf="@+id/lighticon"
+                        app:layout_constraintTop_toTopOf="@+id/lighticon" />
+
+                    <androidx.appcompat.widget.AppCompatSeekBar
+                        android:id="@+id/brightness_seekbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="10dp"
+                        android:layout_marginBottom="8dp"
+                        android:maxHeight="12dp"
+                        android:minHeight="12dp"
+                        android:progressDrawable="@drawable/ic_slider_progress"
+                        android:splitTrack="false"
+                        android:thumb="@drawable/ic_slider_thumb"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- 翻译 (第二行左侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/btVideoReceive"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/volume_control">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="获取眼睛端视频流"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- 通知 (第二行右侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/clOta"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintTop_toBottomOf="@id/brightness_control">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="OTA眼镜系统升级"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- 新手教学 (第三行左侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/bt_message_receive"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/btVideoReceive">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/iv_tutorial"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginRight="11dp"
+                        android:padding="6dp"
+                        android:src="@mipmap/ic_menu_help"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/tv_title_tutorial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="消息接收"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_desc_tutorial"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginBottom="20dp"
+                        android:text="接收手机端发送的消息"
+                        android:textColor="#232323"
+                        android:textSize="10sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- 操作指南 (第三行右侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/bt_message_send"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintTop_toBottomOf="@id/clOta">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/iv_guide"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginRight="11dp"
+                        android:padding="6dp"
+                        android:src="@mipmap/ic_menu_info_details"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/tv_title_guide"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="消息发送"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_desc_guide"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginBottom="20dp"
+                        android:text="模拟数据发送手机——>眼镜"
+                        android:textColor="#232323"
+                        android:textSize="10sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/bt_album"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/bt_message_receive">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/iv_album"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginRight="11dp"
+                        android:padding="6dp"
+                        android:src="@mipmap/icon_album"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/tv_title_album"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="相册"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_desc_album"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginBottom="20dp"
+                        android:text="记录视频和照片"
+                        android:textColor="#232323"
+                        android:textSize="10sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                <!--                <androidx.constraintlayout.widget.ConstraintLayout-->
+                <!--                    android:id="@+id/bt_ai_assistant"-->
+                <!--                    android:layout_width="0dp"-->
+                <!--                    android:layout_height="85dp"-->
+                <!--                    android:layout_marginTop="12dp"-->
+                <!--                    android:layout_marginEnd="6dp"-->
+                <!--                    android:background="@drawable/rounded_corner_bg"-->
+                <!--                    android:clickable="true"-->
+                <!--                    android:focusable="true"-->
+                <!--                    android:foreground="?android:attr/selectableItemBackground"-->
+                <!--                    app:layout_constraintEnd_toEndOf="parent"-->
+                <!--                    app:layout_constraintStart_toStartOf="@id/guideline_vertical"-->
+                <!--                    app:layout_constraintTop_toBottomOf="@id/bt_guide">-->
+
+
+                <!--                    &lt;!&ndash; 内部控件保持不变 &ndash;&gt;-->
+                <!--                    <ImageView-->
+                <!--                        android:id="@+id/iv_ai_assistant"-->
+                <!--                        android:layout_width="50dp"-->
+                <!--                        android:layout_height="50dp"-->
+                <!--                        android:padding="6dp"-->
+                <!--                        android:src="@mipmap/icon_ai_assistant"-->
+                <!--                        android:layout_marginTop="6dp"-->
+                <!--                        android:layout_marginRight="11dp"-->
+                <!--                        app:layout_constraintRight_toRightOf="parent"-->
+                <!--                        app:layout_constraintTop_toTopOf="parent"-->
+                <!--                        app:layout_constraintVertical_chainStyle="packed" />-->
+
+                <!--                    <TextView-->
+                <!--                        android:id="@+id/tv_title_ai_assistant"-->
+                <!--                        android:layout_width="wrap_content"-->
+                <!--                        android:layout_height="wrap_content"-->
+                <!--                        android:text="AI助手"-->
+                <!--                        android:textColor="#333333"-->
+                <!--                        android:textSize="16sp"-->
+                <!--                        android:textStyle="bold"-->
+                <!--                        android:layout_marginTop="14dp"-->
+                <!--                        android:layout_marginLeft="11dp"-->
+                <!--                        app:layout_constraintLeft_toLeftOf="parent"-->
+                <!--                        app:layout_constraintTop_toTopOf="parent" />-->
+
+                <!--                    <TextView-->
+                <!--                        android:id="@+id/tv_desc_ai_assistant"-->
+                <!--                        android:layout_width="wrap_content"-->
+                <!--                        android:layout_height="wrap_content"-->
+                <!--                        android:layout_marginBottom="20dp"-->
+                <!--                        android:layout_marginLeft="11dp"-->
+                <!--                        android:text="实时视觉智能"-->
+                <!--                        android:textColor="#232323"-->
+                <!--                        android:textSize="10sp"-->
+                <!--                        app:layout_constraintLeft_toLeftOf="parent"-->
+                <!--                        app:layout_constraintBottom_toBottomOf="parent" />-->
+                <!--                </androidx.constraintlayout.widget.ConstraintLayout>-->
+
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/btn_video_stream"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginTop="12dp"
+                    android:visibility="invisible"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintTop_toBottomOf="@id/bt_message_send">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/iv_ai_assistant"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginRight="11dp"
+                        android:padding="6dp"
+                        android:src="@mipmap/icon_ai_assistant"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/tv_title_ai_assistant"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="获取音视频流"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_desc_ai_assistant"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginBottom="20dp"
+                        android:text="复用眼镜端能力拉流加在线人脸"
+                        android:textColor="#232323"
+                        android:textSize="10sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                <!-- 应用安装 (第四行右侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/bt_app_install"
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="invisible"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/bt_album">
+
+                    <!-- 内部控件保持不变 -->
+                    <ImageView
+                        android:id="@+id/iv_app_install"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginRight="11dp"
+                        android:padding="6dp"
+                        android:src="@mipmap/ic_menu_app_install"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintVertical_chainStyle="packed" />
+
+                    <TextView
+                        android:id="@+id/tv_title_app_install"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginTop="14dp"
+                        android:text="快速升级"
+                        android:textColor="#333333"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_desc_app_install"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="11dp"
+                        android:layout_marginBottom="20dp"
+                        android:text="快速安装眼镜端应用"
+                        android:textColor="#232323"
+                        android:textSize="10sp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- AI助手 (第五行左侧) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="0dp"
+                    android:layout_height="85dp"
+                    android:layout_marginStart="6dp"
+                    android:visibility="invisible"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/rounded_corner_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@id/guideline_vertical"
+                    app:layout_constraintTop_toBottomOf="@id/btn_video_stream">
+
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- 底部TabBar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:elevation="8dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- 分割线 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="#E5E5E5" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
+
+            <!-- 助手 Tab -->
+            <LinearLayout
+                android:id="@+id/tab_assistant"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginBottom="2dp"
+                    android:src="@android:drawable/ic_menu_help" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="助手"
+                    android:textColor="#8E8E93"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+            <!-- 设备 Tab (当前选中) -->
+            <LinearLayout
+                android:id="@+id/tab_device"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginBottom="2dp"
+
+                    android:src="@android:drawable/ic_menu_view" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="设备"
+                    android:textColor="#007AFF"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+            <!-- 媒体 Tab -->
+            <LinearLayout
+                android:id="@+id/tab_media"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginBottom="2dp"
+                    android:src="@android:drawable/ic_menu_gallery" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="媒体"
+                    android:textColor="#8E8E93"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+            <!-- 我的 Tab -->
+            <LinearLayout
+                android:id="@+id/tab_profile"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginBottom="2dp"
+                    android:src="@android:drawable/ic_menu_myplaces" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="我的"
+                    android:textColor="#8E8E93"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

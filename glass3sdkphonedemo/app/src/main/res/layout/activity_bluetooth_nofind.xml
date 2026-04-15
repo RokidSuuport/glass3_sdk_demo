@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@mipmap/icon_home"
+    android:layout_height="match_parent">
+
+
+    <ImageView
+        android:id="@+id/iv_back"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginTop="50dp"
+        android:src="@mipmap/ic_arrow_left"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="30dp"
+        android:layout_width="16dp"
+        android:layout_height="16dp"/>
+
+
+    <TextView
+        android:id="@+id/tv_skip"
+        android:layout_marginTop="50dp"
+        android:layout_marginRight="30dp"
+        android:text="跳过"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <View
+        android:background="@color/gray"
+        app:layout_constraintTop_toBottomOf="@+id/tv_skip"
+        app:layout_constraintRight_toRightOf="@+id/tv_skip"
+        app:layout_constraintLeft_toLeftOf="@+id/tv_skip"
+        android:layout_width="30dp"
+        android:layout_height="1dp"/>
+
+
+    <LinearLayout
+        android:id="@+id/ll_title1"
+        android:layout_marginTop="30dp"
+        app:layout_constraintTop_toBottomOf="@+id/tv_skip"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        
+        
+        <ImageView
+            android:layout_gravity="center_vertical"
+            android:src="@mipmap/icon_warming"
+            android:layout_width="26dp"
+            android:layout_height="26dp"/>
+
+        <TextView
+            android:text="未发现设备"
+            android:layout_gravity="center_vertical"
+            android:textColor="@color/black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+        
+        
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_title2"
+        android:textColor="@color/gray"
+        android:text="请确保眼镜开机，手机蓝牙开启后重新尝试"
+        app:layout_constraintTop_toBottomOf="@+id/ll_title1"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+
+    <com.google.android.exoplayer2.ui.PlayerView
+        android:layout_width="match_parent"
+        android:layout_height="348dp"
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_title2"
+        app:resize_mode="fit"
+        app:surface_type="texture_view"
+        app:use_controller="true"
+        app:shutter_background_color="@color/transparent"
+        app:controller_layout_id="@layout/layout_video_controller"
+        android:id="@+id/tutorial_video"/>
+
+
+
+
+
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

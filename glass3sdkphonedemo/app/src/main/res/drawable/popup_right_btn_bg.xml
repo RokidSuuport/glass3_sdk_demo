@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 按下状态（pressed） -->
+    <item android:drawable="@drawable/ic_bottom_right_press_bg" android:state_pressed="true" />
+
+    <!-- 选中状态（selected） -->
+    <item android:drawable="@drawable/ic_bottom_right_press_bg" android:state_selected="true" />
+
+    <!-- 默认状态（normal） -->
+    <item android:drawable="@drawable/ic_bottom_right_bg" />
+</selector>

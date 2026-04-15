@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/icon_home">
+
+    <include
+        android:id="@+id/layout_title"
+        layout="@layout/layout_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!--    <FrameLayout-->
+    <!--        android:id="@+id/fl_bar_top"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="@dimen/fl_bar_total_height"-->
+    <!--        android:orientation="horizontal"-->
+    <!--        app:layout_constraintTop_toTopOf="parent">-->
+    <!--        <FrameLayout-->
+    <!--            android:layout_width="match_parent"-->
+    <!--            android:layout_height="@dimen/fl_bar_menu_height"-->
+    <!--            android:orientation="horizontal"-->
+    <!--            android:layout_gravity="bottom">-->
+    <!--            <ImageButton-->
+    <!--                android:id="@+id/imv_back"-->
+    <!--                android:layout_width="24dp"-->
+    <!--                android:layout_height="24dp"-->
+    <!--                android:background="@android:color/transparent"-->
+    <!--                android:layout_gravity="center_vertical"-->
+    <!--                android:layout_marginStart="16dp"-->
+    <!--                android:src="@drawable/ic_topbar_back"/>-->
+
+    <!--            <TextView-->
+    <!--                android:id="@+id/tv_title"-->
+    <!--                android:text="@string/notification_title"-->
+    <!--                android:layout_width="wrap_content"-->
+    <!--                android:layout_height="wrap_content"-->
+    <!--                android:layout_gravity="center"-->
+    <!--                android:textColor="#0C120D"-->
+    <!--                android:textStyle="bold"-->
+    <!--                android:textSize="16dp" />-->
+
+    <!--        </FrameLayout>-->
+    <!--    </FrameLayout>-->
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/nestedScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:scrollbarStyle="outsideOverlay"
+        android:scrollbars="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/layout_title">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <RelativeLayout
+                android:id="@+id/rl_enable_notification"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/bg_common_item"
+                android:paddingStart="16dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_alignParentTop="true"
+                    android:layout_marginEnd="10dp"
+                    android:layout_toStartOf="@+id/switch_enable_notification"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/notification_title"
+                        android:textColor="#272727"
+                        android:textSize="16dp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:text="@string/notification_desc"
+                        android:textColor="#5A5A5A"
+                        android:textSize="12dp" />
+                </LinearLayout>
+
+                <com.kyleduo.switchbutton.SwitchButton
+                    android:id="@+id/switch_enable_notification"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="false"
+                    android:paddingStart="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="4dp"
+                    app:kswBackDrawable="@drawable/switch_back_drawable"
+                    app:kswThumbColor="#ffffff"
+                    app:kswThumbHeight="20dp"
+                    app:kswThumbRangeRatio="2.2"
+                    app:kswThumbWidth="20dp" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:id="@+id/rl_lockscreen_notify"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/rl_enable_notification"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/bg_common_item"
+                android:paddingStart="16dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="10dp"
+                    android:layout_toStartOf="@+id/switch_lockscreen_notify"
+                    android:text="@string/notification_lock_screen_only"
+                    android:textColor="#272727"
+                    android:textSize="16dp"
+                    android:textStyle="bold" />
+
+                <com.kyleduo.switchbutton.SwitchButton
+                    android:id="@+id/switch_lockscreen_notify"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="false"
+                    android:paddingStart="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="4dp"
+                    app:kswBackDrawable="@drawable/switch_back_drawable"
+                    app:kswThumbColor="#ffffff"
+                    app:kswThumbHeight="20dp"
+                    app:kswThumbRangeRatio="2.2"
+                    app:kswThumbWidth="20dp" />
+
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/tv_notification_filter_tips"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/rl_lockscreen_notify"
+                android:layout_gravity="start"
+                android:layout_marginStart="36dp"
+                android:layout_marginTop="12dp"
+                android:text="@string/notification_filter_tips"
+                android:textColor="#8E9490"
+                android:textSize="14dp"
+                app:layout_constraintHorizontal_bias="1.0" />
+
+            <RelativeLayout
+                android:id="@+id/rl_enable_all_notification"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/tv_notification_filter_tips"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="20dp"
+                android:background="@drawable/bg_common_item"
+                android:paddingStart="16dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="10dp"
+                    android:layout_toStartOf="@+id/switch_enable_all_notification"
+                    android:text="@string/notification_notification_enable_all"
+                    android:textColor="#272727"
+                    android:textSize="16dp"
+                    android:textStyle="bold" />
+
+                <com.kyleduo.switchbutton.SwitchButton
+                    android:id="@+id/switch_enable_all_notification"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:checked="false"
+                    android:paddingStart="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="4dp"
+                    app:kswBackDrawable="@drawable/switch_back_drawable"
+                    app:kswThumbColor="#ffffff"
+                    app:kswThumbHeight="20dp"
+                    app:kswThumbRangeRatio="2.2"
+                    app:kswThumbWidth="20dp" />
+
+            </RelativeLayout>
+
+            <ProgressBar
+                android:id="@+id/process_loading"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_below="@+id/rl_enable_all_notification"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="50dp"
+                android:indeterminate="true"
+                android:indeterminateDrawable="@drawable/progress_bar"
+                android:indeterminateDuration="1500"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_below="@+id/rl_enable_all_notification"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="20dp"
+                android:background="@android:color/transparent"
+                android:visibility="visible" />
+
+            <!-- 右侧索引 -->
+            <!--    <com.rokid.sprite.aiapp.notification.ui.SideIndexView-->
+            <!--        android:id="@+id/sideIndexView"-->
+            <!--        android:layout_width="32dp"-->
+            <!--        android:layout_height="match_parent"-->
+            <!--        android:layout_gravity="end"-->
+            <!--        android:paddingTop="16dp"-->
+            <!--        android:paddingBottom="16dp"-->
+            <!--        android:background="@android:color/transparent" />-->
+
+        </RelativeLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

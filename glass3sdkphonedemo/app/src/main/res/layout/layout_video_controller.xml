@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:exo="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/exo_controller"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@android:color/transparent"
+    android:padding="16dp">
+
+    <ImageButton
+        android:id="@id/exo_play"
+        android:layout_width="54dp"
+        android:layout_height="54dp"
+        android:layout_gravity="center"
+        android:background="@android:color/transparent"
+        android:scaleType="fitXY"
+        android:contentDescription="@string/exo_controls_play_description"
+        android:src="@drawable/ic_tutorial_play" />
+
+    <ImageButton
+        android:id="@id/exo_pause"
+        android:layout_width="54dp"
+        android:layout_height="54dp"
+        android:layout_gravity="center"
+        android:background="@android:color/transparent"
+        android:scaleType="fitXY"
+        android:contentDescription="@string/exo_controls_pause_description"
+        android:visibility="gone" />
+
+</FrameLayout>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="glass_base_item_margin_bottom">10dp</dimen>
+    <dimen name="glass_base_item_title_text_size">21sp</dimen>
+    <dimen name="glass_base_item_content_margin">20dp</dimen>
+    <dimen name="glass_base_item_label_width">30dp</dimen>
+    <dimen name="glass_base_item_label_margin">0dp</dimen>
+    <dimen name="glass_base_item_label_margin_top">-30dp</dimen>
+    <dimen name="glass_base_item_label_text_size">20sp</dimen>
+    <integer name="frame_duration">20</integer>
+</resources>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/icon_home">
+
+    <ImageView
+        android:id="@+id/iv_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="50dp"
+        android:src="@drawable/ic_arrow_back_black_24dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_skip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="跳过"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/iv_back"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/iv_back" />
+
+    <TextView
+        android:id="@+id/tv_title_discover_device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="发现蓝牙"
+        android:textColor="@android:color/black"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/iv_back" />
+
+    <TextView
+        android:id="@+id/tv_subtitle_discover_device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="请选择与眼镜主页名称一致的设备"
+        android:textColor="#666666"
+        android:textSize="14sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_title_discover_device" />
+
+
+    <TextView
+        android:id="@+id/tv_list_tip_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="8dp"
+        android:text="可用设备"
+        android:textColor="#666666"
+        android:textSize="14sp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_subtitle_discover_device" />
+
+
+    <ImageView
+        android:id="@+id/iv_load_small"
+        android:layout_width="19dp"
+        android:layout_height="19dp"
+        android:layout_marginLeft="5dp"
+        android:src="@mipmap/icon_load_small"
+        app:layout_constraintBottom_toBottomOf="@+id/tv_list_tip_1"
+        app:layout_constraintLeft_toRightOf="@+id/tv_list_tip_1"
+        app:layout_constraintTop_toTopOf="@+id/tv_list_tip_1" />
+
+    <ImageView
+        android:id="@+id/iv_load_reflesh"
+        android:layout_width="19dp"
+        android:layout_height="19dp"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="30dp"
+        android:src="@mipmap/icon_reflesh"
+        app:layout_constraintBottom_toBottomOf="@+id/tv_list_tip_1"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/tv_list_tip_1" />
+
+    <ImageView
+        android:layout_width="19dp"
+        android:layout_height="19dp"
+        android:layout_marginLeft="5dp"
+        app:layout_constraintBottom_toBottomOf="@+id/tv_list_tip_1"
+        app:layout_constraintLeft_toRightOf="@+id/tv_list_tip_1"
+        app:layout_constraintTop_toTopOf="@+id/tv_list_tip_1" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_discovered_devices"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/rounded_corner_bg"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tv_list_tip_1" />
+
+    <TextView
+        android:id="@+id/tv_list_tip_2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="未发现可用设备"
+        android:textColor="#666666"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+d
+</androidx.constraintlayout.widget.ConstraintLayout>

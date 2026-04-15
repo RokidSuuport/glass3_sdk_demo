@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingLeft="20dp"
+    android:paddingRight="20dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="24dp"
+    android:background="@drawable/bottom_dialog_bg">
+
+    <!-- 标题 -->
+    <TextView
+        android:id="@+id/dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#0c120d"
+        android:gravity="center"
+        android:text="请输入信息"/>
+
+    <TextView
+        android:id="@+id/tv_msg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:paddingTop="16dp"
+        android:textColor="#666666"
+        android:gravity="center"
+        android:hint="请输入内容"/>
+
+    <!-- 按钮区域 -->
+    <Button
+        android:id="@+id/btn_confirm"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="24dp"
+        android:text="确定"
+        android:textSize="16sp"
+        android:minWidth="100dp"
+        android:background="@drawable/rounded_corner_black_bg"
+        android:textColor="@android:color/white"/>
+
+
+</LinearLayout>

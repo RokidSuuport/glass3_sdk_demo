@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="250dp"
+    android:background="@drawable/ic_bottom_popup_bg"
+    android:padding="24dp"
+    android:elevation="8dp">
+
+    <TextView
+        android:id="@+id/tv_delete_file_title"
+        android:text="@string/prompter_select_files_title"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+        android:textSize="16dp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="@string/prompter_select_files_tips"
+        android:layout_below="@+id/tv_delete_file_title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="20dp"
+        android:textSize="14dp"
+        android:textColor="#666666"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <LinearLayout
+        android:id="@+id/ll_delete_popup_bottom"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btn_delete_right"
+            android:gravity="center"
+            android:background="@drawable/common_menu_btn_2_dark"
+            android:text="@string/prompter_delete"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:textAllCaps="false"
+            android:layout_width="match_parent"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btn_delete_left"
+            android:gravity="center"
+            android:background="@drawable/common_menu_btn_1_light"
+            android:text="@string/prompter_cancel"
+            android:textSize="16dp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:textAllCaps="false"
+            android:layout_width="match_parent"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

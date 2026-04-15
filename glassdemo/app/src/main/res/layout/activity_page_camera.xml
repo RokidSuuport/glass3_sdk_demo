@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:paddingBottom="2dp">
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/iv_photo_level"
+        android:layout_width="280px"
+        android:layout_height="200px"
+        android:layout_gravity="center"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_camera_1" />
+
+    <FrameLayout
+        android:id="@+id/center_box_lay"
+        android:layout_width="280px"
+        android:layout_height="200px"
+        android:layout_gravity="center"
+        android:clipChildren="false">
+
+        <ImageView
+            android:id="@+id/center_signdd_iv"
+            android:layout_width="16px"
+            android:layout_height="16px"
+            android:layout_gravity="center"
+            android:scaleType="fitXY"
+            android:src="@mipmap/page_camera_center_sign" />
+
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/func_tips_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="42dp"
+        android:textColor="@color/green_normal_80"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/ll_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/iv_photo"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@drawable/photo_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:layout_marginEnd="6dp"
+            android:nextFocusRight="@id/iv_record" />
+
+        <ImageButton
+            android:id="@+id/iv_record"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@drawable/record_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="6dp"
+            android:focusableInTouchMode="true"
+            android:nextFocusLeft="@id/iv_photo" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/video_time_lay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="16px"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="invisible">
+
+        <ImageView
+            android:id="@+id/video_time_sign"
+            android:layout_width="8px"
+            android:layout_height="8px"
+            android:layout_marginTop="1px"
+            android:layout_marginRight="4px"
+            android:scaleType="fitXY"
+            android:src="@mipmap/page_camera_video_time_sign" />
+
+        <TextView
+            android:id="@+id/video_time_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/green"
+            android:textSize="16px" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/camera_box_bg"
+        android:layout_width="280px"
+        android:layout_height="200px"
+        android:layout_gravity="center"
+        android:background="@drawable/camera_frame_animation"
+        android:visibility="invisible" />
+
+    <ImageView
+        android:id="@+id/camera_box_bg_big"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:background="@mipmap/icon_max_camera"
+        android:visibility="invisible" />
+
+</FrameLayout>

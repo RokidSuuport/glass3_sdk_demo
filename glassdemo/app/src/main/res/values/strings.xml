@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name">glassdemo</string>
+    <string name="s_sdk_init_failed">SDK初始化失败</string>
+    <string name="s_bt_idle">蓝牙未连接</string>
+    <string name="s_bt_connected">蓝牙已连接</string>
+    <string name="s_bt_disconnect">蓝牙已断开</string>
+    <string name="s_bt_connectting">蓝牙连接中</string>
+    <string name="s_bt_connect_tips">请在MobileDemo中搜索 %s 蓝牙设备并连接</string>
+    <string name="s_ring_idle">指环未连接</string>
+    <string name="s_ring_connected">指环已连接</string>
+    <string name="s_ring_disconnect">指环已断开</string>
+    <string name="s_ring_connectting">指环连接中</string>
+    <string name="s_ring_connect_tips">请在MobileDemo中搜索 %s 指环设备并连接</string>
+    <string name="s_p2p_wifi_disabled">WI-FI未开启</string>
+    <string name="s_p2p_idle">P2P未连接</string>
+    <string name="s_p2p_connected">P2P已连接</string>
+    <string name="s_p2p_disconnect">P2P已断开</string>
+    <string name="s_p2p_connectting">P2P连接中</string>
+    <string name="s_p2p_connect_tips">请在MobileDemo中搜索 %s P2P设备并连接</string>
+    <string name="s_face_recog_page">人脸识别</string>
+    <string name="s_translate_page">实时翻译</string>
+    <string name="item_face_recog">离线人脸</string>
+    <string name="item_face_online_recog">在线人脸</string>
+    <string name="item_plate_recog">车牌识别</string>
+    <string name="item_idcard_recog">证件识别</string>
+    <string name="item_ai_chat">AI对话</string>
+    <string name="item_translate">翻译</string>
+    <string name="item_take_photo">拍照</string>
+    <string name="page_ai_into_tip">你好，我在听</string>
+    <string name="offline_tts_start_video_record">Recording finished</string>
+    <string name="page_word_tips_ai_mode">智能模式</string>
+    <string name="page_word_toast_tv_change">文本字号修改成功</string>
+    <string name="page_word_toast_content_change">文本内容修改成功</string>
+    <string name="page_camera_video_stop_tips">Short press the function key to end recording</string>
+
+    <string name="patrol_tip">巡查中, 已识别%s人</string>
+    <string name="bluetooth_disconnect_tips">连接已断开，请连接手机端设备后重试</string>
+
+    <string name="camera_busy">相机正在处理，请稍后重试</string>
+    <string name="camera_error">相机异常，请稍后重试</string>
+    <string name="connect_device_tip">请先完成设备连接</string>
+    <string name="connect_bt_device_tip">请先完成蓝牙设备连接</string>
+    <string name="low_memory">当前低内存状态，请稍后再试</string>
+
+</resources>

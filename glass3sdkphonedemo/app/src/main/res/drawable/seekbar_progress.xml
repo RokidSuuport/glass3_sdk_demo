@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 背景轨道 -->
+    <item>
+        <shape android:shape="rectangle">
+            <size android:height="8dp"/>
+            <solid android:color="#868686"/>
+            <corners android:radius="3dp"/>
+        </shape>
+    </item>
+
+    <!-- 进度条 -->
+    <item android:id="@android:id/progress">
+        <shape android:shape="rectangle">
+            <size android:height="8dp"/>
+            <solid android:color="#868686"/>
+            <corners android:radius="3dp"/>
+        </shape>
+    </item>
+</layer-list>

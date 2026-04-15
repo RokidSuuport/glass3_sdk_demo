@@ -1,0 +1,217 @@
+<resources>
+    <string name="app_name">rokid白板</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="lorem_ipsum">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam in scelerisque sem. Mauris volutpat, dolor id interdum ullamcorper, risus dolor egestas lectus, sit amet mattis purus dui nec
+        risus. Maecenas non sodales nisi, vel dictum dolor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Suspendisse blandit eleifend diam, vel rutrum
+        tellus vulputate quis. Aliquam eget libero aliquet, imperdiet nisl a, ornare ex. Sed rhoncus est ut libero porta lobortis. Fusce in dictum tellus.\n\n
+        Suspendisse interdum ornare ante. Aliquam nec cursus lorem. Morbi id magna felis. Vivamus egestas, est a condimentum egestas, turpis nisl iaculis ipsum, in dictum tellus dolor sed neque. Morbi
+        tellus erat, dapibus ut sem a, iaculis tincidunt dui. Interdum et malesuada fames ac ante ipsum primis in faucibus. Curabitur et eros porttitor, ultricies urna vitae, molestie nibh. Phasellus
+        at commodo eros, non aliquet metus. Sed maximus nisl nec dolor bibendum, vel congue leo egestas.\n\n
+        Sed interdum tortor nibh, in sagittis risus mollis quis. Curabitur mi odio, condimentum sit amet auctor at, mollis non turpis. Nullam pretium libero vestibulum, finibus orci vel, molestie
+        quam. Fusce blandit tincidunt nulla, quis sollicitudin libero facilisis et. Integer interdum nunc ligula, et fermentum metus hendrerit id. Vestibulum lectus felis, dictum at lacinia sit amet,
+        tristique id quam. Cras eu consequat dui. Suspendisse sodales nunc ligula, in lobortis sem porta sed. Integer id ultrices magna, in luctus elit. Sed a pellentesque est.\n\n
+        Aenean nunc velit, lacinia sed dolor sed, ultrices viverra nulla. Etiam a venenatis nibh. Morbi laoreet, tortor sed facilisis varius, nibh orci rhoncus nulla, id elementum leo dui non lorem.
+        Nam mollis ipsum quis auctor varius. Quisque elementum eu libero sed commodo. In eros nisl, imperdiet vel imperdiet et, scelerisque a mauris. Pellentesque varius ex nunc, quis imperdiet eros
+        placerat ac. Duis finibus orci et est auctor tincidunt. Sed non viverra ipsum. Nunc quis augue egestas, cursus lorem at, molestie sem. Morbi a consectetur ipsum, a placerat diam. Etiam
+        vulputate dignissim convallis. Integer faucibus mauris sit amet finibus convallis.\n\n
+        Phasellus in aliquet mi. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. In volutpat arcu ut felis sagittis, in finibus massa gravida.
+        Pellentesque id tellus orci. Integer dictum, lorem sed efficitur ullamcorper, libero justo consectetur ipsum, in mollis nisl ex sed nisl. Donec maximus ullamcorper sodales. Praesent bibendum
+        rhoncus tellus nec feugiat. In a ornare nulla. Donec rhoncus libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus vestibulum. Fusce dictum libero quis
+        erat maximus, vitae volutpat diam dignissim.
+    </string>
+
+
+    <string name="prompter_import_file">导入文本</string>
+    <string name="prompter_import_tips">可从本地导入文本</string>
+    <string name="prompter_new">新建文本</string>
+    <string name="prompter_new_tips">可编辑一个空白文本</string>
+    <string name="prompter_history_files_title">历史文本</string>
+    <string name="prompter_no_history_file">无历史文本</string>
+    <string name="prompter_settings_auto_scroll">智能滚动</string>
+    <string name="prompter_settings_auto_scroll_desc">会根据所读的内容自动滚动提词器内容</string>
+    <string name="prompter_file_read_failed">提词器文件读取失败</string>
+    <string name="prompter_file_too_big">提词器文件太大</string>
+    <string name="prompter_sendto_glass">发送到眼镜</string>
+    <string name="prompter_preview">预览效果</string>
+    <string name="prompter_content_empty">提词器内容为空</string>
+    <string name="prompter_preview_pre_page">上一页</string>
+    <string name="prompter_preview_next_page">下一页</string>
+    <string name="prompter_font_size_decrease">字体增大</string>
+    <string name="prompter_font_size_increase">字体变小</string>
+    <string name="prompter_in_sending_file">文件发送中</string>
+    <string name="common_connectglasses_first">请先连接上眼镜</string>
+    <string name="prompter_file_name_not_empty">内容不可为空</string>
+    <string name="prompter_file_name_has_exists">提词器文件名已存在</string>
+
+    <string name="prompter_select_files_title">选择文件</string>
+    <string name="prompter_delete">删除</string>
+    <string name="prompter_cancel">取消</string>
+    <string name="prompter_select_files_tips">文件选择提示</string>
+    <string name="prompter_import_latest_file">导入最近文件</string>
+    <string name="prompter_import">提示器导入</string>
+
+    <string name="UserGuide_voice_subtitle">离线指令</string>
+    <string name="UserGuide_photo">拍照</string>
+    <string name="UserGuide_B_voice_photo_title">占位</string>
+    <string name="UserGuide_video">录像</string>
+    <string name="UserGuide_B_voice_video_title">占位</string>
+    <string name="UserGuide_record">录音</string>
+    <string name="UserGuide_B_voice_record_title">占位</string>
+    <string name="UserGuide_voice_description">无网络时可通过离线指令进行语音交互</string>
+    <string name="UserGuide_voice_photo_title">乐奇，拍个照</string>
+
+    <string name="UserGuide_voice_video_title">乐奇，录个像</string>
+    <string name="UserGuide_voice_record_title">乐奇，录个音</string>
+    <string name="UserGuide_button_shoot_title">拍照</string>
+    <string name="UserGuide_button_shoot_shortpress">单击</string>
+    <string name="UserGuide_button_shoot_longpress">双击</string>
+    <string name="UserGuide_button_system_title">系统交互</string>
+    <string name="UserGuide_button_system_Bluetooth_description">蓝牙配对</string>
+    <string name="UserGuide_button_system_Bluetooth_title">开机自动进入配对模式</string>
+    <string name="UserGuide_button_system_Poweroff_description">眼镜关机</string>
+    <string name="UserGuide_button_system_Poweroff_title">折叠镜腿，长按三秒</string>
+    <string name="UserGuide_button_system_Powerofon_description">眼镜开机</string>
+    <string name="UserGuide_button_system_Poweron_title">关机时，长按三秒</string>
+    <string name="UserGuide_button_system_Restart_description">眼镜重启</string>
+    <string name="UserGuide_button_system_Restart_title">长按十二秒</string>
+
+    <string name="UserGuide_touchpad_system_title">系统</string>
+    <string name="UserGuide_touchpad_Click_system_description">确认</string>
+    <string name="UserGuide_touchpad_Click">单击</string>
+    <string name="UserGuide_B_touchpad_DoubleClick_description">占位</string>
+    <string name="UserGuide_touchpad_DoubleClick">双击</string>
+    <string name="UserGuide_B_touchpad_TripleClick_description">占位</string>
+    <string name="UserGuide_touchpad_TripleClick">占位</string>
+    <string name="UserGuide_B_touchpad_LongPress_system_description">占位</string>
+    <string name="UserGuide_touchpad_LongPress">长按</string>
+    <string name="UserGuide_B_touchpad_SwipeForward_system_description">占位</string>
+    <string name="UserGuide_touchpad_SwipeForward">向前滑动</string>
+    <string name="UserGuide_B_touchpad_SwipeBackward_system_description">占位</string>
+    <string name="UserGuide_touchpad_SwipeBackward">向后滑动</string>
+    <string name="UserGuide_touchpad_phone_title">占位</string>
+    <string name="UserGuide_touchpad_Click_phone_description">占位</string>
+    <string name="UserGuide_touchpad_DoubleClick_phone_description">占位</string>
+    <string name="UserGuide_touchpad_calling_title">占位</string>
+    <string name="UserGuide_touchpad_Click_calling_description">占位</string>
+    <string name="UserGuide_touchpad_DoubleClick_calling_description">占位</string>
+
+    <string name="UserGuide_touchpad_DoubleClick_system_description">返回</string>
+    <string name="UserGuide_touchpad_LongPress_system_description">唤起AI助手</string>
+    <string name="UserGuide_touchpad_SwipeBackward_music_description">占位</string>
+    <string name="UserGuide_touchpad_SwipeForward_system_description">向右/向下选择</string>
+    <string name="UserGuide_touchpad_SwipeBackward_system_description">向左/向上选择</string>
+    <string name="UserGuide_touchpad_music_title">占位</string>
+    <string name="UserGuide_touchpad_Click_music_description">占位</string>
+    <string name="UserGuide_touchpad_Click_music_home_subtitle">占位</string>
+    <string name="UserGuide_touchpad_Click_music_lyric_subtitle">占位</string>
+    <string name="UserGuide_touchpad_SwipeForward_music_description">占位</string>
+
+    <string name="UserGuide_title_button">功能键</string>
+    <string name="UserGuide_title_touchpad">触控板</string>
+    <string name="UserGuide_title_voice">语音</string>
+    <string name="tabText">占位</string>
+    <string name="view_tab_custom">占位</string>
+    <string name="prompter_connect_glass_first">请先连接眼镜</string>
+    <string name="guide_Guide_WearingCompleted">占位</string>
+    <string name="guide_Guide_Detecting">占位</string>
+    <string name="glass_start">占位</string>
+
+    <string name="guide_Guide_ShortPressButton">占位</string>
+    <string name="guide_Guide_LightBlink">占位</string>
+    <string name="guide_Guide_SyncMedia">占位</string>
+    <string name="guide_Guide_SkipStep">占位</string>
+    <string name="guide_Guide_PlayMusic">占位</string>
+    <string name="guide_Guide_TakePhoto">占位</string>
+    <string name="guide_Guide_LongPressButton">占位</string>
+    <string name="guide_Guide_LightStay">占位</string>
+    <string name="guide_Guide_Record">占位</string>
+
+    <string name="guide_Guide_TapTouchPad">占位</string>
+    <string name="guide_Guide_ControlMusic">占位</string>
+    <string name="guide_Guide_MusicDontPlay">占位</string>
+    <string name="guide_Guide_PauseMusic">占位</string>
+    <string name="guide_Guide_TapAgain">占位</string>
+    <string name="guide_Guide_EndRecord">占位</string>
+    <string name="guide_Guide_PhoneCalls">占位</string>
+    <string name="guide_Guide_AnswerCall">占位</string>
+    <string name="guide_Guide_TapTouchPadIncomingCall">占位</string>
+
+    <string name="guide_Guide_MuteMic">占位</string>
+    <string name="guide_Guide_TapTouchPadDuringCall">占位</string>
+    <string name="guide_Guide_EndCall">占位</string>
+    <string name="guide_Guide_DoubleTapTouchPadDuringCall">占位</string>
+    <string name="guide_Guide_MoreControls">占位</string>
+    <string name="guide_Guide_ScrollPage">占位</string>
+    <string name="guide_Guide_SwipeTouchPad">占位</string>
+    <string name="guide_Guide_Confirm">占位</string>
+    <string name="guide_Guide_Back">占位</string>
+
+    <string name="guide_Guide_DoubleTapTouchPad">占位</string>
+    <string name="guide_Guide_NextStep">占位</string>
+    <string name="guide_Guide_AIAssistant">占位</string>
+    <string name="guide_Guide_AIAssistantChat">占位</string>
+    <string name="guide_Guide_RecommendedCommand">占位</string>
+    <string name="guide_Guide_StartTutorial">占位</string>
+    <string name="guide_Guide_TrySay">占位</string>
+    <string name="guide_Guide_IamRokid">占位</string>
+    <string name="guide_Guide_RokidWeatherIng">占位</string>
+    <string name="guide_Guide_RokidLookForwardIng">占位</string>
+    <string name="guide_Guide_StaySafe">占位</string>
+    <string name="guide_Guide_VeryGood">占位</string>
+    <string name="guide_Guide_TryAgainGuide">占位</string>
+    <string name="guide_Guide_GoodDone">占位</string>
+    <string name="guide_Guide_StaySafeNote">占位</string>
+    <string name="guide_Guide_RespectPrivacy">占位</string>
+    <string name="guide_Guide_RespectPrivacyNote">占位</string>
+    <string name="guide_Guide_CameraLEDLight">占位</string>
+    <string name="guide_Guide_TouchCommands">占位</string>
+    <string name="guide_Guide_AIAssistantGuide">占位</string>
+    <string name="guide_Guide_ImportantNotes">占位</string>
+
+    <string name="guide_Guide_OpenMusicApp">占位</string>
+    <string name="guide_Guide_MakeSureRunning">占位</string>
+    <string name="guide_Guide_Igot">占位</string>
+
+    <string name="guide_Guide_CameraLEDLightNote">占位</string>
+    <string name="guide_Guide_OtherReminders">占位</string>
+    <string name="guide_Guide_OtherRemindersNote">占位</string>
+    <string name="guide_Guide_StartWithRokid">占位</string>
+    <string name="guide_Guide_AlsoCanLongPress">占位</string>
+    <string name="guide_Guide_GlassesControl">占位</string>
+    <string name="guide_Guide_PhotoNote">占位</string>
+    <string name="guide_Guide_RecordNote">占位</string>
+    <string name="guide_Guide_EndRecordNote">占位</string>
+    <string name="guide_Guide_PlayMusicNote">占位</string>
+    <string name="guide_Guide_StartRecordVocieNote">占位</string>
+    <string name="guide_Guide_NextMusicNote">占位</string>
+    <string name="guide_Guide_UpVolumeNote">占位</string>
+    <string name="guide_Guide_BatteryNote">占位</string>
+    <string name="guide_Guide_TimeNote">占位</string>
+    <string name="guide_Guide_MorePlayNote">占位</string>
+    <string name="guide_Guide_WeatherNote">占位</string>
+    <string name="guide_Guide_TodayNewsNote">占位</string>
+    <string name="guide_Guide_AroundMeFoodNote">占位</string>
+    <string name="guide_Guide_NavigateNote">占位</string>
+    <string name="guide_Guide_Pay15Note">占位</string>
+    <string name="guide_Guide_RokidLine1Context1">占位</string>
+    <string name="guide_Guide_PutOn">占位</string>
+
+    <string name="notification_title">消息通知</string>
+    <string name="notification_desc">如需在眼镜端接受通知消息，需打开消息通知</string>
+    <string name="notification_lock_screen_only">仅在手机锁屏时通知</string>
+    <string name="notification_filter_tips">可开启通知的应用</string>
+    <string name="notification_enable_popup_title">是否允许Rokid AI获取通知使用权</string>
+    <string name="notification_enable_popup_desc">开启通知使用权后可在设备上接受通知消息(微信、钉钉等)，开启即授权本应用开启通知使用权</string>
+    <string name="notification_enable_popup_confirm">去授权</string>
+    <string name="notification_enable_popup_cancel">取消</string>
+    <string name="notification_error_toast">通知权限未打开</string>
+    <string name="notification_notification_enable_all">开启全部应用通知</string>
+
+
+</resources>

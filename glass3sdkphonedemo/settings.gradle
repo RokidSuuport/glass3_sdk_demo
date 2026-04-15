@@ -1,0 +1,36 @@
+pluginManagement {
+    repositories {
+        google {
+            content {
+                includeGroupByRegex("com\\.android.*")
+                includeGroupByRegex("com\\.google.*")
+                includeGroupByRegex("androidx.*")
+            }
+        }
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/releases/' }
+        maven{ url 'https://maven.aliyun.com/repository/google/'}
+        maven { url 'https://maven.aliyun.com/repository/public/'}
+        // Rokid 外网服务器地址
+        maven { url 'https://maven.rokid.com/repository/maven-public/' }
+        // Rokid 公司内网服务器地址
+        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven{ url 'https://maven.aliyun.com/repository/google/'}
+        maven { url 'https://maven.aliyun.com/nexus/content/repositories/releases/' }
+        maven { url 'https://maven.aliyun.com/repository/public/'}
+        maven { url 'https://maven.rokid.com/repository/maven-public/' }
+        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+rootProject.name = "phonedemo"
+include ':app'

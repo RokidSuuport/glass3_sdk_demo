@@ -1,0 +1,396 @@
+package com.rokid.phone
+
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.net.wifi.p2p.WifiP2pDevice
+import android.util.Log
+import com.blankj.utilcode.util.ToastUtils
+import com.rokid.phone.data.Config
+import com.google.gson.Gson
+import com.rokid.phone.ui.classicbt.model.BluetoothDeviceInfo
+import com.rokid.phone.data.CustomMessage
+import com.rokid.phone.data.GlobalData
+import com.rokid.phone.data.GlobalEvent
+import com.rokid.phone.utils.ProjectBusinessType
+import com.rokid.phone.utils.RKSystemInfo
+import com.rokid.phone.utils.SPUtil
+import com.rokid.phone.utils.SpKeyConstant
+import com.rokid.phone.utils.SystemGlobalConstant
+import com.rokid.security.phone.sdk.api.PSecuritySDK
+import com.rokid.security.phone.sdk.api.bluetooth.classic.listener.IClassicBTClientListener
+import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
+import com.rokid.security.phone.sdk.api.wifip2p.listener.IWifiP2PClientListener
+import com.rokid.security.phone.sdk.base.utils.other.defaultScope
+import com.rokid.security.phone.sdk.base.utils.other.ktx.call
+import com.rokid.security.phone.sdk.base.utils.other.ktx.collect
+import com.rokid.security.phone.sdk.base.utils.other.mainScope
+import com.rokid.security.phone.sdk.base.utils.other.workScope
+
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+/**
+ * Author: zhangshengwei
+ * Date: 2025/6/24
+ */
+object DeviceLinkerManager {
+
+    const val TAG = "DeviceLinkerManager"
+    var mWifiP2pDevice: WifiP2pDevice? = null
+
+    //上一次连接的设备状态
+    var mBluetoothDevice: BluetoothDeviceInfo? = null
+    var mGetGlassSystemInfoMsgTask: Job? = null
+    var mGson = Gson()
+    var DefaultName = "Rokid Glass3"
+    private val systemCallSet: HashSet<() -> Unit> = HashSet()
+
+    @Volatile
+    private var isSerialConnecting = false
+
+    //正在连接的蓝牙设备信息，连接完成后会与mBluetoothDevice一致
+    var mConnectingBluetoothDevice: BluetoothDeviceInfo? = null
+
+    private val mIClassicBTClientListener = object : IClassicBTClientListener {
+        @SuppressLint("MissingPermission")
+        override fun onDeviceFound(device: BluetoothDevice) {
+            Log.d(TAG, "发现蓝牙设备：${device.name}")
+        }
+
+        override fun onScanFinished() {
+        }
+
+        override fun onConnect(success: Boolean) {
+            if (success) {
+                Log.d(TAG, "onConnect方法蓝牙连接成功")
+                mConnectingBluetoothDevice?.let {
+                    saveBlueToothDeviceInfo(it)
+                }
+            } else {
+                Log.d(TAG, "onConnect方法蓝牙连接失败")
+                GlobalEvent.autoConnectionEvent.call(workScope)
+            }
+            GlobalData.setBtConnectState(success)
+            if (success && isSerialConnecting) {
+                // 只有在 connectDevices() 串行流程里，才会继续连接 Wi-Fi P2P
+                mWifiP2pDevice?.let { device ->
+                    if (!GlobalData.p2pConnectState.value) {
+                        wifiConnect(device)
+                    }
+                }
+                isSerialConnecting = false // 完成一次串行流程，清理标记
+            }
+        }
+
+        override fun onConnectionRejected(reason: String, code: Int) {
+            Log.i(TAG, "BT onConnectionRejected:  $reason")
+            ToastUtils.showShort(reason)
+            GlobalEvent.connectionRejectedEvent.call(workScope)
+        }
+    }
+
+    private val mIWifiP2PClientListener2 = object : IWifiP2PClientListener {
+        override fun onWifiP2pEnabled(enabled: Boolean) {
+            Log.i(TAG, "p2p onWifiP2pEnabled:  $enabled")
+            GlobalData.setP2pConnectState(enabled)
+        }
+    }
+
+    fun initObserver() {
+        GlobalData.sdkInitState.collect(defaultScope) {
+            if (it) {
+                PSecuritySDK.getClassicBlueToothClientService()?.addClientListener(mIClassicBTClientListener)
+                PSecuritySDK.getWifiP2PClientService()?.addWifiP2PClientListener(mIWifiP2PClientListener2)
+            } else {
+                Log.e(TAG, "initObserver: sdkInitState $it")
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getDeviceName(): String {
+        if (GlobalData.btConnectState.value) {
+            val name = SPUtil.getInstance(MyApplication.instance.baseContext).getString(SpKeyConstant.BluetoothDevice_NAME_Key)
+            return name
+        }
+        if (mBluetoothDevice == null) {
+            return DefaultName
+        }
+        val name = SPUtil.getInstance(MyApplication.instance.baseContext).getString(SpKeyConstant.BluetoothDevice_NAME_Key)
+        return name
+    }
+
+    fun saveP2pDevice(device: WifiP2pDevice) {
+        mWifiP2pDevice = device
+        var json = Gson().toJson(device)
+        Log.d(TAG, "saveP2pDevice" + json)
+        SPUtil.getInstance(MyApplication.instance.baseContext).putString(SpKeyConstant.WifiP2pDevice_key, json)
+    }
+
+    fun saveBlueToothDeviceInfo(device: BluetoothDeviceInfo) {
+        val json = Gson().toJson(device)
+        mBluetoothDevice = device
+        Log.d(TAG, "保存蓝牙设备信息：" + json + " " + device.name + " " + device.address)
+        SPUtil.getInstance(MyApplication.instance.baseContext).putString(SpKeyConstant.BluetoothDevice_AD_Key, device.address)
+        SPUtil.getInstance(MyApplication.instance.baseContext).putString(SpKeyConstant.BluetoothDevice_NAME_Key, device.name)
+    }
+
+    fun getP2pDevice(): WifiP2pDevice? {
+        val json = SPUtil.getInstance(MyApplication.instance.baseContext).getString(SpKeyConstant.WifiP2pDevice_key)
+        val wifiP2pDevice = Gson().fromJson(json, WifiP2pDevice::class.java)
+        Log.d(TAG, "getP2pDevice" + json)
+        return wifiP2pDevice
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getBlueToothDevice(): BluetoothDeviceInfo? {
+        val address = SPUtil.getInstance(MyApplication.instance.baseContext).getString(SpKeyConstant.BluetoothDevice_AD_Key)
+        val name = SPUtil.getInstance(MyApplication.instance.baseContext).getString(SpKeyConstant.BluetoothDevice_NAME_Key)
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        if (address.isNotEmpty()) {
+            val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(address)
+            return BluetoothDeviceInfo(name, address, device.type)
+        }
+        return null
+    }
+
+    private var findLastDevice: Boolean = false
+    private var isNeedAutoConnect = false
+    private var mIWifiP2PClientListener: IWifiP2PClientListener? = null
+
+    fun connectBt(bluetoothDevice: BluetoothDeviceInfo, action: (isConnect: Boolean) -> Unit) {
+        // 检查设备是否为空
+        mBluetoothDevice = bluetoothDevice
+        if (GlobalData.btConnectState.value) {
+            return
+        }
+        val bluetoothDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(bluetoothDevice.address)
+        if (bluetoothDevice != null) {
+            PSecuritySDK.getClassicBlueToothClientService()?.connectToServer(bluetoothDevice) {
+                if (it) {
+                    Log.d(TAG, "----------蓝牙连接成功")
+                    GlobalData.setBtConnectState(true)
+                } else {
+                    Log.d(TAG, "----------蓝牙连接失败")
+                    action(false)
+                }
+            }
+        } else {
+            Log.e(TAG, "bluetoothConnect: bluetoothDevice == null")
+        }
+    }
+
+    fun connectP2p(wifiP2pDevice: WifiP2pDevice?) {
+        // 检查设备是否为空
+        if (wifiP2pDevice == null) {
+            return
+        }
+        mWifiP2pDevice = wifiP2pDevice
+        if (!GlobalData.p2pConnectState.value) {
+            wifiConnect(wifiP2pDevice)
+        }
+    }
+
+    private fun wifiConnect(wifiP2pDevice: WifiP2pDevice?) {
+        Log.d(TAG, "---------wifiConnect")
+        // Wi-Fi P2P 连接
+        val wifiP2PClientService = PSecuritySDK.getWifiP2PClientService()
+        mIWifiP2PClientListener?.let { wifiP2PClientService?.removeWifiP2PClientListener(it) }
+        mIWifiP2PClientListener = object : IWifiP2PClientListener {
+            override fun onWifiP2pEnabled(enabled: Boolean) {
+                wifiP2PClientService?.removeWifiP2PClientListener(mIWifiP2PClientListener!!)
+                Log.i(TAG, "onWifiP2pEnabled:  ${enabled}")
+            }
+
+            override fun onPeersAvailable(devices: List<WifiP2pDevice>) {
+                if (!findLastDevice && isNeedAutoConnect) {
+                    val device =
+                        devices.find { it.deviceName == wifiP2pDevice?.deviceName && it.deviceAddress == wifiP2pDevice?.deviceAddress }
+                    if (device != null) {
+                        findLastDevice = true
+                        isNeedAutoConnect = false
+                        wifiP2PClientService?.connectDevice(device) { it1 ->
+                            wifiP2PClientService.removeWifiP2PClientListener(mIWifiP2PClientListener!!)
+                        }
+                    }
+                }
+            }
+        }
+        wifiP2PClientService?.addWifiP2PClientListener(mIWifiP2PClientListener!!)
+
+        mainScope.launch {
+            wifiP2pDevice?.let { device ->
+                wifiP2PClientService?.disconnect()
+                delay(500)
+                wifiP2PClientService?.initialize { it1 ->
+                    if (it1.isSuccess) {
+                        Log.i(TAG, "initView: initialize true")
+                        findLastDevice = false
+                        isNeedAutoConnect = true
+                        wifiP2PClientService.startDiscoverPeers {
+                            Log.i(TAG, "initView: startDiscoverPeers ${it.isSuccess}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    fun release() {
+        closeSystemTask()
+        systemCallSet.clear()
+        mBluetoothDevice = null
+        mWifiP2pDevice = null
+        PSecuritySDK.getClassicBlueToothClientService()?.removeClientListener(mIClassicBTClientListener)
+        mIWifiP2PClientListener?.apply {
+            PSecuritySDK.getWifiP2PClientService()?.removeWifiP2PClientListener(this)
+        }
+        mainScope.cancel()
+        PSecuritySDK.getMessageService()?.removeMessageListener(messageListener)
+    }
+
+    fun addSystemInfoListener(systemCallback: (() -> Unit)) {
+        systemCallSet.add(systemCallback)
+    }
+
+    fun addMessageListener() {
+        PSecuritySDK.getMessageService()?.addMessageListener(messageListener)
+    }
+
+    private val messageListener = object : IMessageListener {
+        override fun onClassicBTTextMessage(msg: String, clientId: String) {
+            if (clientId == "SecurityPhone") {
+                val customMessage = mGson.fromJson(msg, CustomMessage::class.java)
+                if (customMessage.type == ProjectBusinessType.SYSTEM_INFO_RESPONSE) {
+                    val systemInfo = mGson.fromJson(customMessage.message, RKSystemInfo::class.java)
+                    if (systemInfo != null) {
+                        Log.d(TAG, "-----系统信息: version = ${systemInfo.version}, msg = $msg")
+                        SystemGlobalConstant.osType = systemInfo.osType
+                        SystemGlobalConstant.cpuType = systemInfo.cpuType
+                        SystemGlobalConstant.version = systemInfo.version
+                        SystemGlobalConstant.isCharge = systemInfo.isCharge
+                        SystemGlobalConstant.powerValue = systemInfo.powerValue
+                        SystemGlobalConstant.brightness = systemInfo.brightness
+                        SystemGlobalConstant.maxBrightness = systemInfo.maxBrightness
+                        SystemGlobalConstant.isAutoBrightness = systemInfo.isAutoBrightness
+                        SystemGlobalConstant.curVolume = systemInfo.curVolume
+                        SystemGlobalConstant.maxVolume = systemInfo.maxVolume
+                        SystemGlobalConstant.glassRingConnected = systemInfo.glassRingConnected
+                        SystemGlobalConstant.glassRingBluetoothDeviceName = systemInfo.glassRingBluetoothDeviceName
+
+                        SystemGlobalConstant.deviceTypeId = systemInfo.deviceTypeId
+                        SystemGlobalConstant.deviceId = systemInfo.deviceId
+                        SPUtil.getInstance(MyApplication.instance.baseContext)
+                            .putString(SpKeyConstant.DEVICE_ID, SystemGlobalConstant.deviceId)
+                        for (function in systemCallSet) {
+                            function.invoke()
+                        }
+                    }
+                } else if (customMessage.type == ProjectBusinessType.POWER_UPDATE) {
+                    val systemInfo = mGson.fromJson(customMessage.message, RKSystemInfo::class.java)
+                    Log.d(TAG, "-----眼镜电量信息: version = ${systemInfo.version}, msg = $msg")
+                    if (systemInfo != null) {
+                        SystemGlobalConstant.isCharge = systemInfo.isCharge
+                        SystemGlobalConstant.powerValue = systemInfo.powerValue
+                    }
+                }
+            }
+        }
+    }
+
+    fun openSystemTask() {
+        if (mGetGlassSystemInfoMsgTask == null) {
+            mGetGlassSystemInfoMsgTask = CoroutineScope(Dispatchers.Main).launch {
+                while (isActive) {
+                    getGlassSystemInfoMsg()
+                    delay(15000)
+                }
+            }
+        }
+    }
+
+    fun closeSystemTask() {
+        mGetGlassSystemInfoMsgTask?.cancel("")
+        mGetGlassSystemInfoMsgTask = null
+    }
+
+
+    fun getGlassSystemInfoMsg() {
+        val customMessage = CustomMessage()
+        customMessage.type = ProjectBusinessType.GET_SYSTEM_INFO
+        val message = mGson.toJson(customMessage)
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(message, MyApplication.MainAppClientId)
+    }
+
+    fun removeSystemInfoListener(systemCallback: (() -> Unit)) {
+        systemCallSet.remove(systemCallback)
+    }
+
+    fun getGlassPowerInfoMsg() {
+        val customMessage = CustomMessage()
+        customMessage.type = ProjectBusinessType.POWER_UPDATE
+        val message = mGson.toJson(customMessage)
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(message, MyApplication.MainAppClientId)
+    }
+
+    fun setVolume(progress: Int = 0) {
+        val customMessage = CustomMessage()
+        customMessage.type = ProjectBusinessType.SET_VOLUME
+        customMessage.message = progress.toString()
+        val msg = mGson.toJson(customMessage)
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(msg, MyApplication.MainAppClientId)
+    }
+
+    fun setBrightness(progress: Int = 0) {
+        val customMessage = CustomMessage()
+        customMessage.type = ProjectBusinessType.SET_BRIGHTNESS
+        customMessage.message = progress.toString()
+        val msg = mGson.toJson(customMessage)
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(msg, MyApplication.MainAppClientId)
+    }
+
+    fun sendConfig(config: Config) {
+        Log.d(TAG, "sendConfig ${config.envType}")
+        val customMessage = CustomMessage()
+        customMessage.type = ProjectBusinessType.SEND_CONFIG
+        customMessage.message = mGson.toJson(config)
+        val msg = mGson.toJson(customMessage)
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(msg, MyApplication.MainAppClientId)
+    }
+
+    fun getCustomWake() {
+        val cusMsg = CustomMessage().apply {
+            type = ProjectBusinessType.GET_CUSTOM_WAKE
+        }
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(mGson.toJson(cusMsg), MyApplication.MainAppClientId)
+    }
+
+    fun setCustomWake(isChecked: Boolean) {
+        val cusMsg = CustomMessage().apply {
+            type = ProjectBusinessType.SET_CUSTOM_WAKE
+            message = isChecked.toString()
+        }
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(mGson.toJson(cusMsg), MyApplication.MainAppClientId)
+    }
+
+    fun setZoomCamera(level: Int) {
+        PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(
+            mGson.toJson(
+                CustomMessage().apply {
+                    type = ProjectBusinessType.SET_ZOOM_CAMERA
+                    message = level.toString()
+                }
+            ), MyApplication.MainAppClientId
+        )
+    }
+
+
+}

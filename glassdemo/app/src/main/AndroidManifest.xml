@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.rokid.glesse"
+    android:largeHeap="true">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="AllFilesAccessPolicy,ScopedStorage" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 获取手机震动服务 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 获取网络服务 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 获取Wi-Fi服务 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission
+        android:name="android.permission.REBOOT"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="31" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /> <!-- 这是 Android 12 (API 31) 及以上使用 Wi-Fi P2P / Wi-Fi 扫描必须声明的权限 -->
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="31" /> <!-- 声明支持 Wi-Fi Direct 功能 -->
+    <uses-feature
+        android:name="android.hardware.wifi.direct"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" /> <!-- 需要系统签名 应用通过反射方式开启设备蓝牙可见性 需要该权限 -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_PRIVILEGED"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        tools:ignore="ForegroundServicesPolicy" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission
+        android:name="android.permission.ACCESS_BACKGROUND_LOCATION"
+        tools:ignore="BackgroundLocationPolicy" />
+    <!-- Android 10+ 特殊情况：SYSTEM_ALERT_WINDOW 权限  后台启动activity  蓝牙可发现状态的权限弹窗 需要该权限 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission
+        android:name="android.permission.DEVICE_POWER"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+
+    <application
+        android:name="com.rokid.glass.MyApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Glessedemo"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+        <activity
+            android:name="com.rokid.glass.CameraShareDemoActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.rokid.glass.SendMessageActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.rokid.glass.HomeActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Glessedemo">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.rokid.glass.CameraPageActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.GlassLprTrackActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.GlassFaceTrackActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.MessageReceiveActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.TestWebViewActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.SdkMediaActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.MediaRecordActivity"
+            android:exported="true" />
+
+        <service
+            android:name="com.rokid.glass.AudioService"
+            android:enabled="true"
+            android:exported="true"
+            android:foregroundServiceType="connectedDevice|location|microphone|dataSync|camera"
+            tools:ignore="ForegroundServicePermission" />
+
+    </application>
+
+</manifest>

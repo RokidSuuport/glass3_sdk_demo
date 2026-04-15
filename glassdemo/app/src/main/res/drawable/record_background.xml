@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- 优先级最高：聚焦或选中状态 -->
+<item android:drawable="@mipmap/icon_record"
+    android:state_focused="true" />
+<item android:drawable="@mipmap/icon_record"
+    android:state_selected="true" />
+
+<!-- 默认状态 -->
+<item android:drawable="@mipmap/icon_default" />
+</selector>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="5px">
+
+    <LinearLayout
+        android:id="@+id/sprite_toast_lay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/shape_sprite_toast_bg"
+        android:orientation="horizontal"
+        android:padding="16px"
+        android:visibility="visible">
+
+        <ImageView
+            android:id="@+id/sprite_toast_image"
+            android:layout_width="20px"
+            android:layout_height="20px"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="8px"
+            android:src="@mipmap/toast_info_icon" />
+
+        <TextView
+            android:id="@+id/sprite_toast_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"
+            android:textColor="@color/green"
+            android:textSize="16px" />
+    </LinearLayout>
+</FrameLayout>
