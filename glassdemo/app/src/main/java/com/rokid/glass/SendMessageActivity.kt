@@ -314,10 +314,10 @@ class SendMessageActivity : BaseActivity() {
             R.id.btTts -> {
                 // TODO 在线tts 文本转语音播放，语音播报的时候记得别开投屏，不然眼镜会把投屏的设备当成音响，声音就跑偏了。
                 val str = "秋天不回来，我要去爬山啦"
-//                GlassSdk.getGlassTtsService()?.doSpeechTts(str)
+                GlassSdk.getGlassTtsService()?.doSpeechTts(str)
 
                 // TODO 离线tts 文本转语音播放，语音播报的时候记得别开投屏，不然眼镜会把投屏的设备当成音响，声音就跑偏了。
-                GlassSdk.getGlassOfflineTtsService()?.playTtsMsg(str)
+//                GlassSdk.getGlassOfflineTtsService()?.playTtsMsg(str)
                 log(str)
             }
 

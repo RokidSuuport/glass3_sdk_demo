@@ -32,6 +32,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+//        freeCompilerArgs += "-Xskip-metadata-version-check"
     }
     buildFeatures {
 //        compose true
@@ -56,6 +57,7 @@ android {
 }
 
 dependencies {
+    testImplementation libs.junit
     implementation libs.androidx.constraintlayout
     implementation libs.androidx.core.ktx
     implementation libs.androidx.lifecycle.runtime.ktx
@@ -63,7 +65,7 @@ dependencies {
     implementation libs.androidx.activity
     implementation libs.viewfinderview
 //    implementation files('libs/scanner-2.1.2-E-SNAPSHOT.aar')
-    implementation 'com.rokid.security.glass3.qrcode:scanner:1.0.1'
+    implementation 'com.rokid.security.glass3.qrcode:scanner:1.0.3'
     implementation('com.rokid.security:glass3.open.sdk:2.1.7-E') {
         exclude group: "org.slf4j"
     }

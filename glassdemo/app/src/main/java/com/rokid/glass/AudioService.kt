@@ -85,7 +85,7 @@ class AudioService : Service() {
             L.d(TAG, "onAudioStream-->bufferLen: ${buffer.filter { it != 0.toByte() }.joinToString(" ")}")
         }
 
-        override fun getCallbackId(): String? {
+        override fun getCallbackId(): String {
             return "audio1"
         }
     }
