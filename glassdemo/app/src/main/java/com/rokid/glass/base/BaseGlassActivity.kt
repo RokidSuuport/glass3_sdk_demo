@@ -55,11 +55,10 @@ open class BaseGlassActivity : AppCompatActivity() {
         when (event.action) {
             KeyEvent.ACTION_DOWN -> {
                 when (event.keyCode) {
-//                    KeyEvent.KEYCODE_DPAD_DOWN -> {
-//                        Log.d(TAG, "---OnUnhandledKeyEventListenerCompat:方向键向下事件")
-//                        ret = GlassKeyEvent(GlassKeyEvent.KEYCODE_DPAD_DOWN)
-//                        return@OnUnhandledKeyEventListenerCompat true
-//                    }
+                    KeyEvent.KEYCODE_ENTER -> {
+                        ret = GlassKeyEvent(GlassKeyEvent.KEYCODE_CLICK)
+                        return@OnUnhandledKeyEventListenerCompat true
+                    }
                     // 触摸板向前滑动
                     KeyEvent.KEYCODE_DPAD_RIGHT -> {
                         Log.d(TAG, "---OnUnhandledKeyEventListenerCompat:按下事件,触摸板向前滑动")

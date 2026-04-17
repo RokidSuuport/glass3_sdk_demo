@@ -42,10 +42,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
+                android:textColor="@color/green_normal_40"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="语音转文本"
-                android:textColor="@color/green_normal_40"
                 android:textSize="12sp" />
 
             <androidx.appcompat.widget.AppCompatTextView

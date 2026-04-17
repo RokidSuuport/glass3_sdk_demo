@@ -136,7 +136,6 @@ class HomeActivity : BaseActivity() {
         if (freeSpace < SAFE_MARGIN) {
             // 存储空间不足，不允许继续录像
         }
-//        startActivity(Intent(this, MediaRecordActivity::class.java))
         initSDK()
 
         directionTracker = HeadPoseTracker(this) { azimuth ->
@@ -190,7 +189,7 @@ class HomeActivity : BaseActivity() {
             if (it) {
                 Log.d(TAG, "SDK 初始化成功")
                 initIconData()
-                //离线语音转文字,当说打开编号12的警灯将会打印打开编号12的警灯
+                //离线语音转文字,当说打开编号12的警灯将会打印打开编号12的警灯，推荐3-5个词，不要有叠音
                 jdVoiceAction = VoiceAction("打开编号12的警灯", "da kai bian hao shi er de jing deng", object : IVoiceCallback.Stub() {
                     override fun onVoiceTriggered() {
                         Log.e(TAG, "打开编号12的警灯")
@@ -201,7 +200,7 @@ class HomeActivity : BaseActivity() {
 //                GlassSdk.getGlassOfflineTtsService()?.playTtsMsg("进入眼镜端演示工程")
                 Log.d(TAG, "---眼镜SN号=${GlassSdk.getGlassDeviceService()?.serialNumber}")
                 Log.d(TAG, "---电量值=${GlassSdk.getGlassDeviceService()?.deviceStatusInfo?.powerValue}")
-                //离线语音转文字,当说下雪了将会打印下雪了
+                //离线语音转文字,当说下雪了将会打印下雪了，推荐3-5个词，不要有叠音
                 snowVoiceAction = VoiceAction("下雪了", "xia xue le", object : IVoiceCallback.Stub() {
                     override fun onVoiceTriggered() {
                         Log.e(TAG, "下雪了")
@@ -216,6 +215,7 @@ class HomeActivity : BaseActivity() {
                 })
                 GlassSdk.getGlassOfflineCmdService()?.add(zyVoiceAction)
                 AudioService.start(this)
+                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
 //                startActivity(Intent(this, QRCodeActivity::class.java))
 //                startActivity(Intent(this, QRCameraActivity::class.java))
                 // 设置眼睛端系统时间 timeStr: 2026-02-02 14:44:44,1770014682490

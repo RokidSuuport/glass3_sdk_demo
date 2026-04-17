@@ -194,7 +194,7 @@ class SendMessageActivity : BaseActivity() {
                 KeyEvent.ACTION_DOWN -> {
                     when (event.keyCode) {
                         KeyEvent.KEYCODE_ENTER -> {
-                            Log.d(TAG, "setOnKeyListener 键盘回车事件")
+                            Log.d(TAG, "setOnKeyListener 键盘回车事件或者触摸板点击事件")
                             toClick()
                         }
 
@@ -697,16 +697,6 @@ class SendMessageActivity : BaseActivity() {
             }
         }
         return super.onGlassKeyEvent(keyEvent)
-    }
-
-    fun unAllSelectState(viewGroup: ViewGroup) {
-        for (i in 0 until viewGroup.childCount) {
-            if (viewGroup.getChildAt(i) is ViewGroup) {
-                unAllSelectState(viewGroup.getChildAt(i) as ViewGroup)
-            } else if (viewGroup.getChildAt(i) is AppCompatTextView) {
-                unSelectBtn(viewGroup.getChildAt(i) as AppCompatTextView)
-            }
-        }
     }
 
     private fun unSelectBtn(textView: AppCompatTextView) {

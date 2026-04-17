@@ -117,7 +117,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
 
             // TODO: 在线语音转文本和文本转语音秘钥，appId填写accessKey，secret填写secretKey简称AKSK,找商务申请。
             // TODO: https://x-docs.rokid.com/docs/%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B.html#_9-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%9C%A8%E7%BA%BF%E8%AF%AD%E9%9F%B3%E8%BD%AC%E6%96%87%E6%9C%AC%E5%92%8C%E6%96%87%E6%9C%AC%E8%BD%AC%E8%AF%AD%E9%9F%B3
-            val userAuthInfo = UserAuthInfo("", "")
+            val userAuthInfo = UserAuthInfo("b7a3286b8b6b416abb4cc5c73c2ce322", "1ad1b68277314c1bb3793966e77c75c0")
 
             // 不初始化翻译服务 ，初始化语音转文本和文本转语音
             val banServiceList: List<NetServiceType> = arrayListOf(NetServiceType.TranslateService)

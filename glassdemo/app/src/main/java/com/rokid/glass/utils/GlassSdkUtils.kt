@@ -10,7 +10,7 @@ import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.client.IServiceConnectionCallback
 import com.rokid.security.glass3.open.sdk.uitls.log.L
 import com.rokid.security.glass3.sdk.base.data.ring.bean.BluetoothDeviceBean
-import com.rokid.security.sdk.base.common.outside.PhoneAppInfo
+import com.rokid.security.sdk.base.common.outside.CompanionAppInfo
 import com.rokid.security.sdk.base.common.outside.UserInfo
 import com.rokid.security.system.server.IClientCallback
 import com.rokid.security.system.server.bluetooth.IBTService
@@ -72,9 +72,17 @@ object GlassSdkUtils {
                     Log.d(TAG, "onUserInfo->" + info?.userName)
                 }
 
-                override fun onPhoneAppInfo(info: PhoneAppInfo?) {
+                /**
+                 * 更新伴生端 App 信息
+                 * @param info
+                 */
+                override fun onCompanionAppInfo(info: CompanionAppInfo?) {
                     Log.d(TAG, "onPhoneAppInfo->" + info?.envType)
                 }
+
+//                override fun onPhoneAppInfo(info: PhoneAppInfo?) {
+//                    Log.d(TAG, "onPhoneAppInfo->" + info?.envType)
+//                }
 
                 override fun onConfig(p0: String?) {
                 }
