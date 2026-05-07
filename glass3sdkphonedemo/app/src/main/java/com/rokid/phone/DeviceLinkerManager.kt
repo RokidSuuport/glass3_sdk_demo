@@ -21,6 +21,7 @@ import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.bluetooth.classic.listener.IClassicBTClientListener
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
 import com.rokid.security.phone.sdk.api.wifip2p.listener.IWifiP2PClientListener
+import com.rokid.security.phone.sdk.base.utils.log.L
 import com.rokid.security.phone.sdk.base.utils.other.defaultScope
 import com.rokid.security.phone.sdk.base.utils.other.ktx.call
 import com.rokid.security.phone.sdk.base.utils.other.ktx.collect
@@ -28,8 +29,6 @@ import com.rokid.security.phone.sdk.base.utils.other.mainScope
 import com.rokid.security.phone.sdk.base.utils.other.workScope
 
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -72,6 +71,7 @@ object DeviceLinkerManager {
                 Log.d(TAG, "onConnect方法蓝牙连接成功")
                 mConnectingBluetoothDevice?.let {
                     saveBlueToothDeviceInfo(it)
+                    getSystemMsgTask()
                 }
             } else {
                 Log.d(TAG, "onConnect方法蓝牙连接失败")
@@ -245,7 +245,7 @@ object DeviceLinkerManager {
 
 
     fun release() {
-        closeSystemTask()
+        closeSystemMsgTask()
         systemCallSet.clear()
         mBluetoothDevice = null
         mWifiP2pDevice = null
@@ -267,12 +267,15 @@ object DeviceLinkerManager {
 
     private val messageListener = object : IMessageListener {
         override fun onClassicBTTextMessage(msg: String, clientId: String) {
-            if (clientId == "SecurityPhone") {
-                val customMessage = mGson.fromJson(msg, CustomMessage::class.java)
+            try {
+//                Log.d(TAG,"--------处理前msg=$msg,clientId=$clientId")
+                // 普通蓝牙文本不是系统业务消息，解析不到 CustomMessage 时直接忽略。
+                val customMessage = CustomMessage.fromClassicBtPayload(mGson, msg) ?: return
+//                Log.d(TAG, "---------处理后msg=${customMessage.message},type=${customMessage.type}")
                 if (customMessage.type == ProjectBusinessType.SYSTEM_INFO_RESPONSE) {
                     val systemInfo = mGson.fromJson(customMessage.message, RKSystemInfo::class.java)
                     if (systemInfo != null) {
-                        Log.d(TAG, "-----系统信息: version = ${systemInfo.version}, msg = $msg")
+                        closeSystemMsgTask()
                         SystemGlobalConstant.osType = systemInfo.osType
                         SystemGlobalConstant.cpuType = systemInfo.cpuType
                         SystemGlobalConstant.version = systemInfo.version
@@ -302,22 +305,25 @@ object DeviceLinkerManager {
                         SystemGlobalConstant.powerValue = systemInfo.powerValue
                     }
                 }
+            } catch (e: Exception) {
+                Log.d(TAG, "onClassicBTTextMessage 解析异常: ${e.message}", e)
             }
         }
     }
 
-    fun openSystemTask() {
+    fun getSystemMsgTask() {
         if (mGetGlassSystemInfoMsgTask == null) {
-            mGetGlassSystemInfoMsgTask = CoroutineScope(Dispatchers.Main).launch {
+            mGetGlassSystemInfoMsgTask = workScope.launch {
                 while (isActive) {
+                    delay(800)
+                    Log.d(TAG,"----getSystemInfo")
                     getGlassSystemInfoMsg()
-                    delay(15000)
                 }
             }
         }
     }
 
-    fun closeSystemTask() {
+    fun closeSystemMsgTask() {
         mGetGlassSystemInfoMsgTask?.cancel("")
         mGetGlassSystemInfoMsgTask = null
     }

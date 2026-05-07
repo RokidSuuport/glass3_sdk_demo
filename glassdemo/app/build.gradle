@@ -66,7 +66,7 @@ dependencies {
     implementation libs.viewfinderview
 //    implementation files('libs/scanner-2.1.2-E-SNAPSHOT.aar')
     implementation 'com.rokid.security.glass3.qrcode:scanner:1.0.3'
-    implementation ("com.rokid.security:glass3.open.sdk:2.1.8-E-20260414.081726-1"){
+    implementation ("com.rokid.security:glass3.open.sdk:2.1.8-E"){
         exclude group: "org.slf4j"
     }
 //    implementation('com.rokid.security:glass3.open.sdk:2.1.7-E') {

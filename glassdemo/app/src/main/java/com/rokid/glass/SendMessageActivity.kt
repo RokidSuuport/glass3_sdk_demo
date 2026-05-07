@@ -2,15 +2,10 @@ package com.rokid.glass
 
 import android.content.Context
 import android.content.Intent
-import android.opengl.GLES11Ext
-import android.opengl.GLES20
-import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -24,7 +19,6 @@ import com.rokid.glass.utils.FileUtils
 import com.rokid.glesse.R
 import com.rokid.glesse.databinding.ActivitySendmessageBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
-import com.rokid.security.glass3.open.sdk.camera.CameraShareHelper
 import com.rokid.security.glass3.open.sdk.uitls.log.L
 import com.rokid.security.glass3.qrcode.api.GlassScanCallback
 import com.rokid.security.glass3.qrcode.api.GlassScanner
@@ -44,11 +38,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
-import javax.microedition.khronos.egl.EGLConfig
-import javax.microedition.khronos.opengles.GL10
 import kotlin.coroutines.resume
 
 class SendMessageActivity : BaseActivity() {
@@ -79,9 +68,6 @@ class SendMessageActivity : BaseActivity() {
     private val mBTFileOperator by lazy {
         GlassSdk.getGlassMessageService()?.glassBtFileOperater
     }
-
-    private var renderer: CameraShareRenderer? = null
-
 
     /**
      *  设置本端文件接收的监听器
@@ -218,7 +204,6 @@ class SendMessageActivity : BaseActivity() {
             true
         }
 
-        setupGLSurfaceView()
 //        lifecycleScope.launch(Dispatchers.IO) {
 //            while (handlerLprCount > 0) {
 //                val result = takePhotoAndAwait() // 协程会在此处等待拍照完成
@@ -438,17 +423,9 @@ class SendMessageActivity : BaseActivity() {
                 GlassSdk.getGlassMediaService()?.stopAudioRecord(audioRecord)
             }
 
-            R.id.btShareSurface -> {
-                binding.glSurfaceView.visibility = View.VISIBLE
-                binding.glSurfaceView.queueEvent {
-                    startNormalMode()
-                }
-            }
-
-            R.id.btStopSurface -> {
-                binding.glSurfaceView.visibility = View.GONE
-                log("停止跨进程Surface共享")
-                stopNormalMode()
+            R.id.btCameraShare -> {
+                val intent = Intent(this, CameraShareSelectActivity::class.java)
+                startActivity(intent)
             }
 
             R.id.btQRCodeImage -> {
@@ -479,20 +456,8 @@ class SendMessageActivity : BaseActivity() {
                 })
             }
 
-            R.id.btNv21 -> {
-                val intent = Intent(this, CameraShareDemoActivity::class.java)
-//                intent.putExtra(EXTRA_ENABLE_MIX, true)
-                startActivity(intent)
-            }
-
         }
     }
-
-    private fun stopNormalMode() {
-        surfaceHelper?.releaseSurface()
-        surfaceHelper = null
-    }
-
 
     private val audioRecord = object : AudioCallback.Stub() {
         override fun onAudioStream(buffer: ByteArray?, bufferLen: Int) {
@@ -549,7 +514,7 @@ class SendMessageActivity : BaseActivity() {
         when (keyEvent) {
             GlassKeyEvent.KEYCODE_FRONT -> {
                 selectBtnStatus++
-                selectBtnStatus %= 13
+                selectBtnStatus %= 11
                 when (selectBtnStatus) {
                     1 -> {
                         unSelectBtn(binding.btTts)
@@ -588,31 +553,21 @@ class SendMessageActivity : BaseActivity() {
 
                     8 -> {
                         unSelectBtn(binding.btStopSendAudioStream)
-                        selectBtn(binding.btShareSurface)
+                        selectBtn(binding.btCameraShare)
                     }
 
                     9 -> {
-                        unSelectBtn(binding.btShareSurface)
-                        selectBtn(binding.btStopSurface)
-                    }
-
-                    10 -> {
-                        unSelectBtn(binding.btStopSurface)
+                        unSelectBtn(binding.btCameraShare)
                         selectBtn(binding.btQRCodeImage)
                     }
 
-                    11 -> {
+                    10 -> {
                         unSelectBtn(binding.btQRCodeImage)
                         selectBtn(binding.btQRCode)
                     }
 
-                    12 -> {
-                        unSelectBtn(binding.btQRCode)
-                        selectBtn(binding.btNv21)
-                    }
-
                     0 -> {
-                        unSelectBtn(binding.btNv21)
+                        unSelectBtn(binding.btQRCode)
                         selectBtn(binding.btTts)
                     }
                 }
@@ -621,9 +576,9 @@ class SendMessageActivity : BaseActivity() {
             GlassKeyEvent.KEYCODE_BEHIND -> {
                 selectBtnStatus--
                 if (selectBtnStatus < 0) {
-                    selectBtnStatus = 12
+                    selectBtnStatus = 10
                 }
-                selectBtnStatus %= 13
+                selectBtnStatus %= 11
                 when (selectBtnStatus) {
                     1 -> {
                         unSelectBtn(binding.wfSendTextBtn)
@@ -656,34 +611,25 @@ class SendMessageActivity : BaseActivity() {
                     }
 
                     7 -> {
-                        unSelectBtn(binding.btShareSurface)
+                        unSelectBtn(binding.btCameraShare)
                         selectBtn(binding.btStopSendAudioStream)
                     }
 
                     8 -> {
-                        unSelectBtn(binding.btStopSurface)
-                        selectBtn(binding.btShareSurface)
+                        unSelectBtn(binding.btQRCodeImage)
+                        selectBtn(binding.btCameraShare)
                     }
 
                     9 -> {
-                        unSelectBtn(binding.btQRCodeImage)
-                        selectBtn(binding.btStopSurface)
-                    }
-
-                    10 -> {
                         unSelectBtn(binding.btQRCode)
                         selectBtn(binding.btQRCodeImage)
                     }
 
-                    11 -> {
-                        unSelectBtn(binding.btNv21)
+                    10 -> {
+                        unSelectBtn(binding.btTts)
                         selectBtn(binding.btQRCode)
                     }
 
-                    12 -> {
-                        unSelectBtn(binding.btTts)
-                        selectBtn(binding.btNv21)
-                    }
 
                     0 -> {
                         unSelectBtn(binding.btAsr)
@@ -737,6 +683,7 @@ class SendMessageActivity : BaseActivity() {
         lifecycleScope.launch {
             binding.tvLog.text = logBuilder.toString()
         }
+        Log.d(TAG, msg)
     }
 
     fun copyFileFromAssetsToExternalStorage(context: Context, fileName: String) {
@@ -768,199 +715,19 @@ class SendMessageActivity : BaseActivity() {
         if (::huoVoiceAction.isInitialized) {
             GlassSdk.getGlassOfflineCmdService()?.remove(huoVoiceAction)
         }
-        stopNormalMode()
-        binding.glSurfaceView.queueEvent {
-            renderer?.release()
-            Log.d(TAG,"---------释放资源")
-        }
-
     }
 
     override fun onResume() {
         super.onResume()
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        binding.glSurfaceView.onResume()
     }
 
     override fun onPause() {
         super.onPause()
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        binding.glSurfaceView.onPause()
     }
 
 
-    private var glReady = false
-    private var surfaceHelper: CameraShareHelper? = null
-    private var enableMix = false
-
-    private inner class CameraShareRenderer : GLSurfaceView.Renderer {
-
-        private var program = 0
-        private var positionHandle = 0
-        private var texCoordHandle = 0
-        private var textureHandle = 0
-        private var matrixHandle = 0
-        private lateinit var vertexBuffer: FloatBuffer
-        private lateinit var texCoordBuffer: FloatBuffer
-
-        private val vertexData = floatArrayOf(
-            -1f, -1f,
-            1f, -1f,
-            -1f, 1f,
-            1f, 1f
-        )
-
-        private val texCoordData = floatArrayOf(
-            0f, 0f,
-            1f, 0f,
-            0f, 1f,
-            1f, 1f
-        )
-
-        private val vertexShaderCode = """
-            attribute vec4 aPosition;
-            attribute vec2 aTexCoord;
-            uniform mat4 uMatrix;
-            varying vec2 vTexCoord;
-            void main() {
-                gl_Position = aPosition;
-                vTexCoord = (uMatrix * vec4(aTexCoord, 0.0, 1.0)).xy;
-            }
-        """.trimIndent()
-
-        private val fragmentShaderCode = """
-            #extension GL_OES_EGL_image_external : require
-            precision highp float;
-            varying vec2 vTexCoord;
-            uniform samplerExternalOES uTexture;
-            void main() {
-                gl_FragColor = texture2D(uTexture, vTexCoord);
-            }
-        """.trimIndent()
-
-        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            GLES20.glClearColor(0f, 0f, 0f, 1f)
-            initShaderProgram()
-            initBuffers()
-            glReady = true
-        }
-
-        override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-            GLES20.glViewport(0, 0, width, height)
-        }
-
-        override fun onDrawFrame(gl: GL10?) {
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-            val helper = surfaceHelper ?: return
-            if (enableMix) return
-            val texId = helper.getTextureId()
-            if (texId == -1) return
-
-            helper.updateTexture()
-
-            GLES20.glUseProgram(program)
-
-            vertexBuffer.position(0)
-            GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer)
-            GLES20.glEnableVertexAttribArray(positionHandle)
-
-            texCoordBuffer.position(0)
-            GLES20.glVertexAttribPointer(texCoordHandle, 2, GLES20.GL_FLOAT, false, 0, texCoordBuffer)
-            GLES20.glEnableVertexAttribArray(texCoordHandle)
-
-            GLES20.glUniformMatrix4fv(matrixHandle, 1, false, helper.getTransformMatrix(), 0)
-
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texId)
-            GLES20.glUniform1i(textureHandle, 0)
-
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-
-            GLES20.glDisableVertexAttribArray(positionHandle)
-            GLES20.glDisableVertexAttribArray(texCoordHandle)
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0)
-        }
-
-        private fun initShaderProgram() {
-            val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-            val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
-            program = GLES20.glCreateProgram().also {
-                GLES20.glAttachShader(it, vertexShader)
-                GLES20.glAttachShader(it, fragmentShader)
-                GLES20.glLinkProgram(it)
-            }
-            positionHandle = GLES20.glGetAttribLocation(program, "aPosition")
-            texCoordHandle = GLES20.glGetAttribLocation(program, "aTexCoord")
-            textureHandle = GLES20.glGetUniformLocation(program, "uTexture")
-            matrixHandle = GLES20.glGetUniformLocation(program, "uMatrix")
-        }
-
-        private fun initBuffers() {
-            vertexBuffer = ByteBuffer.allocateDirect(vertexData.size * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(vertexData)
-            texCoordBuffer = ByteBuffer.allocateDirect(texCoordData.size * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(texCoordData)
-        }
-
-        private fun loadShader(type: Int, shaderCode: String): Int {
-            return GLES20.glCreateShader(type).also { shader ->
-                GLES20.glShaderSource(shader, shaderCode)
-                GLES20.glCompileShader(shader)
-            }
-        }
-
-        fun release() {
-            if (program != 0) {
-                GLES20.glDeleteProgram(program)
-                program = 0
-            }
-        }
-    }
-
-    private fun setupGLSurfaceView() {
-        binding.glSurfaceView.setEGLContextClientVersion(2)
-        renderer = CameraShareRenderer()
-        binding.glSurfaceView.setRenderer(renderer)
-        binding.glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
-    }
-
-    /** 普通模式：Surface共享 + NV21导出（纯camera） */
-    private fun startNormalMode() {
-        if (!GlassSdk.isReady()) {
-            Log.e(TAG, "GlassSdk not ready")
-            return
-        }
-        if (surfaceHelper != null) {
-            return
-        }
-        log("------------startNormalMode()")
-        surfaceHelper = CameraShareHelper().apply {
-            initSurface(object : CameraShareHelper.SurfaceCallback {
-                override fun onCameraOpened(width: Int, height: Int) {
-                    log("------------onCameraOpened()")
-                    Log.d(TAG, "Surface camera opened: ${width}x${height}")
-                }
-
-                override fun onFrameAvailable() {
-                    binding.glSurfaceView.requestRender()
-                }
-
-                override fun onCameraClosed() {
-                    log("------------onCameraClosed()")
-                    Log.d(TAG, "Surface camera closed")
-                }
-
-                override fun onError(code: Int, msg: String) {
-                    log("-----------Surface error: code=$code, msg=$msg")
-                    Log.e(TAG, "Surface error: code=$code, msg=$msg")
-                }
-            })
-        }
-    }
 
 
 }

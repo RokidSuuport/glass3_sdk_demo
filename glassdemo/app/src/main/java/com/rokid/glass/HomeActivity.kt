@@ -215,7 +215,8 @@ class HomeActivity : BaseActivity() {
                 })
                 GlassSdk.getGlassOfflineCmdService()?.add(zyVoiceAction)
                 AudioService.start(this)
-                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
+//                GlassSdk.getGlassDeviceService()?.switchMicScene(3)
+//                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
 //                startActivity(Intent(this, QRCodeActivity::class.java))
 //                startActivity(Intent(this, QRCameraActivity::class.java))
                 // 设置眼睛端系统时间 timeStr: 2026-02-02 14:44:44,1770014682490

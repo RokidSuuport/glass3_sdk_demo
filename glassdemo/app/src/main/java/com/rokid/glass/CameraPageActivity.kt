@@ -28,6 +28,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.LinkedList
@@ -172,9 +173,7 @@ class CameraPageActivity : BaseActivity() {
                 runOnUiThread {
                     QuickCameraManager.initialize { success ->
                         isInitialize = success
-                        Log.d(TAG, "2-initialize" + success)
                     }
-//                        GlassSDK.getGlassTtsService()?.doSpeechTts(this.getString(R.string.camera_error))
                     SpriteToastUtil.showSpriteToast(
                         MyApplication.getContext(),
                         this.getString(R.string.camera_error),
@@ -406,11 +405,11 @@ class CameraPageActivity : BaseActivity() {
     }
     private val mIResultCallback = object : IResultCallback.Stub() {
         override fun onSuccess(p0: Boolean) {
-            Log.e(TAG, "成功")
+            Log.e(TAG, "发送文件成功")
         }
 
         override fun onFailed(p0: Int, p1: String?) {
-            Log.e(TAG, "失败")
+            Log.e(TAG, "发送文件失败")
         }
     }
 

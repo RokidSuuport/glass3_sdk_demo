@@ -9,6 +9,7 @@ import com.rokid.phone.databinding.ActivityMessageBinding
 import com.rokid.phone.utils.ExternalAudioPlayer
 import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.msg.listener.FileReceiveListener
+import com.rokid.security.phone.sdk.api.msg.listener.FileReceiveV2Listener
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
 import kotlinx.coroutines.launch
 
@@ -28,13 +29,14 @@ class MessageReceiveActivity : ComponentActivity() {
         audioPlayer.start()
 
         PSecuritySDK.getMessageService()?.addMessageListener(mMessageListener)
-        PSecuritySDK.getMessageService()?.getFileOperater()?.addFileReceiveListener(mFileReceiveListener)
-        PSecuritySDK.getMessageService()?.getBtFileOperater()?.addFileReceiveListener(mFileReceiveListener)
+        PSecuritySDK.getMessageService()?.getFileOperater()?.addFileReceiveV2Listener(mFileReceiveListener)
+        PSecuritySDK.getMessageService()?.getBtFileOperater()?.addFileReceiveV2Listener(mFileReceiveListener)
 //        audioTrack.play()
     }
 
     private val logBuilder = StringBuilder(4000)
     private fun log(msg: String) {
+        Log.e(TAG, msg)
         lifecycleScope.launch {
             if (logBuilder.length > 4000) {
                 logBuilder.clear()
@@ -45,30 +47,26 @@ class MessageReceiveActivity : ComponentActivity() {
         }
     }
 
-    private val mFileReceiveListener = object : FileReceiveListener {
-        override fun onStart() {
-            Log.e(TAG, "onStart: 本端开始接收文件")
-            log("本端开始接收文件")
+    private val mFileReceiveListener = object : FileReceiveV2Listener {
+        override fun onStart(filePath: String) {
+            super.onStart(filePath)
+            log("onStart: 本端开始接收文件,filePath=${filePath}")
         }
 
-        override fun onProgressChanged(progress: Float) {
-            Log.e(TAG, "onProgressChanged: 本端接收文件的进度 $progress")
-            log("接收文件的进度 $progress")
+        override fun onProgressChanged(filePath: String,progress: Float) {
+            log("onProgressChanged: 本端接收文件的进度 $progress")
         }
 
         override fun onComplete(filePath: String) {
-            Log.e(TAG, "onComplete: 本端接收文件完成,${filePath}")
-            log("接收文件完成 $filePath")
+            log("onComplete: 本端接收文件完成,filePath=${filePath}")
         }
 
         override fun onFail() {
-            Log.e(TAG, "onFail: 接收文件失败")
-            log("接收文件失败")
+            log("onFail: 接收文件失败")
         }
 
-        override fun onCancel() {
-            Log.e(TAG, "onCancel: 对方取消了发送文件")
-            log("对方取消了发送文件")
+        override fun onCancel(filePath: String) {
+            log("onCancel: 对方取消了发送文件,filePath=${filePath}")
         }
     }
 
@@ -89,15 +87,13 @@ class MessageReceiveActivity : ComponentActivity() {
         @SuppressLint("SetTextI18n")
         override fun onClassicBTTextMessage(msg: String, clientId: String) {
             super.onClassicBTTextMessage(msg, clientId)
-            Log.e(TAG, "$msg  $clientId")
-            log("$msg  $clientId")
+            log("onClassicBTTextMessage= $msg  $clientId")
         }
 
         @SuppressLint("SetTextI18n")
         override fun onP2PTextMessage(msg: String, clientId: String) {
             super.onP2PTextMessage(msg, clientId)
-            Log.e(TAG, "$msg  $clientId")
-            log("$msg  $clientId")
+            log("onP2PTextMessage= $msg  $clientId")
         }
 
         override fun onClassicBTAudioStream(buffer: ByteArray) {
@@ -107,7 +103,6 @@ class MessageReceiveActivity : ComponentActivity() {
         }
 
         override fun onBTStreamDataReceived(tag: String, data: ByteArray, clientId: String) {
-            Log.e(TAG, "tag:${tag}  接收蓝牙音频数据大小 ${data.size}  clientId:$clientId")
             log("tag:${tag}  接收蓝牙音频数据大小 ${data.size}  clientId:$clientId")
 //            audioTrack.write(data, 0, data.size)
             audioPlayer.writeAudioData(data)

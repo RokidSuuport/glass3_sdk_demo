@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -21,6 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.nio.ByteBuffer
 
 class VideoReceiveActivity : ComponentActivity() {
 
@@ -57,7 +59,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private var currentState = PageState.CONFIG
 
     private val defaultFps = 10
-    private val defaultBitrate = 4_000_000
+    private val defaultBitrate = 3_000_000
     private var isGetVideo = false
     private var timerJob: Job? = null
     private var lastCallTime = 0L
@@ -145,9 +147,11 @@ class VideoReceiveActivity : ComponentActivity() {
 
         // 2️⃣ 请求视频流
         val param = GlassVideoStreamParam().apply {
+            this.width = 1920
+            this.height = 1080
             this.fps = fps
             this.bitrate = bitrate
-            this.isARMixEnabled = false
+            this.isARMixEnabled = true
         }
         PSecuritySDK.getAbsDeviceInfoService()?.requestVideoStream(VIDEO_TAG, videoStreamParam = param) {}
         PSecuritySDK.getAbsDeviceInfoService()?.requestAudioStream(AUDIO_TAG) {}
@@ -196,10 +200,17 @@ class VideoReceiveActivity : ComponentActivity() {
             tryCount = 0
             lastCallTime = System.currentTimeMillis()
             if (currentState != PageState.PREVIEW) return
+//            Log.d(TAG, "-----onNv21Data: width=${width},height=${height}")
             isGetVideo = true
             mainScope.launch {
                 binding.glsurfaceview.setPreviewData(data, width, height)
             }
+        }
+
+        override fun onVideoH264Stream(buffer: ByteBuffer) {
+            super.onVideoH264Stream(buffer)
+            // buffer 获取长度
+//            Log.d(TAG, "-----video buffer size: ${buffer.remaining()}")
         }
 
         override fun onClassicBTAudioStream(buffer: ByteArray) {

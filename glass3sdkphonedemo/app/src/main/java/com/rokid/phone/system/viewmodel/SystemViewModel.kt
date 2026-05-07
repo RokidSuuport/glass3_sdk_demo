@@ -78,43 +78,44 @@ class SystemViewModel constructor(
 
     private val mListener = object : IMessageListener {
         override fun onClassicBTTextMessage(msg: String, clientId: String) {
-            L.d(TAG, "onClassicBTTextMessage: $msg")
+            try {
+                // 普通蓝牙文本不是系统业务消息，解析不到 CustomMessage 时直接忽略。
+                val customMessage = CustomMessage.fromClassicBtPayload(mGson, msg) ?: return
+                if (customMessage.type == ProjectBusinessType.SYSTEM_INFO_RESPONSE) {
+                    val systemInfo =
+                        mGson.fromJson(customMessage.message, RKSystemInfo::class.java)
+                    L.d(TAG, "onClassicBTTextMessage: ${Gson().toJson(systemInfo)}")
+                    if (systemInfo != null) {
+                        SystemGlobalConstant.osType = systemInfo.osType
+                        SystemGlobalConstant.cpuType = systemInfo.cpuType
+                        SystemGlobalConstant.version = systemInfo.version
+                        SystemGlobalConstant.deviceId = systemInfo.deviceId
+                        SystemGlobalConstant.deviceTypeId = systemInfo.deviceTypeId
+                        SystemGlobalConstant.isCharge = systemInfo.isCharge
+                        SystemGlobalConstant.powerValue = systemInfo.powerValue
+                        SystemGlobalConstant.brightness = systemInfo.brightness
+                        SystemGlobalConstant.maxBrightness = systemInfo.maxBrightness
+                        SystemGlobalConstant.isAutoBrightness = systemInfo.isAutoBrightness
+                        SystemGlobalConstant.curVolume = systemInfo.curVolume
+                        SystemGlobalConstant.maxVolume = systemInfo.maxVolume
 
-            var mCustomMessage = mGson.fromJson(msg, CustomMessage::class.java)
+                        sendEvent(SystemEvent.SystemInfo(systemInfo))
+                    }
+                } else if (customMessage.type == ProjectBusinessType.SYSTEM_OTA_UPDATE_STATUS) {
+                    sendEvent(SystemEvent.UpdateState(customMessage.message))
 
-            if (mCustomMessage.type == ProjectBusinessType.SYSTEM_INFO_RESPONSE) {
-                var systemInfo =
-                    mGson.fromJson(mCustomMessage.message, RKSystemInfo::class.java)
-                L.d(TAG, "onClassicBTTextMessage: ${Gson().toJson(systemInfo)}")
-                if (systemInfo != null) {
-                    SystemGlobalConstant.osType = systemInfo.osType
-                    SystemGlobalConstant.cpuType = systemInfo.cpuType
-                    SystemGlobalConstant.version = systemInfo.version
-                    SystemGlobalConstant.deviceId = systemInfo.deviceId
-                    SystemGlobalConstant.deviceTypeId = systemInfo.deviceTypeId
-                    SystemGlobalConstant.isCharge = systemInfo.isCharge
-                    SystemGlobalConstant.powerValue = systemInfo.powerValue
-                    SystemGlobalConstant.brightness = systemInfo.brightness
-                    SystemGlobalConstant.maxBrightness = systemInfo.maxBrightness
-                    SystemGlobalConstant.isAutoBrightness = systemInfo.isAutoBrightness
-                    SystemGlobalConstant.curVolume = systemInfo.curVolume
-                    SystemGlobalConstant.maxVolume = systemInfo.maxVolume
-
-                    sendEvent(SystemEvent.SystemInfo(systemInfo))
+                    OtaManager.updateState3(customMessage.message, "SystemViewModel")
+                } else if (customMessage.type == ProjectBusinessType.POWER_UPDATE) {
+                    val systemInfo =
+                        mGson.fromJson(customMessage.message, RKSystemInfo::class.java)
+                    L.d(TAG, "POWER_UPDATE onClassicBTTextMessage: ${Gson().toJson(systemInfo)}")
+                    if (systemInfo != null) {
+                        SystemGlobalConstant.isCharge = systemInfo.isCharge
+                        SystemGlobalConstant.powerValue = systemInfo.powerValue
+                    }
                 }
-            } else if (mCustomMessage.type == ProjectBusinessType.SYSTEM_OTA_UPDATE_STATUS) {
-                sendEvent(SystemEvent.UpdateState(mCustomMessage.message))
-
-                OtaManager.updateState3(mCustomMessage.message, "SystemViewModel")
-            } else if (mCustomMessage.type == ProjectBusinessType.POWER_UPDATE) {
-
-                var systemInfo =
-                    mGson.fromJson(mCustomMessage.message, RKSystemInfo::class.java)
-                L.d(TAG, "POWER_UPDATE onClassicBTTextMessage: ${Gson().toJson(systemInfo)}")
-                if (systemInfo != null) {
-                    SystemGlobalConstant.isCharge = systemInfo.isCharge
-                    SystemGlobalConstant.powerValue = systemInfo.powerValue
-                }
+            } catch (e: Exception) {
+                L.e(TAG, "onClassicBTTextMessage 解析异常: ${e.message}", e)
             }
         }
     }
@@ -322,8 +323,10 @@ class SystemViewModel constructor(
 
                     repository.sendGlassUpdateFile(glassFilePath, fileReceiveListener)
                 } else {
-                    L.e(TAG, "sendGlassUpdateFile md5 校验不通过，file size: ${file.length()}, " +
-                            "md5: $md5, serverFileMd5: $serverFileMd5, 删除文件重新下载。。。")
+                    L.e(
+                        TAG, "sendGlassUpdateFile md5 校验不通过，file size: ${file.length()}, " +
+                                "md5: $md5, serverFileMd5: $serverFileMd5, 删除文件重新下载。。。"
+                    )
 
                     ToastUtils.showLong("MD5校验不通过，重新下载！")
                     repeatDownload(glassFilePath)
@@ -417,7 +420,7 @@ class SystemViewModel constructor(
 //            setState { SystemState(updateStatus = UpdateStatus.UPDATE_ING, process = 80F) }
             setState { SystemState(updateStatus = UpdateStatus.UPDATE_ING_SEND, process = 0F) }
 
-            OtaManager.showDownloadProgress(0,OtaManager.STATE_2_ALL)
+            OtaManager.showDownloadProgress(0, OtaManager.STATE_2_ALL)
         }
 
         override fun onProgressChanged(progress: Float) {

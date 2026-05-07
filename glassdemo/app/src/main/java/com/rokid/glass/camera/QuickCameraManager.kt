@@ -3,11 +3,9 @@ package com.rokid.glass.camera
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
-import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
@@ -25,86 +23,92 @@ import android.util.Log
 import android.util.Size
 import android.view.Surface
 import androidx.core.content.ContextCompat
+import androidx.exifinterface.media.ExifInterface
 import com.rokid.glass.MyApplication
 import com.rokid.glass.utils.DeviceUtil
-import com.rokid.glass.utils.Scopes.mainScope
 import com.rokid.glass.utils.call
 import com.rokid.security.glass3.open.sdk.uitls.log.L
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.FileOutputStream
 import java.lang.ref.WeakReference
-import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.coroutines.cancellation.CancellationException
 
-
+/**
+ * 快速相机管理器（低内存优化版）
+ *
+ * 核心优化策略：
+ * 1. 预览时使用 SurfaceTexture（不占用 JPEG 缓冲）
+ * 2. ImageReader 使用低分辨率（1280x720），节省内存
+ * 3. 拍照时动态切换数据流到 ImageReader
+ * 4. 及时释放资源，避免内存累积
+ */
 object QuickCameraManager {
-    private const val TAG = "QuickCameraManager"
-    private const val VIDEO_FRAME_RATE = 24
-    private const val VIDEO_BIT_RATE = 5_000_000
 
+    private val TAG = "QuickCameraManager"
+    private val VIDEO_FRAME_RATE = 30
+    private val VIDEO_BIT_RATE = 10_000_000
+
+    // ===== 相机相关 =====
     private var cameraManager: CameraManager? = null
     private var cameraDevice: CameraDevice? = null
-
-    @Volatile
     private var captureSession: CameraCaptureSession? = null
-    private val sessionLock = Any()
-
     private var imageReader: ImageReader? = null
-    private var mediaRecorder: MediaRecorder? = null
-    private var backgroundHandler: Handler? = null
-    private var backgroundThread: HandlerThread? = null
-
     private var cameraId: String? = null
-    private var isInitialized = false
-    private var isRecording = false
-    private var videoFile: File? = null
 
-    private var previewSurface: Surface? = null
+    // ===== 预览相关 =====
     private var surfaceTexture: SurfaceTexture? = null
-    private var imgCallback: WeakReference<((File?) -> Unit)>? = null
+    private var previewSurface: Surface? = null
+
+    // ===== 录像相关 =====
+    private var mediaRecorder: MediaRecorder? = null
+    private var videoFile: File? = null
+    private var isRecording = false
+
+    // ===== 线程相关 =====
+    private var backgroundThread: HandlerThread? = null
+    private var backgroundHandler: Handler? = null
+    private val mainScope = CoroutineScope(Dispatchers.Main)
+
+    // ===== 状态标记 =====
+    private var isInitialized = false
+    private var isCameraClosed = true
+    private var isSessionClosed = false
     private var isQuickCapture = false
 
     @Volatile
-    private var isCameraClosed = true // 初始状态为关闭
+    var isProcessingCapture = MutableStateFlow(false)
 
-    val availabilityCallback = object : CameraManager.AvailabilityCallback() {
-        override fun onCameraAvailable(cameraId: String) {
-            L.d(TAG, "相机可用: $cameraId")
-            // 相机可用
-        }
+    // ===== 回调 =====
+    private var imgCallback: WeakReference<((File?) -> Unit)>? = null
 
-        override fun onCameraUnavailable(cameraId: String) {
-            // 相机不可用（可能已被关闭或占用）
-            isCameraClosed = true
-            L.d(TAG, "相机不可用: $cameraId")
-        }
-    }
+    // ===== 会话锁 =====
+    private val sessionLock = Any()
 
+    /**
+     * 初始化相机
+     * @param size 预留参数（当前固定使用低分辨率）
+     * @param quickCapture 快速拍照模式（拍照后自动释放相机）
+     * @param onInitialized 初始化完成回调
+     */
     @SuppressLint("MissingPermission")
     fun initialize(size: Size? = null, quickCapture: Boolean = false, onInitialized: (Boolean) -> Unit) {
-
         val weakCallback = WeakReference(onInitialized)
+
         releaseCamera()
         this.isQuickCapture = quickCapture
+
         if (isInitialized) {
-//            onInitialized(true)
             weakCallback.get()?.invoke(true)
             return
         }
 
         if (!hasCameraPermission()) {
             L.e(TAG, "没有相机权限")
-//            onInitialized(false)
             weakCallback.get()?.invoke(false)
             return
         }
@@ -115,10 +119,10 @@ object QuickCameraManager {
 
             if (cameraId == null) {
                 L.e(TAG, "没有可用相机")
-//                onInitialized(false)
                 weakCallback.get()?.invoke(false)
                 return
             }
+
             L.d(TAG, "相机ID: $cameraId")
             startBackgroundThread()
 
@@ -128,25 +132,29 @@ object QuickCameraManager {
                     override fun onOpened(camera: CameraDevice) {
                         L.d(TAG, "->相机已打开")
                         setProcessingCaptureState(false)
-                        isCameraClosed = false // 标记为已打开
+                        isCameraClosed = false
                         cameraDevice = camera
                         isInitialized = true
-                        setupImageReader(size)
-                        setupPreviewSurface()
-                        createPreviewSession()
-//                        onInitialized(true)
-                        weakCallback.get()?.invoke(true)
 
+                        // 创建低分辨率 ImageReader（1280x720）
+                        setupImageReaderLowRes()
+
+                        // 创建预览会话
+                        createPreviewSession()
+
+                        weakCallback.get()?.invoke(true)
                     }
 
                     override fun onDisconnected(camera: CameraDevice) {
+                        Log.e(TAG, "相机断开连接")
+                        weakCallback.get()?.invoke(false)
                         releaseCamera()
                     }
 
                     override fun onError(camera: CameraDevice, error: Int) {
-                        L.e(TAG, "相机打开错误: $error")
+                        Log.e(TAG, "相机打开错误: $error")
+                        weakCallback.get()?.invoke(false)
                         releaseCamera()
-//                        onInitialized(false)
                     }
                 },
                 backgroundHandler
@@ -154,49 +162,69 @@ object QuickCameraManager {
         } catch (e: Exception) {
             releaseCamera()
             L.e(TAG, "初始化失败: ${e.message}", e)
-//            onInitialized(false)
+            weakCallback.get()?.invoke(false)
         }
     }
 
+    /**
+     * 创建预览会话
+     *
+     * 关键设计：
+     * - 会话包含两个 surface（previewSurface + imageReaderSurface）
+     * - 但预览请求只发送到 previewSurface
+     * - 这样 ImageReader 不会收到数据，不占用 JPEG 缓冲内存
+     */
     private fun createPreviewSession() {
-        val previewSurface = this.previewSurface ?: return
-        val imageReaderSurface = imageReader?.surface ?: return
+        setupPreviewSurface()
+        val previewSurf = previewSurface ?: run {
+            L.e(TAG, "previewSurface 为空")
+            return
+        }
+
+        val imageReaderSurface = imageReader?.surface ?: run {
+            L.e(TAG, "imageReaderSurface 为空")
+            return
+        }
 
         try {
             if (isCameraClosed) {
                 return
             }
+
+            Log.d(TAG, "创建预览会话")
+
+            // 会话包含两个 surface，但预览时只用 previewSurface
             cameraDevice?.createCaptureSession(
-                listOf(previewSurface, imageReaderSurface),
+                listOf(previewSurf, imageReaderSurface),
                 object : CameraCaptureSession.StateCallback() {
                     override fun onConfigured(session: CameraCaptureSession) {
                         synchronized(sessionLock) {
                             if (cameraDevice == null) {
                                 setProcessingCaptureState(false)
-                                Log.d(TAG, "TARGET 1")
+                                Log.d(TAG, "相机设备已关闭")
                                 return
                             }
+
                             captureSession = session
                             isSessionClosed = false
+
                             try {
                                 val builder = cameraDevice!!.createCaptureRequest(
                                     CameraDevice.TEMPLATE_PREVIEW
                                 ).apply {
-
-                                    // 添加自动曝光模式
                                     set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
-                                    // 设置曝光补偿（根据需要调整）
                                     set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 0)
-                                    // 启用自动曝光锁定（可选）
                                     set(CaptureRequest.CONTROL_AE_LOCK, false)
-                                    addTarget(previewSurface)
+                                    // ⭐ 只添加到 previewSurface，ImageReader 不会收到数据
+                                    addTarget(previewSurf)
                                 }
+
                                 session.setRepeatingRequest(builder.build(), null, backgroundHandler)
+                                Log.d(TAG, "预览会话配置成功")
                             } catch (e: Exception) {
                                 L.e(TAG, "设置预览失败", e)
                                 setProcessingCaptureState(false)
                             }
-
                         }
                     }
 
@@ -213,28 +241,28 @@ object QuickCameraManager {
         }
     }
 
-    private var isSessionClosed = false
-    fun isCameraDoing(): Boolean = isProcessingCapture.value
-
-    @Volatile
-    var isProcessingCapture = MutableStateFlow(false)
-
-    fun setProcessingCaptureState(state: Boolean) {
-        isProcessingCapture.call(state)
-    }
-
-
+    /**
+     * 拍照功能
+     *
+     * 流程：
+     * 1. 停止预览请求
+     * 2. 设置 ImageReader 监听器
+     * 3. 创建拍照请求（发送到 imageReaderSurface）
+     * 4. 执行单次捕获
+     * 5. 收到数据后保存并恢复预览
+     */
+    /**
+     * 拍照功能（YUV 格式）
+     */
     fun takePicture(callback: (File?) -> Unit) {
         val weakCallback = WeakReference(callback)
         imgCallback = weakCallback
+
         if (isCameraDoing()) {
             Log.d(TAG, "takePicture 正在处理中")
             imgCallback?.get()?.invoke(null)
             return
         }
-
-        setProcessingCaptureState(true)
-
 
         if (!isInitialized || cameraDevice == null) {
             Log.d(TAG, "相机未初始化")
@@ -243,89 +271,223 @@ object QuickCameraManager {
             return
         }
 
+        setProcessingCaptureState(true)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            Log.d(TAG, "延迟900后开始拍照")
-            delay(700)
-            imageReader?.setOnImageAvailableListener({ reader ->
-                val image = reader.acquireLatestImage() ?: run {
-                    Log.d(TAG, "拍照失败")
-                    imgCallback?.get()?.invoke(null)
-                    setProcessingCaptureState(false)
-                    return@setOnImageAvailableListener
-                }
-
-                try {
-                    val buffer = image.planes[0].buffer
-//                val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
-//                saveImage(bytes)
-                    saveImageFromBuffer(buffer)
-                } catch (e: Exception) {
-                    L.e(TAG, "保存图片失败", e)
-                    imgCallback?.get()?.invoke(null)
-                } finally {
-                    image.close()
-                    if (isQuickCapture) {
-                        releaseCamera()
-                    } else {
-                        setProcessingCaptureState(false)
-                    }
-//                createPreviewSession()
-                }
-            }, backgroundHandler)
-
+        // ⭐ 步骤 1: 关闭旧的预览会话
+        val oldSession = captureSession
+        if (oldSession != null && !isSessionClosed) {
+            Log.d(TAG, "关闭旧会话")
             try {
-                val surface = imageReader?.surface ?: throw IllegalStateException("ImageReader surface is null")
-                val builder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE).apply {
-                    addTarget(surface)
-                    set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(270))
-                }
-
-                DeviceUtil.setSystemProp("vendor.rkd.camera.sensormode", "5")
-                cameraDevice!!.createCaptureSession(
-                    listOf(surface),
-                    object : CameraCaptureSession.StateCallback() {
-                        override fun onConfigured(session: CameraCaptureSession) {
-                            try {
-                                session.capture(builder.build(), null, backgroundHandler)
-                            } catch (e: Exception) {
-                                L.e(TAG, "拍照失败", e)
-                                imgCallback?.get()?.invoke(null)
-                                setProcessingCaptureState(false)
-//                            createPreviewSession()
-                            }
-                        }
-
-                        override fun onConfigureFailed(session: CameraCaptureSession) {
-                            L.e(TAG, "拍照失败->")
-                            imgCallback?.get()?.invoke(null)
-                            setProcessingCaptureState(false)
-                            createPreviewSession()
-                        }
-                    },
-                    backgroundHandler
-                )
+                oldSession.stopRepeating()
+                oldSession.close()
             } catch (e: Exception) {
-                L.e(TAG, "拍照异常", e)
-                imgCallback?.get()?.invoke(null)
-                setProcessingCaptureState(false)
+                L.e(TAG, "关闭旧会话异常", e)
+            }
+            captureSession = null
+        }
+
+        // ⭐ 步骤 2: 如果 ImageReader 不存在则创建
+        if (imageReader == null) {
+            setupImageReaderLowRes()
+        }
+
+        // 清理 ImageReader 中的旧帧
+        imageReader?.let { reader ->
+            while (true) {
+                val oldImage = reader.acquireNextImage() ?: break
+                oldImage.close()
             }
         }
 
+        val imageReaderSurface = imageReader?.surface ?: run {
+            L.e(TAG, "ImageReader surface 为空")
+            imgCallback?.get()?.invoke(null)
+            setProcessingCaptureState(false)
+            return
+        }
+
+        var hasCaptured = false
+
+        // ⭐ 步骤 3: 设置监听器
+        imageReader?.setOnImageAvailableListener({ reader ->
+            if (hasCaptured) {
+                Log.d(TAG, "忽略重复回调")
+                return@setOnImageAvailableListener
+            }
+
+            Log.d(TAG, "-------获取到拍照数据")
+            hasCaptured = true
+
+            val image = reader.acquireLatestImage() ?: run {
+                Log.d(TAG, "拍照失败：无法获取图像")
+                imgCallback?.get()?.invoke(null)
+                setProcessingCaptureState(false)
+                createPreviewSession()
+                return@setOnImageAvailableListener
+            }
+
+            try {
+                Log.d(TAG, "图片尺寸: ${image.width}x${image.height}")
+
+                // ⭐ 将 YUV 数据转换为 JPEG 并保存
+                saveYuvImageAsJpeg(image)
+
+            } catch (e: Exception) {
+                L.e(TAG, "保存图片失败", e)
+                imgCallback?.get()?.invoke(null)
+                setProcessingCaptureState(false)
+                createPreviewSession()
+            } finally {
+                image.close()
+
+                // ⭐ 步骤 4: 拍照完成后恢复预览
+                if (isQuickCapture) {
+                    releaseCamera()
+                } else {
+                    setProcessingCaptureState(false)
+                    createPreviewSession()
+                }
+            }
+        }, backgroundHandler)
+
+        // ⭐ 步骤 5: 创建新的拍照会话
+        try {
+            Log.d(TAG, "创建拍照会话")
+            cameraDevice?.createCaptureSession(
+                listOf(imageReaderSurface),
+                object : CameraCaptureSession.StateCallback() {
+                    override fun onConfigured(session: CameraCaptureSession) {
+                        Log.d(TAG, "拍照会话配置成功")
+                        synchronized(sessionLock) {
+                            if (cameraDevice == null) {
+                                return
+                            }
+                            captureSession = session
+                            isSessionClosed = false
+
+                            try {
+                                val captureBuilder = cameraDevice!!.createCaptureRequest(
+                                    CameraDevice.TEMPLATE_STILL_CAPTURE
+                                ).apply {
+                                    addTarget(imageReaderSurface)
+                                    set(CaptureRequest.JPEG_ORIENTATION, getJpegOrientation(90))
+                                    set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+                                    set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
+                                }
+
+                                DeviceUtil.setSystemProp("vendor.rkd.camera.sensormode", "5")
+
+                                Log.d(TAG, "执行拍照捕获")
+                                session.capture(captureBuilder.build(), object : CameraCaptureSession.CaptureCallback() {
+                                    override fun onCaptureStarted(
+                                        session: CameraCaptureSession,
+                                        request: CaptureRequest,
+                                        timestamp: Long,
+                                        frameNumber: Long
+                                    ) {
+                                        Log.d(TAG, "拍照开始: frameNumber=$frameNumber")
+                                    }
+
+                                    override fun onCaptureCompleted(
+                                        session: CameraCaptureSession,
+                                        request: CaptureRequest,
+                                        result: android.hardware.camera2.TotalCaptureResult
+                                    ) {
+                                        Log.d(TAG, "拍照完成: frameNumber=${result.frameNumber}")
+                                    }
+
+                                    override fun onCaptureFailed(
+                                        session: CameraCaptureSession,
+                                        request: CaptureRequest,
+                                        failure: android.hardware.camera2.CaptureFailure
+                                    ) {
+                                        L.e(TAG, "拍照失败: reason=${failure.reason}")
+                                        if (!hasCaptured) {
+                                            hasCaptured = true
+                                            imgCallback?.get()?.invoke(null)
+                                            setProcessingCaptureState(false)
+                                            createPreviewSession()
+                                        }
+                                    }
+                                }, backgroundHandler)
+                            } catch (e: Exception) {
+                                L.e(TAG, "拍照异常", e)
+                                if (!hasCaptured) {
+                                    hasCaptured = true
+                                    imgCallback?.get()?.invoke(null)
+                                    setProcessingCaptureState(false)
+                                    createPreviewSession()
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onConfigureFailed(session: CameraCaptureSession) {
+                        L.e(TAG, "拍照会话配置失败")
+                        imgCallback?.get()?.invoke(null)
+                        setProcessingCaptureState(false)
+                        createPreviewSession()
+                    }
+                },
+                backgroundHandler
+            )
+
+        } catch (e: Exception) {
+            L.e(TAG, "拍照异常", e)
+            if (!hasCaptured) {
+                imgCallback?.get()?.invoke(null)
+                setProcessingCaptureState(false)
+                createPreviewSession()
+            }
+        }
     }
 
+
+    /**
+     * 恢复预览
+     */
+    private fun resumePreview() {
+        val session = captureSession ?: run {
+            L.e(TAG, "恢复预览失败：会话为空")
+            return
+        }
+
+        val previewSurf = previewSurface ?: run {
+            L.e(TAG, "恢复预览失败：previewSurface 为空")
+            return
+        }
+
+        if (isSessionClosed || cameraDevice == null) {
+            Log.d(TAG, "恢复预览失败：会话已关闭或相机为空")
+            return
+        }
+
+        try {
+            Log.d(TAG, "恢复预览")
+            val previewBuilder = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)?.apply {
+                addTarget(previewSurf)
+                set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+                set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, 0)
+                set(CaptureRequest.CONTROL_AE_LOCK, false)
+            }
+
+            previewBuilder?.let {
+                session.setRepeatingRequest(it.build(), null, backgroundHandler)
+            }
+        } catch (e: Exception) {
+            L.e(TAG, "恢复预览异常", e)
+        }
+    }
+
+    /**
+     * 开始录像
+     */
     fun startRecording(isAudioMute: Boolean = false, callback: (File?) -> Unit) {
         val weakCallback = WeakReference(callback)
         if (!isInitialized || cameraDevice == null || !hasAudioPermission() || isRecording) {
             weakCallback.get()?.invoke(null)
             return
         }
-
-//        try {
-//            captureSession?.stopRepeating()
-//        } catch (e: Exception) {
-//            Log.d(TAG, "停止预览失败", e)
-//        }
 
         try {
             resetRecordingState()
@@ -335,14 +497,13 @@ object QuickCameraManager {
             mediaRecorder = MediaRecorder().apply {
                 if (!isAudioMute) {
                     setAudioSource(MediaRecorder.AudioSource.MIC)
-                }
-                setVideoSource(MediaRecorder.VideoSource.SURFACE)
-                val size = getBestVideoSize() ?: Size(1080, 1920)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-                if (!isAudioMute) {
                     setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
                 }
+                setVideoSource(MediaRecorder.VideoSource.SURFACE)
+                val size = getBestVideoSize() ?: Size(1280, 720)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+                Log.d(TAG, "视频分辨率: width=${size.width},height=${size.height}")
                 setVideoSize(size.width, size.height)
                 setVideoFrameRate(VIDEO_FRAME_RATE)
                 setVideoEncodingBitRate(VIDEO_BIT_RATE)
@@ -415,6 +576,13 @@ object QuickCameraManager {
         }
     }
 
+    fun setProcessingCaptureState(state: Boolean) {
+        isProcessingCapture.call(state)
+    }
+
+    /**
+     * 停止录像
+     */
     fun stopRecording(callback: (File?) -> Unit) {
         val weakCallback = WeakReference(callback)
         if (!isRecording) {
@@ -437,76 +605,50 @@ object QuickCameraManager {
             captureSession?.close()
             captureSession = null
         }
+
         L.e(TAG, "stopRecording " + videoFile?.absolutePath)
         weakCallback.get()?.invoke(videoFile)
         setProcessingCaptureState(false)
+
+        // 录像结束后重新创建预览会话
+        createPreviewSession()
     }
 
-    private fun setupImageReader(mSize: Size? = null) {
-        L.d(TAG, "setupImageReader->1")
+
+    private fun setupImageReaderLowRes() {
+        L.d(TAG, "setupImageReaderLowRes")
         val characteristics = cameraManager?.getCameraCharacteristics(cameraId!!)
         val map = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-        val outputSizes: Array<Size>? = map?.getOutputSizes(ImageFormat.JPEG)
-//        outputSizes?.forEach {
-//            Log.d(TAG, "--setupImageReader.size----width->" + it.width + ",height=" + it.height)
-//        }
-        // 设置拍照为横屏
-//        var size: Size = outputSizes?.firstOrNull { it.width == 2268 && it.height == 3024 } ?: Size(1080, 1920)
-        var size: Size = outputSizes?.firstOrNull { it.width == 1080 && it.height == 1920 } ?: Size(2268, 3024)
-//         设置拍照为竖屏
-//        var size: Size = outputSizes?.firstOrNull { it.width == 3024 && it.height == 2268 } ?: Size(1920, 1080)
-        if (mSize != null) {
-            outputSizes?.forEach { sz ->
-                L.d(TAG, "setupImageReader->" + sz.width + " " + sz.height)
-                if (mSize.width == sz.width && mSize.height == sz.height) {
-                    size = mSize
-                }
-            }
-        }
-        Log.d(TAG, "setupImageReader->size.width=" + size.width + ",size.height=" + size.height)
-        imageReader = ImageReader.newInstance(size.width, size.height, ImageFormat.JPEG, 2)
-        // 不设置监听器，改为在 takePicture() 时临时设置
+        val outputSizes: Array<Size>? = map?.getOutputSizes(ImageFormat.YUV_420_888)
+
+        // 优先使用 1280x720，最大 1920x1080
+        val size = outputSizes?.firstOrNull { it.width == 1800 && it.height == 2400 }
+            ?: Size(1080, 1920)
+
+        Log.d(TAG, "ImageReader 分辨率: ${size.width}x${size.height} (低内存模式)")
+
+        // maxImages = 1，最小化缓冲
+        imageReader = ImageReader.newInstance(size.width, size.height, ImageFormat.YUV_420_888, 1)
     }
 
 
-    private fun saveImageFromBuffer(buffer: ByteBuffer) {
-        val photoFile = createImageFile()
-        var rotatedBitmap: Bitmap? = null
-        try {
-            val options = BitmapFactory.Options().apply {
-                inPreferredConfig = Bitmap.Config.RGB_565
-                inScaled = false
-            }
-            // 直接从buffer流解码
-            val bitmap = BitmapFactory.decodeStream(ByteBufferInputStream(buffer), null, options) ?: return
-            // 旋转处理（同之前的优化）
-            val matrix = Matrix().apply { postRotate(270f) }
-            rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, false)
-            bitmap.recycle()
-
-            // 保存图片
-            FileOutputStream(photoFile).use { out ->
-                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
-            }
-            imgCallback?.get()?.invoke(photoFile)
-        } catch (e: Exception) {
-            L.e(TAG, "保存图像失败: ${e.message}", e)
-        } finally {
-            rotatedBitmap?.recycle()
-        }
-    }
-
-
+    /**
+     * 设置预览 Surface
+     */
     private fun setupPreviewSurface() {
         if (surfaceTexture == null) {
             surfaceTexture = SurfaceTexture(0)
-            surfaceTexture?.setDefaultBufferSize(1920, 1080)
+            // 使用 1280x720，降低内存占用
+            surfaceTexture?.setDefaultBufferSize(640, 480)
         }
         if (previewSurface == null) {
             previewSurface = Surface(surfaceTexture)
         }
     }
 
+    /**
+     * 重置录像状态
+     */
     private fun resetRecordingState() {
         isRecording = false
         mediaRecorder?.release()
@@ -518,26 +660,29 @@ object QuickCameraManager {
         videoFile = null
     }
 
+    /**
+     * 获取最佳视频尺寸
+     */
     private fun getBestVideoSize(): Size? {
         return try {
             val characteristics = cameraManager?.getCameraCharacteristics(cameraId!!)
             val map: StreamConfigurationMap? = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val sizes: Array<Size>? = map?.getOutputSizes(MediaRecorder::class.java)
-            // 设置摄像头录像为横屏
-            sizes?.firstOrNull { it.width == 1080 && it.height == 1920 }
-            // 设置摄像头录像为竖屏
-//            sizes?.firstOrNull { it.width == 1920 && it.height == 1080 }
-                ?: sizes?.firstOrNull { it.width == 720 && it.height == 1280 }
+            sizes?.firstOrNull { it.width == 1920 && it.height == 1080 }
+                ?: sizes?.firstOrNull { it.width == 1080 && it.height == 1920 }
                 ?: sizes?.getOrNull(0)
         } catch (e: Exception) {
             null
         }
     }
 
+    /**
+     * 计算 JPEG 方向
+     */
     private fun getJpegOrientation(rotation: Int): Int {
         val characteristics = cameraManager?.getCameraCharacteristics(cameraId!!)
         val sensorOrientation = characteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
-        Log.d(TAG,"-----------sensorOrientation=${sensorOrientation}")
+        Log.d(TAG, "sensorOrientation=$sensorOrientation")
         return when (rotation) {
             Surface.ROTATION_0 -> (sensorOrientation + 0) % 360
             Surface.ROTATION_90 -> (sensorOrientation + 270) % 360
@@ -547,80 +692,65 @@ object QuickCameraManager {
         }
     }
 
-//    private fun createImageFile(): File {
-//        // 获取基础图片目录
-//        val baseDir = MyApplication.getContext().getExternalFilesDir(Environment.DIRECTORY_DCIM)
-//        // 创建包含album子目录的完整路径
-//        val albumDir = File(baseDir, "album")
-//        // 确保目录存在（若不存在则创建）
-//        if (!albumDir.exists()) {
-//            albumDir.mkdirs()
-//        }
-//        // 生成时间戳文件名
-//        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-//        // 在album目录下创建图片文件
-//        return File(albumDir, "IMG_$timeStamp.jpg")
-//    }
-
-
-    fun createImageFile(): File? { // 改为返回 File?，避免异常时返回无效对象
+    /**
+     * 创建图片文件
+     */
+    fun createImageFile(): File? {
         return try {
-            // 1. 关键修改：获取系统公共 DCIM 目录（替代原私有目录）
-            // 路径示例：/storage/emulated/0/DCIM（所有应用可访问）
             val baseDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
             baseDir.mkdirs()
+
             if (baseDir == null || !baseDir.exists()) {
-                return null // 极端情况：公共目录不存在（如存储挂载失败）
+                return null
             }
 
-            // 2. 保持原有逻辑：创建 album 子目录（路径：/Pictures/album）
             val albumDir = File(baseDir, "album")
             if (!albumDir.exists()) {
-                albumDir.mkdirs() // 自动创建多级目录（DCIM 已存在，仅创建 album）
+                albumDir.mkdirs()
             }
 
-            // 3. 保持原有逻辑：生成时间戳文件名
             val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val imageFile = File(albumDir, "IMG_$timeStamp.jpg")
 
-            // 4. 新增：通知系统扫描文件，确保其他应用（如相册、微信）能识别
             scanPublicFile(imageFile)
-
-            imageFile // 返回公共目录下的 File 对象（后续可直接写入数据）
+            imageFile
         } catch (e: Exception) {
             e.printStackTrace()
-            null // 异常时返回 null（如权限不足、存储满）
+            null
         }
     }
 
-    // 辅助方法：通知系统扫描公共目录的文件（核心，否则其他应用找不到）
+    /**
+     * 通知系统扫描文件
+     */
     private fun scanPublicFile(file: File) {
         val context = MyApplication.getContext()
-        // 发送广播触发系统媒体扫描（兼容所有 Android 版本）
         val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
         val fileUri = Uri.fromFile(file)
         mediaScanIntent.data = fileUri
         context.sendBroadcast(mediaScanIntent)
     }
 
+    /**
+     * 创建视频文件
+     */
     private fun createVideoFile(): File {
-        // 获取基础视频目录
         val baseDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        // 创建包含album子目录的完整路径
         val albumDir = File(baseDir, "album")
-        // 确保目录存在（若不存在则创建）
         if (!albumDir.exists()) {
             albumDir.mkdirs()
         }
-        // 生成时间戳文件名
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        // 在album目录下创建视频文件
         return File(albumDir, "VID_$timeStamp.mp4")
     }
 
+    /**
+     * 释放相机资源
+     */
     fun releaseCamera() {
         try {
             if (isCameraClosed) return
+
             if (isRecording) {
                 try {
                     mediaRecorder?.stop()
@@ -633,6 +763,7 @@ object QuickCameraManager {
                 captureSession?.close()
                 captureSession = null
             }
+
             setProcessingCaptureState(false)
             cameraDevice?.close()
             imageReader?.close()
@@ -645,7 +776,6 @@ object QuickCameraManager {
             surfaceTexture = null
 
             stopBackgroundThread()
-
             mediaRecorder = null
 
             L.d(TAG, "释放相机")
@@ -659,83 +789,56 @@ object QuickCameraManager {
         }
     }
 
+    /**
+     * 启动后台线程
+     */
     private fun startBackgroundThread() {
         if (backgroundThread == null) {
             backgroundThread = HandlerThread("CameraBackground").apply {
                 start()
                 backgroundHandler = Handler(looper)
-                cameraManager?.registerAvailabilityCallback(availabilityCallback, backgroundHandler)
             }
         }
     }
 
-    private fun stopBackgroundThread(callback: (() -> Unit)? = null) {
-        cameraManager?.unregisterAvailabilityCallback(availabilityCallback)
+    /**
+     * 停止后台线程
+     */
+    private fun stopBackgroundThread() {
         backgroundThread?.quitSafely()
-        backgroundThread = null
-        backgroundHandler = null
-        callback?.invoke() // 直接执行回调，无需延迟
-    }
-
-    private fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(MyApplication.getContext(), android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun hasAudioPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(MyApplication.getContext(), android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-    }
-
-    fun isRecording(): Boolean = isRecording
-
-
-    private var captureCollectJob: Job? = null
-    private var isListeningProcessing = false
-
-    fun actionDestroyCameraTask() {
-        L.d(TAG, "actionDestroyCameraTask->${isCameraDoing()}")
-        if (isCameraDoing()) {
-            mainScope.launch {
-                // 2. 关键：先取消旧协程并等待其完全结束（避免旧协程残留）
-                captureCollectJob?.let {
-                    it.cancel() // 取消旧协程
-                    it.join()   // 等待协程完全终止（解决协作式取消的延迟问题）
-                    captureCollectJob = null // 清空引用，避免重复操作
-                }
-                // 3. 确保当前没有其他监听协程，再启动新协程
-                if (!isListeningProcessing) {
-                    isListeningProcessing = true
-                    captureCollectJob = launch {
-                        try {
-                            // 新增：5秒超时机制
-                            withTimeoutOrNull(5000) {
-                                // 监听处理状态流
-                                isProcessingCapture.collect { processing ->
-                                    L.d(TAG, "actionDestroyCameraTask collect->$processing isCameraClosed：${isCameraClosed}")
-                                    if (!processing && !isCameraClosed) {
-                                        releaseCamera()
-                                        captureCollectJob?.cancel() // 满足条件时取消协程
-                                    }
-                                }
-                            } ?: run {
-                                // 超时未满足条件，强制释放
-                                Log.d(TAG, "相机释放超时（5秒），强制释放资源")
-                                if (!isCameraClosed) {
-                                    releaseCamera()
-                                }
-                            }
-                        } catch (e: CancellationException) {
-                            // 正常取消，无需处理
-                        } finally {
-                            isListeningProcessing = false
-                            captureCollectJob = null
-                        }
-                    }
-                }
-            }
-        } else {
-            releaseCamera()
+        try {
+            backgroundThread?.join()
+            backgroundThread = null
+            backgroundHandler = null
+        } catch (e: InterruptedException) {
+            L.e(TAG, "停止后台线程异常", e)
         }
     }
+
+    /**
+     * 检查相机权限
+     */
+    private fun hasCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            MyApplication.getContext(),
+            android.Manifest.permission.CAMERA
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * 检查音频权限
+     */
+    private fun hasAudioPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            MyApplication.getContext(),
+            android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * 判断相机是否正在工作
+     */
+    fun isCameraDoing(): Boolean = isProcessingCapture.value
 
     fun saveImage2(bytes: ByteArray) {
         val photoFile = createImageFile()
@@ -756,7 +859,209 @@ object QuickCameraManager {
     }
 
 
+        /**
+     * 将 YUV Image 转换为 JPEG 并保存到文件（可靠版本）
+     */
+    private fun saveYuvImageAsJpeg(image: android.media.Image) {
+        val photoFile = createImageFile()
+        if (photoFile == null) {
+            L.e(TAG, "创建图片文件失败")
+            imgCallback?.get()?.invoke(null)
+            return
+        }
+
+        var jpegBytes: ByteArray? = null
+
+        try {
+            val width = image.width
+            val height = image.height
+
+            Log.d(TAG, "转换 YUV 到 JPEG: ${width}x${height}")
+
+            // ⭐ 方法 1: 尝试使用 ImageReader 直接获取 JPEG（如果支持）
+            // ⭐ 方法 2: 手动转换 YUV_420_888 到 NV21，再压缩为 JPEG
+
+            jpegBytes = convertYuv420ToJpeg(image)
+
+            if (jpegBytes == null || jpegBytes.isEmpty()) {
+                L.e(TAG, "JPEG 转换失败，返回空数据")
+                imgCallback?.get()?.invoke(null)
+                return
+            }
+
+            Log.d(TAG, "JPEG 数据大小: ${jpegBytes.size / 1024} KB")
+
+            // 保存 JPEG 数据到文件
+            FileOutputStream(photoFile).use { outputStream ->
+                outputStream.write(jpegBytes)
+                outputStream.flush()
+            }
+
+            // 添加 EXIF 旋转信息
+            try {
+                val exif = ExifInterface(photoFile.absolutePath)
+                exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_270.toString())
+                exif.saveAttributes()
+                L.d(TAG, "已添加 EXIF 旋转标记: 270度")
+            } catch (e: Exception) {
+                L.e(TAG, "设置 EXIF 失败", e)
+            }
+
+            L.d(TAG, "图片保存成功: ${photoFile.absolutePath}")
+            imgCallback?.get()?.invoke(photoFile)
+
+        } catch (e: Exception) {
+            L.e(TAG, "保存 YUV 图像失败: ${e.message}", e)
+            e.printStackTrace()
+            imgCallback?.get()?.invoke(null)
+        }
+    }
+
+     /**
+     * 将 YUV_420_888 Image 转换为 JPEG 字节数组
+     */
+    private fun convertYuv420ToJpeg(image: android.media.Image): ByteArray? {
+        return try {
+            val width = image.width
+            val height = image.height
+
+            // ⭐ 步骤 1: 提取 YUV 平面数据
+            val yPlane = image.planes[0]
+            val uPlane = image.planes[1]
+            val vPlane = image.planes[2]
+
+            val yBuffer = yPlane.buffer
+            val uBuffer = uPlane.buffer
+            val vBuffer = vPlane.buffer
+
+            // 获取行间距和像素间距
+            val yRowStride = yPlane.rowStride
+            val yPixelStride = yPlane.pixelStride
+            val uvRowStride = uPlane.rowStride
+            val uvPixelStride = uPlane.pixelStride
+
+            Log.d(TAG, "YUV 参数: width=$width, height=$height, yRowStride=$yRowStride, yPixelStride=$yPixelStride, uvRowStride=$uvRowStride, uvPixelStride=$uvPixelStride")
+
+            // ⭐ 步骤 2: 构建 NV21 数据
+            val nv21Size = width * height * 3 / 2
+            val nv21 = ByteArray(nv21Size)
+
+            // 复制 Y 分量
+            if (yPixelStride == 1) {
+                // Y 是连续的
+                for (row in 0 until height) {
+                    val rowStart = row * yRowStride
+                    val nv21Start = row * width
+                    yBuffer.position(rowStart)
+                    yBuffer.get(nv21, nv21Start, width)
+                }
+            } else {
+                // Y 有像素间距
+                for (row in 0 until height) {
+                    for (col in 0 until width) {
+                        val index = row * yRowStride + col * yPixelStride
+                        nv21[row * width + col] = yBuffer.get(index)
+                    }
+                }
+            }
+
+            // 复制 UV 分量（交错为 VU）
+            val chromaHeight = height / 2
+            val chromaWidth = width / 2
+            var nv21Index = width * height
+
+            Log.d(TAG, "开始处理 UV 分量: chromaWidth=$chromaWidth, chromaHeight=$chromaHeight")
+
+            if (uvPixelStride == 2) {
+                // ⭐ 常见情况：UV 交错的半平面格式
+                // U 和 V 在同一个缓冲区中交错存储 (UVUVUV...)
+                for (row in 0 until chromaHeight) {
+                    val rowStart = row * uvRowStride
+
+                    for (col in 0 until chromaWidth) {
+                        val index = rowStart + col * uvPixelStride
+
+                        // ⭐ 确保不越界
+                        if (index + 1 < uBuffer.capacity()) {
+                            val u = uBuffer.get(index)      // U 在偶数位置
+                            val v = uBuffer.get(index + 1)  // V 在奇数位置
+                            nv21[nv21Index++] = v
+                            nv21[nv21Index++] = u
+                        }
+                    }
+                }
+            } else if (uvPixelStride == 1) {
+                // ⭐ U 和 V 是分离的平面
+                val vRowStride = vPlane.rowStride
+                val vPixelStride = vPlane.pixelStride
+
+                Log.d(TAG, "分离平面: vRowStride=$vRowStride, vPixelStride=$vPixelStride")
+
+                for (row in 0 until chromaHeight) {
+                    for (col in 0 until chromaWidth) {
+                        val uIndex = row * uvRowStride + col * uvPixelStride
+                        val vIndex = row * vRowStride + col * vPixelStride
+
+                        // ⭐ 确保不越界
+                        if (uIndex < uBuffer.capacity() && vIndex < vBuffer.capacity()) {
+                            nv21[nv21Index++] = vBuffer.get(vIndex)
+                            nv21[nv21Index++] = uBuffer.get(uIndex)
+                        }
+                    }
+                }
+            } else {
+                // 其他情况
+                val vRowStride = vPlane.rowStride
+                val vPixelStride = vPlane.pixelStride
+
+                for (row in 0 until chromaHeight) {
+                    for (col in 0 until chromaWidth) {
+                        val uIndex = row * uvRowStride + col * uvPixelStride
+                        val vIndex = row * vRowStride + col * vPixelStride
+
+                        if (uIndex < uBuffer.capacity() && vIndex < vBuffer.capacity()) {
+                            nv21[nv21Index++] = vBuffer.get(vIndex)
+                            nv21[nv21Index++] = uBuffer.get(uIndex)
+                        }
+                    }
+                }
+            }
+
+            Log.d(TAG, "NV21 构建完成，大小: ${nv21.size}, nv21Index=$nv21Index")
+
+            // ⭐ 步骤 3: 使用 YuvImage 压缩为 JPEG
+            val yuvImage = android.graphics.YuvImage(
+                nv21,
+                ImageFormat.NV21,
+                width,
+                height,
+                null
+            )
+
+            val outputStream = java.io.ByteArrayOutputStream()
+            val success = yuvImage.compressToJpeg(
+                android.graphics.Rect(0, 0, width, height),
+                85,
+                outputStream
+            )
+
+            if (!success) {
+                L.e(TAG, "YuvImage 压缩失败")
+                return null
+            }
+
+            val jpegData = outputStream.toByteArray()
+            outputStream.close()
+
+            Log.d(TAG, "JPEG 压缩成功，大小: ${jpegData.size / 1024} KB")
+            jpegData
+
+        } catch (e: Exception) {
+            L.e(TAG, "YUV 转 JPEG 异常", e)
+            e.printStackTrace()
+            null
+        }
+    }
+
+
 }
-
-
-

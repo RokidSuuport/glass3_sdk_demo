@@ -164,7 +164,7 @@
                         android:gravity="center"
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="6dp"
-                        android:text="WIFI未连接"
+                        android:text="P2P未连接"
                         android:textColor="#007AFF"
                         android:textSize="13sp" />
 

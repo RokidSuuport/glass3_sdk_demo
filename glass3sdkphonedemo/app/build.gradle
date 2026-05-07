@@ -76,9 +76,12 @@ dependencies {
     implementation("com.guolindev.permissionx:permissionx:1.8.1")
     implementation 'com.googlecode.mp4parser:isoparser:1.1.22'
     implementation 'pub.devrel:easypermissions:2.0.1'
-    implementation ('com.rokid.security:phone.sdk:2.1.7-E'){
+    implementation ("com.rokid.security:phone.sdk:2.1.8-E"){
         exclude group: "org.slf4j"
     }
+//    implementation ('com.rokid.security:phone.sdk:2.1.7-E'){
+//        exclude group: "org.slf4j"
+//    }
 //    implementation ('com.rokid.security:phone.sdk:2.1.6-E'){
 //        exclude group: "org.slf4j"
 //    }

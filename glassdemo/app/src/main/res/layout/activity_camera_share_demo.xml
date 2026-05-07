@@ -37,7 +37,7 @@
                     android:id="@+id/tv_mix_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="叠加: OFF"
+                    android:text="@string/ui_overlay_off"
                     android:textColor="@android:color/white"
                     android:textSize="12sp" />
 
@@ -73,7 +73,7 @@
                 android:background="#80000000"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="2dp"
-                android:text="NV21数据渲染"
+                android:text="@string/ui_nv21_render"
                 android:textColor="@android:color/white"
                 android:textSize="12sp" />
 
@@ -105,7 +105,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="● MIX 叠加录制中"
+            android:text="@string/ui_mix_recording"
             android:textColor="#FFFF1744"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -115,7 +115,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="00:00"
+            android:text="@string/ui_time_zero"
             android:textColor="@android:color/white"
             android:textSize="24sp" />
 
@@ -141,7 +141,7 @@
                 android:id="@+id/tv_mix_label2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="叠加: ON"
+                android:text="@string/ui_overlay_on"
                 android:textColor="@android:color/white"
                 android:textSize="12sp" />
 
@@ -174,7 +174,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="★"
+                android:text="@string/ui_star"
                 android:textColor="#FFFFEB3B"
                 android:textSize="16sp" />
 
@@ -183,7 +183,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
-                android:text="MIX 叠加模式"
+                android:text="@string/ui_mix_overlay_mode"
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -214,7 +214,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="▶ Camera + Screen 叠加中"
+                android:text="@string/ui_camera_screen_overlay"
                 android:textColor="@android:color/white"
                 android:textSize="12sp" />
         </LinearLayout>

@@ -51,12 +51,10 @@ class SendMessageActivity : ComponentActivity() {
     private val fileReceiveListener = object : FileReceiveListener {
         override fun onStart() {
             startTime = System.currentTimeMillis()
-            Log.i(TAG, "onStart: 本端开始发送文件")
             log("onStart: 本端开始发送文件")
         }
 
         override fun onProgressChanged(progress: Float) {
-            Log.i(TAG, "onProgressChanged: 本端发送文件的进度 $progress")
             log("onProgressChanged: 本端发送文件的进度 $progress")
         }
 
@@ -64,25 +62,22 @@ class SendMessageActivity : ComponentActivity() {
          * 眼睛端发送文件路径
          */
         override fun onComplete(filePath: String) {
-            Log.i(TAG, "onComplete: 本端发送文件完成,----$filePath")
             // storage/emulated/0/Download/receiver/aaaascene.jpg
             var duration = System.currentTimeMillis() - startTime
             val fileSize = FileSizeUtil.formatFileSize(FileSizeUtil.getFileSizeBytes(curFile).toDouble())
             if (duration > 1000) {
                 duration = duration / 1000
-                log("onComplete: 本端发送文件完成，${duration}秒,${fileSize}")
+                log("onComplete: 本端发送文件完成，${duration}秒,${fileSize},$filePath")
             } else {
-                log("onComplete: 本端发送文件完成，${duration}毫秒,${fileSize}")
+                log("onComplete: 本端发送文件完成，${duration}毫秒,${fileSize},$filePath")
             }
         }
 
         override fun onFail() {
-            Log.i(TAG, "onFail: 本端发送文件失败")
             log("onFail: 本端发送文件失败")
         }
 
         override fun onCancel() {
-            Log.i(TAG, "onCancel: 对方取消了发送文件")
             log("onCancel: 对方取消了发送文件")
         }
     }
@@ -138,12 +133,12 @@ class SendMessageActivity : ComponentActivity() {
             if (randomFile) {
                 randomFile = false
                 curFile = fileToSend1
-                Log.e(TAG, "蓝牙发送---->文件目录: ${fileToSend1.absolutePath}")
+                log("蓝牙发送---->文件目录: ${fileToSend1.absolutePath}")
                 mBTFileOperator?.sendFile(null, fileToSend1, fileReceiveListener) {}
             } else {
                 randomFile = true
                 curFile = fileToSend2
-                Log.e(TAG, "蓝牙发送---->文件目录: ${fileToSend2.absolutePath}")
+                log("蓝牙发送---->文件目录: ${fileToSend2.absolutePath}")
                 // /storage/emulated/0/Download/receiver/test1girl.png 眼睛端接收文件目录
                 // 眼镜端文件名的前面增加了一段内容,原本的文件名前面增加了前缀，dir 可以写空字符串 或为 null
                 mBTFileOperator?.sendFile(null, fileToSend2, fileReceiveListener) {}
@@ -169,23 +164,19 @@ class SendMessageActivity : ComponentActivity() {
             PSecuritySDK.getMessageService()?.getApkFileOperator()?.sendFile(tesApk, object : TransferProgressListener {
                 override fun onProgress(transferred: Long, total: Long) {
                     val progress = transferred.toFloat() / total
-                    Log.e(TAG, "发送 apk进度 ${String.format("%.2f", progress)}")
                     log("发送 apk进度 ${String.format("%.2f", progress)}")
                 }
 
                 override fun onComplete() {
-                    Log.e(TAG, "发送apk成功")
                     log("安装APK成功")
                 }
 
                 override fun onError(message: String) {
-                    Log.e(TAG, "安装APK失败 $message")
                     log("安装APK失败 $message")
                 }
 
 
                 override fun onCanceled() {
-                    Log.e(TAG, "安装APK取消")
                     log("安装APK取消")
                 }
             })
@@ -196,6 +187,7 @@ class SendMessageActivity : ComponentActivity() {
 
     private val logBuilder = StringBuilder()
     private fun log(msg: String) {
+        Log.e(TAG, msg)
         logBuilder.insert(0, "$msg\n")
         lifecycleScope.launch {
             binding.tvLog.text = logBuilder.toString()
@@ -268,28 +260,9 @@ class SendMessageActivity : ComponentActivity() {
                 assetFile.close()
             } catch (e: Exception) {
                 e.printStackTrace()
-                Log.e("AudioTrack", "播放失败: ${e.message}")
+                log("播放失败: ${e.message}")
             }
         }.start()
-    }
-
-    fun sendWav() {
-        WavStreamSender.getInstance(this).sendWavFromAssets(
-            "123.wav",
-            object : WavStreamSender.Callback {
-                override fun onProgress(sentBytes: Long, totalBytes: Long) {
-                    Log.d("WavStream", "进度: $sentBytes/$totalBytes")
-                }
-
-                override fun onCompleted() {
-                    Log.d("WavStream", "传输完成")
-                }
-
-                override fun onError(e: Exception) {
-                    Log.e("WavStream", "错误: ${e.message}")
-                }
-            }
-        )
     }
 
     override fun onDestroy() {

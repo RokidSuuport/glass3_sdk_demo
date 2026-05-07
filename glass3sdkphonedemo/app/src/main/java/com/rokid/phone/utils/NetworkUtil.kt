@@ -6,8 +6,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import com.rokid.security.phone.sdk.base.data.EnvType
-import com.rokid.security.phone.sdk.base.utils.net.SecuritySDKEnv
-import com.rokid.security.phone.sdk.server.UrlConfig.hostUrl
+import com.rokid.security.sdk.ability.net.SecuritySDKEnv
+import com.rokid.security.sdk.ability.net.UrlConfig.hostUrl
 
 /**
  * Author: zhangshengwei

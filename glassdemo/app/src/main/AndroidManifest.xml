@@ -80,11 +80,14 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name="com.rokid.glass.CameraShareSelectActivity"
+            android:exported="true" />
+        <activity
             android:name="com.rokid.glass.CameraShareDemoActivity"
-            android:exported="false" />
+            android:exported="true" />
         <activity
             android:name="com.rokid.glass.SendMessageActivity"
-            android:exported="false" />
+            android:exported="true" />
         <activity
             android:name="com.rokid.glass.HomeActivity"
             android:exported="true"

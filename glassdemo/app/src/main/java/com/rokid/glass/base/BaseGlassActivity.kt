@@ -115,7 +115,6 @@ open class BaseGlassActivity : AppCompatActivity() {
                     Log.d(TAG, "dispatchTouchEvent 指环后键单击,endX:${endX}, endY:${endY}")
                     onGlassKeyEvent(GlassKeyEvent.KEYCODE_BEHIND)
                 }
-                return true
             }
         }
         return super.dispatchTouchEvent(event)

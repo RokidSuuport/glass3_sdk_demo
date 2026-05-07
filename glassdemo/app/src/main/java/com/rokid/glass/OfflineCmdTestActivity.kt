@@ -91,7 +91,8 @@ class OfflineCmdTestActivity : BaseGlassActivity() {
 
     private fun setLanguage(language: String) {
         try {
-            GlassSdk.getGlassOfflineCmdService()?.setLanguage(language)
+//            GlassSdk.getGlassOfflineCmdService()?.setLanguage(language)
+            GlassSdk.setOfflineCmdLanguage(language)
             appendLog("setLanguage: $language")
             refreshCurrentLanguage()
         } catch (t: Throwable) {
@@ -101,7 +102,8 @@ class OfflineCmdTestActivity : BaseGlassActivity() {
 
     private fun setWords(language: String, words: List<VoiceAction>) {
         try {
-            GlassSdk.getGlassOfflineCmdService()?.setWords(language, words)
+//            GlassSdk.getGlassOfflineCmdService()?.setWords(language, words)
+            GlassSdk.setOfflineCmdWords(language, words)
             appendLog("setWords($language): ${words.map { it.text }}")
             refreshCurrentLanguage()
         } catch (t: Throwable) {
@@ -111,7 +113,8 @@ class OfflineCmdTestActivity : BaseGlassActivity() {
 
     private fun clearWords(language: String) {
         try {
-            GlassSdk.getGlassOfflineCmdService()?.clearWords(language)
+//            GlassSdk.getGlassOfflineCmdService()?.clearWords(language)
+            GlassSdk.clearOfflineCmdWords(language)
             appendLog("clearWords: $language")
         } catch (t: Throwable) {
             appendLog("clearWords failed (old service?): ${t.message}")

@@ -63,7 +63,7 @@ class MessageReceiveActivity : BaseActivity() {
         setContentView(binding.root)
         GlassSdk.getGlassMessageService()?.setMessageListener(mMessageListener)
         GlassSdk.getGlassMessageService()?.glassFileOperater?.setFileReceiveListener(mFileReceiveListener)
-        GlassSdk.getGlassMessageService()?.glassBtFileOperater?.setFileReceiveListener(mFileReceiveListener)
+        GlassSdk.getGlassMessageService()?.glassBtFileOperater?.setFileReceiveListener(mBtFileReceiveListener)
         GlassSdk.getGlassNotificationService()?.setNotificationListener(mNotificationListener)
         audioTrack.play()
         binding.scrollView.requestFocus()
@@ -144,6 +144,33 @@ class MessageReceiveActivity : BaseActivity() {
         override fun onCancel() {
             Log.e(TAG, "onCancel: 对方取消了发送文件")
             log("对方取消了发送文件")
+        }
+    }
+
+    private val mBtFileReceiveListener = object : FileReceiveListener.Stub() {
+        override fun onStart() {
+            Log.e(TAG, "onStart: 蓝牙本端开始接收文件")
+            log("蓝牙本端开始接收文件")
+        }
+
+        override fun onProgressChanged(progress: Float) {
+            Log.e(TAG, "onProgressChanged: 蓝牙本端接收文件的进度 $progress")
+            log("蓝牙接收文件的进度 $progress")
+        }
+
+        override fun onComplete(filePath: String) {
+            Log.e(TAG, "onComplete: 蓝牙本端接收文件完成")
+            log("蓝牙接收文件完成 $filePath")
+        }
+
+        override fun onFail() {
+            Log.e(TAG, "onFail: 蓝牙接收文件失败")
+            log("蓝牙接收文件失败")
+        }
+
+        override fun onCancel() {
+            Log.e(TAG, "onCancel: 蓝牙对方取消了发送文件")
+            log("蓝牙对方取消了发送文件")
         }
     }
 
