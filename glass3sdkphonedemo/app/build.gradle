@@ -10,7 +10,6 @@ android {
     defaultConfig {
         applicationId "com.rokid.phone"
         minSdk 24
-//        minSdk 26
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -22,8 +21,28 @@ android {
     }
 
     buildTypes {
+//        debug {
+//            // 普通调试包保持不混淆，便于日常调试和断点排查。
+//            minifyEnabled false
+//        }
+
+        // 混淆测试包：用于在本地安装验证 R8 混淆后的运行效果。
+        // applicationIdSuffix 可避免覆盖普通 debug 包。
+        debug {
+            // R8 对 debuggable 构建会关闭优化/混淆，因此这里设为 false。
+            debuggable false
+            // 测试包开启 R8 优化。
+            minifyEnabled true
+            // 测试包先不压缩资源，降低定位资源相关问题的干扰。
+            shrinkResources false
+            // 混淆规则文件。
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
         release {
-            minifyEnabled false
+            // 正式包开启代码混淆和资源压缩。
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -76,7 +95,8 @@ dependencies {
     implementation("com.guolindev.permissionx:permissionx:1.8.1")
     implementation 'com.googlecode.mp4parser:isoparser:1.1.22'
     implementation 'pub.devrel:easypermissions:2.0.1'
-    implementation ("com.rokid.security:phone.sdk:2.1.8-E"){
+    implementation ("com.rokid.security:phone.sdk:2.1.8-E") {
+        // SDK 依赖链中 rklogger 已包含 slf4j 相关类，排除外部 slf4j 避免重复类冲突。
         exclude group: "org.slf4j"
     }
 //    implementation ('com.rokid.security:phone.sdk:2.1.7-E'){

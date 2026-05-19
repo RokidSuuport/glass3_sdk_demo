@@ -11,6 +11,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
@@ -37,6 +38,7 @@ import com.rokid.glesse.databinding.ActivityHomeBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
+import com.rokid.security.system.server.media.callback.ICameraCloseCallback
 import kotlinx.coroutines.flow.drop
 import kotlin.math.ceil
 
@@ -286,6 +288,11 @@ class HomeActivity : BaseActivity() {
         if (::directionTracker.isInitialized) {
             directionTracker.stop()
         }
+//        GlassSdk.getGlassMediaService()?.closeCamera(object : ICameraCloseCallback.Stub(){
+//            override fun onClosed(success: Boolean) {
+//                Log.d(TAG,"相机关闭结果----$success")
+//            }
+//        })
         GlassSdkUtils.destroySdk()
     }
 

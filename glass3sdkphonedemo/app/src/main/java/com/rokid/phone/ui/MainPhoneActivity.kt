@@ -118,7 +118,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
             // TODO: 在线语音转文本和文本转语音秘钥，appId填写accessKey，secret填写secretKey简称AKSK,找商务申请。
             val userAuthInfo = UserAuthInfo("", "")
 
-            // 不初始化翻译服务 ，初始化语音转文本和文本转语音
+            // 不初始化翻译服务 ，初始化语音转文本和文本转语
             val banServiceList: List<NetServiceType> = arrayListOf(NetServiceType.TranslateService)
 
             // ALL表示 所有服务都不初始化
