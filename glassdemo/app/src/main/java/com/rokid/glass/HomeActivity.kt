@@ -222,7 +222,7 @@ class HomeActivity : BaseActivity() {
                 // 设置眼睛端系统时间 timeStr: 2026-02-02 14:44:44,1770014682490
 //                 GlassSdk.getGlassDeviceService()?.setSystemTime(1770014682490)
                 //  TODO 关闭眼镜灯,ture开启眼镜灯,false关闭眼睛灯,代码要眼镜系统重启生效
-//                GlassSdk.getGlassDeviceService()?.setCameraLedEnable(false)
+                GlassSdk.getGlassDeviceService()?.setCameraLedEnable(false)
                 Log.e(DeviceUtil.TAG, "----是否带上眼镜： $isGlassTackOn")
                 Log.e(DeviceUtil.TAG, "----是否折叠眼镜腿： $isGlassLegFold")
             } else {

@@ -193,7 +193,7 @@ class SurfaceShareFragment : Fragment() {
                 previewHeight = 1080,
                 previewTargetFps = 24,
                 enableVideoStabilization = true,
-                zoomLevel = 2,
+                zoomLevel = 1,
             )
             if (!::glSurfaceView.isInitialized) return@Runnable
             glSurfaceView.queueEvent {

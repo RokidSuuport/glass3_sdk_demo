@@ -5,15 +5,15 @@
 
     <com.rokid.glass.view.glsurface.view.BackgroundGLSurfaceView
         android:id="@+id/nv21_surface_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_width="480px"
+        android:layout_height="320px" />
 
     <!-- 配置面板 -->
     <LinearLayout
         android:id="@+id/config_panel"
         android:layout_width="300dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
+        android:layout_gravity="center|bottom"
         android:layout_marginTop="80dp"
         android:background="#CC000000"
         android:orientation="vertical"
@@ -161,7 +161,7 @@
         android:id="@+id/tv_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|center_horizontal"
+        android:layout_gravity="bottom|start"
         android:layout_marginTop="20dp"
         android:background="#80000000"
         android:padding="12dp"

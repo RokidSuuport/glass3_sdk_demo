@@ -260,7 +260,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             "void main()" +
             "{" +
             "   float r, g, b, y, u, v;\n" +
-            "   y = texture2D(yTexture, v_texPo).r - 0.2;\n" +
+            "   y = texture2D(yTexture, v_texPo).r ;\n" +
             "   u = texture2D(uvTexture, v_texPo).a - 0.5;\n" +
             "   v = texture2D(uvTexture, v_texPo).r - 0.5;\n" +
             "   r = y + 1.57481*v;\n" +

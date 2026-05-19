@@ -152,7 +152,7 @@ class Nv21ExportFragment : Fragment() {
         
         // 查找 1920x1080 的索引作为默认选项
         currentResolutionIndex = resolutionOptions.indexOfFirst { 
-            it.second.first == 1920 && it.second.second == 1080 
+            it.second.first == 1920 && it.second.second == 1080
         }.takeIf { it >= 0 } ?: 0 // 如果找不到 1920x1080，使用第一个（最高分辨率）
         
         Log.d(TAG, "Default resolution index: $currentResolutionIndex, resolution: ${resolutionOptions[currentResolutionIndex].first}")
