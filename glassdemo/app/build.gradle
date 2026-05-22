@@ -68,9 +68,6 @@ dependencies {
     implementation 'com.rokid.security.glass3.qrcode:scanner:1.0.3'
     implementation("com.rokid.security:glass3.open.sdk:2.1.9-E")
 //    implementation("com.rokid.security:glass3.open.sdk:2.1.8-E-20260518.101638-5")
-//    implementation ("com.rokid.security:glass3.open.sdk:2.1.8-E"){
-//        exclude group: "org.slf4j"
-//    }
 //    implementation('com.rokid.security:glass3.open.sdk:2.1.7-E') {
 //        exclude group: "org.slf4j"
 //    }
