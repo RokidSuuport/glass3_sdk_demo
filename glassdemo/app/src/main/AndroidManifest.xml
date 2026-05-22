@@ -123,7 +123,12 @@
         <activity
             android:name="com.rokid.glass.OfflineCmdTestActivity"
             android:exported="false" />
-
+        <activity
+            android:name="com.rokid.glass.TestLeqiActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.BlackActivity"
+            android:exported="true" />
         <service
             android:name="com.rokid.glass.AudioService"
             android:enabled="true"

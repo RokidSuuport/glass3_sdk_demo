@@ -114,7 +114,7 @@ class Nv21ExportFragment : Fragment() {
     private lateinit var tvZoomValue: TextView
     private lateinit var switchEis: Switch
     
-    private var nv21Helper: CameraShareHelper? = null
+    private val nv21Helper = CameraShareHelper()
     private var frameCount = 0L
     private var lastFpsTime = 0L
     private var currentWidth = 0
@@ -152,7 +152,7 @@ class Nv21ExportFragment : Fragment() {
         
         // 查找 1920x1080 的索引作为默认选项
         currentResolutionIndex = resolutionOptions.indexOfFirst { 
-            it.second.first == 1920 && it.second.second == 1080
+            it.second.first == 1920 && it.second.second == 1080 
         }.takeIf { it >= 0 } ?: 0 // 如果找不到 1920x1080，使用第一个（最高分辨率）
         
         Log.d(TAG, "Default resolution index: $currentResolutionIndex, resolution: ${resolutionOptions[currentResolutionIndex].first}")
@@ -181,6 +181,7 @@ class Nv21ExportFragment : Fragment() {
     }
 
     override fun onPause() {
+        releaseNv21Resources("onPause")
         if (::nv21SurfaceView.isInitialized) {
             nv21SurfaceView.onPause()
         }
@@ -188,10 +189,22 @@ class Nv21ExportFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        releaseNv21Resources("onDestroyView")
+        if (::nv21SurfaceView.isInitialized) {
+            nv21SurfaceView.releasePreview()
+        }
         super.onDestroyView()
-        nv21Helper?.releaseNv21Export()
-        nv21Helper = null
-        nv21SurfaceView.releasePreview()
+    }
+
+    private fun releaseNv21Resources(reason: String) {
+        if (!nv21Helper.isNv21Active()) return
+        Log.d(TAG, "$reason: releasing NV21 export")
+        try {
+            nv21Helper.releaseNv21Export()
+            Log.d(TAG, "$reason: NV21 export released")
+        } catch (e: Exception) {
+            Log.e(TAG, "$reason: failed to release NV21 export: ${e.message}", e)
+        }
     }
 
     /**
@@ -201,10 +214,10 @@ class Nv21ExportFragment : Fragment() {
         // 分辨率 Spinner - 使用动态获取的分辨率列表
         val resolutionAdapter = ArrayAdapter(
             requireContext(),
-            android.R.layout.simple_spinner_item,
+            R.layout.simple_spinner_item,
             resolutionOptions.map { it.first }
         )
-        resolutionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        resolutionAdapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
         spinnerResolution.adapter = resolutionAdapter
         spinnerResolution.setSelection(currentResolutionIndex.coerceIn(0, resolutionOptions.size - 1))
         spinnerResolution.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -217,10 +230,10 @@ class Nv21ExportFragment : Fragment() {
         // FPS Spinner
         val fpsAdapter = ArrayAdapter(
             requireContext(),
-            android.R.layout.simple_spinner_item,
+            R.layout.simple_spinner_item,
             FPS_OPTIONS.map { "${it} fps" }
         )
-        fpsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        fpsAdapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item)
         spinnerFps.adapter = fpsAdapter
         spinnerFps.setSelection(currentFpsIndex)
         spinnerFps.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -282,10 +295,6 @@ class Nv21ExportFragment : Fragment() {
         
         Log.d(TAG, "Applying config: ${width}x${height}@${fps}fps, zoom=$currentZoom, EIS=$currentEis, isPortrait=$isPortrait")
         
-        // 释放旧的 NV21 导出
-        nv21Helper?.releaseNv21Export()
-        
-        // 创建新配置
         val newConfig = CameraShareConfig(
             previewWidth = width,
             previewHeight = height,
@@ -293,11 +302,13 @@ class Nv21ExportFragment : Fragment() {
             enableVideoStabilization = currentEis,
             zoomLevel = currentZoom,
         )
-        
-        // 重新启动 NV21 导出
-        nv21Helper = CameraShareHelper().apply {
-            initNv21ExportWithConfig(enableMix = false, config = newConfig, callback = createNv21Callback(isPortrait))
-        }
+
+        Log.d(TAG, "applyConfig: ${width}x${height}@${fps}fps, zoom=$currentZoom")
+        nv21Helper.restartNv21ExportWithConfig(
+            enableMix = false,
+            config = newConfig,
+            callback = createNv21Callback(isPortrait),
+        )
         
         // 更新显示
         val orientationText = if (isPortrait) "竖屏" else "横屏"
@@ -400,9 +411,15 @@ class Nv21ExportFragment : Fragment() {
 
         val isPortrait = resolutionOption.third
 
-        nv21Helper = CameraShareHelper().apply {
-            initNv21ExportWithConfig(enableMix = false, config = initialConfig, callback = createNv21Callback(isPortrait))
+        if (nv21Helper.isNv21Active()) {
+            Log.w(TAG, "startNv21Export: already active, skip")
+            return
         }
+        nv21Helper.initNv21ExportWithConfig(
+            enableMix = false,
+            config = initialConfig,
+            callback = createNv21Callback(isPortrait),
+        )
 
         val orientationText = if (isPortrait) "竖屏" else "横屏"
         currentConfigText = "配置: ${initialConfig.previewWidth}x${initialConfig.previewHeight}@${initialConfig.previewTargetFps}fps ($orientationText), EIS=${if (currentEis) "ON" else "OFF"}, zoom=${initialConfig.zoomLevel}"

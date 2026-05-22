@@ -11,9 +11,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.rokid.glass.utils.Nv21VideoRecorder
-import com.rokid.glesse.R
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.camera.CameraShareHelper
+import com.rokid.security.glass3.sdk.base.data.media.CameraShareConfig
+import com.rokid.glesse.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,7 +27,16 @@ class MixRecordFragment : Fragment() {
 
     companion object {
         private const val TAG = "MixRecordFragment"
-        
+
+        /** AR Mix 导出常用预览参数（与 [Nv21ExportFragment] 默认 1080P 竖屏区分，Mix 走 GPU 叠加管线）。 */
+        private val DEFAULT_MIX_CONFIG = CameraShareConfig(
+            previewWidth = 720,
+            previewHeight = 1280,
+            previewTargetFps = 15,
+            enableVideoStabilization = false,
+            zoomLevel = 1,
+        )
+
         fun newInstance(): MixRecordFragment {
             return MixRecordFragment()
         }
@@ -85,10 +95,27 @@ class MixRecordFragment : Fragment() {
         startMixMode()
     }
 
+    override fun onPause() {
+        releaseMixResources("onPause")
+        super.onPause()
+    }
+
     override fun onDestroyView() {
-        super.onDestroyView()
         mainHandler.removeCallbacks(overlayTimeUpdater)
         mainHandler.removeCallbacks(recordTimeUpdater)
+        releaseMixResources("onDestroyView")
+        super.onDestroyView()
+    }
+
+    /**
+     * 与 [Nv21ExportFragment.releaseNv21Resources] 对齐：Activity 退后台或 Fragment 销毁时释放 NV21/Mix 会话，
+     * 避免相机与编码器在后台仍占用。
+     */
+    private fun releaseMixResources(reason: String) {
+        mainHandler.removeCallbacks(recordTimeUpdater)
+        val helper = nv21Helper
+        if (helper == null && nv21Recorder == null) return
+        Log.d(TAG, "$reason: stopping mix record and releasing NV21 export")
         stopMixMode()
     }
 
@@ -97,9 +124,17 @@ class MixRecordFragment : Fragment() {
             Log.e(TAG, "GlassSdk not ready for mix mode")
             return
         }
+        if (nv21Helper?.isNv21Active() == true) {
+            Log.w(TAG, "startMixMode: already active, skip")
+            return
+        }
 
-        nv21Helper = CameraShareHelper().apply {
-            initNv21Export(enableMix = true, callback = object : CameraShareHelper.Nv21Callback {
+        val helper = CameraShareHelper()
+        nv21Helper = helper
+        helper.initNv21ExportWithConfig(
+            enableMix = true,
+            config = DEFAULT_MIX_CONFIG,
+            callback = object : CameraShareHelper.Nv21Callback {
                 override fun onCameraOpened(width: Int, height: Int) {
                     Log.d(TAG, "Mix camera opened: ${width}x${height}")
                     nv21Recorder = Nv21VideoRecorder(requireContext(), width, height)
@@ -126,19 +161,30 @@ class MixRecordFragment : Fragment() {
                         tvRecordInfo.text = "错误: $code, $msg"
                     }
                 }
-            })
-        }
+            },
+        )
     }
 
     private fun stopMixMode() {
         nv21Recorder?.stop { path ->
             Log.d(TAG, "Recording saved: $path")
             activity?.runOnUiThread {
-                tvRecordInfo.text = "已保存: $path"
+                if (isAdded) {
+                    tvRecordInfo.text = "已保存: $path"
+                }
             }
         }
         nv21Recorder = null
-        nv21Helper?.releaseNv21Export()
+        nv21Helper?.let { helper ->
+            if (helper.isNv21Active()) {
+                try {
+                    helper.releaseNv21Export()
+                    Log.d(TAG, "stopMixMode: NV21 export released")
+                } catch (e: Exception) {
+                    Log.e(TAG, "stopMixMode: releaseNv21Export failed: ${e.message}", e)
+                }
+            }
+        }
         nv21Helper = null
     }
 
