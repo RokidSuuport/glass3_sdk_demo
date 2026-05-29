@@ -11,7 +11,6 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
@@ -38,7 +37,6 @@ import com.rokid.glesse.databinding.ActivityHomeBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
-import com.rokid.security.system.server.media.callback.ICameraCloseCallback
 import kotlinx.coroutines.flow.drop
 import kotlin.math.ceil
 
@@ -218,7 +216,8 @@ class HomeActivity : BaseActivity() {
                 GlassSdk.getGlassOfflineCmdService()?.add(zyVoiceAction)
                 AudioService.start(this)
 //                GlassSdk.getGlassDeviceService()?.switchMicScene(3)
-//                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
+//                startActivity(Intent(this, IdentificationActivity::class.java))
+//              //                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
 //                startActivity(Intent(this, QRCodeActivity::class.java))
 //                startActivity(Intent(this, QRCameraActivity::class.java))
                 // 设置眼睛端系统时间 timeStr: 2026-02-02 14:44:44,1770014682490
@@ -493,7 +492,8 @@ class HomeActivity : BaseActivity() {
                 MyApplication.ACTION_BUTTON_DOUBLE_CLICK -> {
                     Toast.makeText(this@HomeActivity, "眼镜腿双击", Toast.LENGTH_SHORT).show()
                     Log.d(TAG, "-----眼镜腿双击")
-                    // 在这里添加双击按键的处理逻辑
+                    // 在这里添加双击按键的处理逻辑,终止系统广播
+                    abortBroadcast()
                 }
                 // 非折叠状态，长按镜腿物理按键1秒
                 // TODO 示例代码会收到两种长按事件，如果不需要延迟3秒后收到长按事件，请把代码注释掉

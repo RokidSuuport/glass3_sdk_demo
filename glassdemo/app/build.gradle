@@ -64,9 +64,10 @@ dependencies {
     implementation libs.androidx.appcompat
     implementation libs.androidx.activity
     implementation libs.viewfinderview
-//    implementation files('libs/scanner-2.1.2-E-SNAPSHOT.aar')
-    implementation 'com.rokid.security.glass3.qrcode:scanner:1.0.3'
-    implementation("com.rokid.security:glass3.open.sdk:2.1.9-E")
+//    implementation files('libs/qrcode-release.aar')
+    implementation 'com.rokid.security.glass3.qrcode:scanner:1.0.6'
+    implementation("com.rokid.security:glass3.open.sdk:2.2.0-E")
+//    implementation("com.rokid.security:glass3.open.sdk:2.1.9-E")
 //    implementation("com.rokid.security:glass3.open.sdk:2.1.8-E-20260518.101638-5")
 //    implementation('com.rokid.security:glass3.open.sdk:2.1.7-E') {
 //        exclude group: "org.slf4j"

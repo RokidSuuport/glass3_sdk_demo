@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 class MessageReceiveActivity : BaseActivity() {
 
-//    private val mFileOperater by lazy {
+    //    private val mFileOperater by lazy {
 //        GlassSdk.getGlassMessageService()?.getGlassFileOperater()
 //    }
     private lateinit var binding: ActivityMessageReceiveBinding
@@ -134,6 +134,7 @@ class MessageReceiveActivity : BaseActivity() {
         override fun onComplete(filePath: String) {
             Log.e(TAG, "onComplete: 本端接收文件完成")
             log("接收文件完成 $filePath")
+            handleReceivedFile(filePath)
         }
 
         override fun onFail() {
@@ -161,6 +162,7 @@ class MessageReceiveActivity : BaseActivity() {
         override fun onComplete(filePath: String) {
             Log.e(TAG, "onComplete: 蓝牙本端接收文件完成")
             log("蓝牙接收文件完成 $filePath")
+            handleReceivedFile(filePath)
         }
 
         override fun onFail() {
@@ -172,6 +174,19 @@ class MessageReceiveActivity : BaseActivity() {
             Log.e(TAG, "onCancel: 蓝牙对方取消了发送文件")
             log("蓝牙对方取消了发送文件")
         }
+    }
+
+    private fun handleReceivedFile(filePath: String) {
+//        if (!ApkInstallUtil.isApkFile(filePath)) {
+//            return
+//        }
+//
+//        Log.d(TAG, "检测到 APK 文件，准备安装: $filePath")
+//        log("检测到 APK，准备安装")
+//        val started = ApkInstallUtil.installApk(this, filePath)
+//        if (!started) {
+//            log("APK 安装启动失败，请检查文件或安装权限")
+//        }
     }
 
 

@@ -22,6 +22,8 @@ import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.uitls.log.L
 import com.rokid.security.glass3.qrcode.api.GlassScanCallback
 import com.rokid.security.glass3.qrcode.api.GlassScanner
+import com.rokid.security.glass3.qrcode.model.GlassScanConfig
+import com.rokid.security.glass3.qrcode.model.ScanType
 import com.rokid.security.glass3.sdk.base.data.media.PhotoResolution
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
@@ -204,62 +206,8 @@ class SendMessageActivity : BaseActivity() {
             true
         }
 
-//        lifecycleScope.launch(Dispatchers.IO) {
-//            while (handlerLprCount > 0) {
-//                val result = takePhotoAndAwait() // 协程会在此处等待拍照完成
-//                Log.d(TAG, "协程继续执行，结果为: $result")
-//                handlerLprCount--
-//            }
-//        }
-
-//        //wifi模式发送文本
-//        binding.wfSendTextBtn.setOnClickListener {
-//            Log.d(TAG, "-------p2p发送文本点击事件-------")
-//            unAllSelectState(binding.llMain)
-//            selectBtn(binding.wfSendTextBtn)
-//            toClick()
-//        }
-//        binding.wfSendFileBtn.setOnClickListener {
-//            Log.d(TAG, "-------p2p发送文件点击事件-------")
-//            unAllSelectState(binding.llMain)
-//            selectBtn(binding.wfSendFileBtn)
-//            toClick()
-//        }
-//        binding.btSendTextBtn.setOnClickListener {
-//            Log.d(TAG, "-------蓝牙发送文本点击事件-------")
-//            unAllSelectState(binding.llMain)
-//            selectBtn(binding.btSendTextBtn)
-//            toClick()
-//        }
-//        binding.btSendFileBtn.setOnClickListener {
-//            Log.d(TAG, "-------蓝牙发送文件点击事件-------")
-//            unAllSelectState(binding.llMain)
-//            selectBtn(binding.btSendFileBtn)
-//            toClick()
-//        }
-//        binding.btTts.setOnClickListener {
-//            Log.d(TAG, "-------文本转语音语音转文本点击事件-------")
-//            unAllSelectState(binding.llMain)
-//            selectBtn(binding.btTts)
-//            toClick()
-//        }
-//        binding.btAsr.setOnClickListener {
-//            Log.d(TAG, "-------语音转文本点击事件-------")
-//            unAllSelectState(binding.llMain)
-//            selectBtn(binding.btAsr)
-//            toClick()
-//        }
     }
 
-//    fun unAllSelectState(viewGroup: ViewGroup) {
-//        for (i in 0 until viewGroup.childCount) {
-//            if (viewGroup.getChildAt(i) is ViewGroup) {
-//                unAllSelectState(viewGroup.getChildAt(i) as ViewGroup)
-//            } else if (viewGroup.getChildAt(i) is AppCompatTextView) {
-//                unSelectBtn(viewGroup.getChildAt(i) as AppCompatTextView)
-//            }
-//        }
-//    }
 
     // 将拍照任务封装为挂起函数
     private suspend fun takePhotoAndAwait(): String = suspendCancellableCoroutine { continuation ->
@@ -445,15 +393,23 @@ class SendMessageActivity : BaseActivity() {
             }
 
             R.id.btQRCode -> {
-                GlassScanner.launch(this, scanCallback = object : GlassScanCallback {
-                    override fun onScanSuccess(content: String?, barcode: Barcode) {
-                        log("扫描成功：${content}")
-                    }
+                // cameraZoomLevel 新增相机缩放参数默认值1，最大值10,参数越大越容易识别到二维码
+                GlassScanner.launch(
+                    this,
+                    config = GlassScanConfig(enableAutoClose = true, scanType = ScanType.QR_CODE_ONLY, cameraZoomLevel = 5),
+                    scanCallback = object : GlassScanCallback {
+                        override fun onScanSuccess(content: String?, barcode: Barcode) {
+                            log("扫描成功：${content}")
+                        }
 
-                    override fun onScanFailure(error: String) {
-                        log("扫描失败：${error}")
-                    }
-                })
+                        override fun onScanFailure(error: String) {
+                            log("扫描失败：${error}")
+                        }
+                    })
+            }
+
+            R.id.btQRCodeXml -> {
+                startActivity(Intent(this, ActivityQRView::class.java))
             }
 
         }
@@ -474,18 +430,19 @@ class SendMessageActivity : BaseActivity() {
              * @param clientId 手机客户端id
              * @param callback 发送数据流成功或失败的回调
              */
-            GlassSdk.getGlassMessageService()?.sendStreamData("AudioTag1", buffer, "GlassSample", object : IResultCallback.Stub() {
-                override fun onSuccess(result: Boolean) {
+            GlassSdk.getGlassMessageService()
+                ?.sendStreamData("AudioTag1", buffer, "GlassSample", object : IResultCallback.Stub() {
+                    override fun onSuccess(result: Boolean) {
 //                    Log.i(TAG, "发送带业务标记的音频数据流数成功")
-                    log("发送带业务标记的音频数据流数成功")
-                }
+                        log("发送带业务标记的音频数据流数成功")
+                    }
 
-                override fun onFailed(code: Int, errormsg: String?) {
-                    Log.i(TAG, "发送带业务标记的音频数据流数失败:code=${code}，errormsg=${errormsg}")
-                    log("发送带业务标记的音频数据流数失败:code=${code},errormsg=${errormsg}")
-                }
+                    override fun onFailed(code: Int, errormsg: String?) {
+                        Log.i(TAG, "发送带业务标记的音频数据流数失败:code=${code}，errormsg=${errormsg}")
+                        log("发送带业务标记的音频数据流数失败:code=${code},errormsg=${errormsg}")
+                    }
 
-            })
+                })
         }
 
         override fun getCallbackId(): String? {
@@ -514,7 +471,7 @@ class SendMessageActivity : BaseActivity() {
         when (keyEvent) {
             GlassKeyEvent.KEYCODE_FRONT -> {
                 selectBtnStatus++
-                selectBtnStatus %= 11
+                selectBtnStatus %= 12
                 when (selectBtnStatus) {
                     1 -> {
                         unSelectBtn(binding.btTts)
@@ -566,8 +523,13 @@ class SendMessageActivity : BaseActivity() {
                         selectBtn(binding.btQRCode)
                     }
 
-                    0 -> {
+                    11 -> {
                         unSelectBtn(binding.btQRCode)
+                        selectBtn(binding.btQRCodeXml)
+                    }
+
+                    0 -> {
+                        unSelectBtn(binding.btQRCodeXml)
                         selectBtn(binding.btTts)
                     }
                 }
@@ -576,9 +538,9 @@ class SendMessageActivity : BaseActivity() {
             GlassKeyEvent.KEYCODE_BEHIND -> {
                 selectBtnStatus--
                 if (selectBtnStatus < 0) {
-                    selectBtnStatus = 10
+                    selectBtnStatus = 11
                 }
-                selectBtnStatus %= 11
+                selectBtnStatus %= 12
                 when (selectBtnStatus) {
                     1 -> {
                         unSelectBtn(binding.wfSendTextBtn)
@@ -626,10 +588,14 @@ class SendMessageActivity : BaseActivity() {
                     }
 
                     10 -> {
-                        unSelectBtn(binding.btTts)
+                        unSelectBtn(binding.btQRCodeXml)
                         selectBtn(binding.btQRCode)
                     }
 
+                    11 -> {
+                        unSelectBtn(binding.btTts)
+                        selectBtn(binding.btQRCodeXml)
+                    }
 
                     0 -> {
                         unSelectBtn(binding.btAsr)
@@ -726,8 +692,6 @@ class SendMessageActivity : BaseActivity() {
         super.onPause()
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
-
-
 
 
 }

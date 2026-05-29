@@ -64,6 +64,7 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
 
     <application
@@ -127,7 +128,13 @@
             android:name="com.rokid.glass.TestLeqiActivity"
             android:exported="true" />
         <activity
+            android:name="com.rokid.glass.ActivityQRView"
+            android:exported="true" />
+        <activity
             android:name="com.rokid.glass.BlackActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.rokid.glass.IdentificationActivity"
             android:exported="true" />
         <service
             android:name="com.rokid.glass.AudioService"
@@ -135,6 +142,16 @@
             android:exported="true"
             android:foregroundServiceType="connectedDevice|location|microphone|dataSync|camera"
             tools:ignore="ForegroundServicePermission" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

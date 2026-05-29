@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    android:padding="16px">
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btStartIdent"
+        android:layout_width="56dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_ident_button"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:stateListAnimator="@null"
+        android:text="开始识别"
+        android:textColor="@color/ident_button_text"
+        android:textSize="10sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btEndIdent"
+        android:layout_width="56dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="10dp"
+        android:background="@drawable/bg_ident_button"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:stateListAnimator="@null"
+        android:text="结束识别"
+        android:textColor="@color/ident_button_text"
+        android:textSize="10sp"
+        app:layout_constraintLeft_toRightOf="@+id/btStartIdent"
+        app:layout_constraintTop_toTopOf="@id/btStartIdent" />
+
+    <ImageView
+        android:id="@+id/ivImage"
+        android:layout_width="180px"
+        android:layout_height="180px"
+        android:layout_marginTop="30dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/camera_frame_animation"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btEndIdent"
+        tools:ignore="ContentDescription" />
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30px"
+        android:background="@drawable/shape_main_message_unselect_bg"
+        android:fillViewport="true"
+        android:maxHeight="290px"
+        android:padding="10px"
+        app:layout_constrainedHeight="true"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ivImage">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tv_ai_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:textColor="#ff40FF5E"
+                android:textSize="16px"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="识别内容" />
+
+            <ImageView
+                android:id="@+id/iv_load"
+                android:layout_width="16px"
+                android:layout_height="16px"
+                android:src="@mipmap/icon_id_load"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tv_ai_content" />
+
+            <TextView
+                android:id="@+id/tv_load_tips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textColor="@color/green_normal_70"
+                android:textSize="14px"
+                app:layout_constraintBottom_toBottomOf="@+id/iv_load"
+                app:layout_constraintLeft_toRightOf="@+id/iv_load"
+                app:layout_constraintTop_toTopOf="@+id/iv_load"
+                tools:text="提示" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

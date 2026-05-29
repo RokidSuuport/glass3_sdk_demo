@@ -273,6 +273,18 @@ class CameraPageActivity : BaseActivity() {
                     viewBinding.funcTipsTv.postDelayed(dismissStatusTipsRun, TIPS_AUTO_DISMISS_TIME)
                     QuickCameraManager.startRecording {
                         Log.d(TAG, "startRecording " + it?.path)
+                        if (it == null) {
+                            lifecycleScope.launch(Dispatchers.Main) {
+                                isRecording = false
+                                recordSignAnimator?.cancel()
+                                viewBinding.videoTimeLay.removeCallbacks(timeTvRun)
+                                viewBinding.videoTimeLay.visibility = View.INVISIBLE
+                                viewBinding.funcTipsTv.text = "录像失败"
+                                viewBinding.funcTipsTv.visibility = View.VISIBLE
+                                SpriteToastUtil.showSpriteToast(MyApplication.getContext(), "录像失败", 0, 1500, true)
+                                viewBinding.funcTipsTv.postDelayed(statusTipsRun, 1500)
+                            }
+                        }
                     }
                     viewBinding.funcTipsTv.text = "单击\"右触控板\"停止录像"
                     viewBinding.funcTipsTv.visibility = View.VISIBLE
