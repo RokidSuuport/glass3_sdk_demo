@@ -216,6 +216,7 @@ class VideoReceiveActivity : ComponentActivity() {
         override fun onClassicBTAudioStream(buffer: ByteArray) {
             if (currentState != PageState.PREVIEW) return
             audioTrack.write(buffer, 0, buffer.size)
+//            Log.d(TAG,"--------onClassicBTAudioStream--")
         }
     }
 

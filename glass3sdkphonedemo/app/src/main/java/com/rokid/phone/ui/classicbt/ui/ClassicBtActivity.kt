@@ -1,7 +1,10 @@
 package com.rokid.phone.ui.classicbt.ui
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,6 +12,8 @@ import android.util.Log
 import android.view.View
 import android.view.animation.RotateAnimation
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -45,31 +50,32 @@ class ClassicBtActivity : MviActivity<ActivityDiscoverDeviceBinding, TestState, 
     private val deviceAdapter = BlueDeviceAdapter(arrayListOf())
     private val TAG = "ClassicBtActivity"
     override val viewModel = ClassicBtViewModel(ClassicBtRepository(PSecuritySDK))
+
+    private val enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                startScanBt()
+            }, 500)
+        } else {
+            finish()
+        }
+    }
+
+    private val bluetoothConnectPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            ensureBluetoothEnabled()
+        } else {
+            Toast.makeText(this, "请授权蓝牙连接权限", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+
     override fun render(state: TestState) {
     }
 
     var mDevice: BluetoothDeviceInfo? = null
 
     private var lastConnectedDeviceName: String = ""
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode != RESULT_OK) {
-            finish()
-            return
-        }
-        // 只有在Android 4.3版本以上才可以使用BLE功能；在Android 6.0 以上使用扫描方法必须获取位置权限
-        if (requestCode == 111) {
-            Handler(Looper.getMainLooper()).postDelayed({
-//                LoadingManager.showLoading(this, "蓝牙设备搜索中...")
-                CoroutineScope(Dispatchers.Main).launch {
-                    showAnimation(binding.ivLoadSmall, true)
-                    viewModel.sendIntent(TestIntent.startScanBt)
-                    Log.d(TAG,"------onActivityResult------startScanBt")
-                }
-            }, 500)
-        }
-    }
 
     override fun onInit(savedInstanceState: Bundle?) {
         // 观察一次性事件
@@ -121,16 +127,30 @@ class ClassicBtActivity : MviActivity<ActivityDiscoverDeviceBinding, TestState, 
             }
         }
 
-        if (!SystemStateUtils.isBluetoothEnabled()) {
-            val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            com.blankj.utilcode.util.ToastUtils.showShort("蓝牙未开启")
-            startActivityForResult(intent, 111)
+        ensureBluetoothEnabled()
+    }
+
+    private fun ensureBluetoothEnabled() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothConnectPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
             return
         }
+        if (!SystemStateUtils.isBluetoothEnabled()) {
+            com.blankj.utilcode.util.ToastUtils.showShort("蓝牙未开启")
+            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+            return
+        }
+        startScanBt()
+    }
+
+    private fun startScanBt() {
 //        LoadingManager.showLoading(this, "蓝牙设备搜索中...")
         CoroutineScope(Dispatchers.Main).launch {
             showAnimation(binding.ivLoadSmall, true)
             viewModel.sendIntent(TestIntent.startScanBt)
+            Log.d(TAG, "------startScanBt")
         }
     }
 

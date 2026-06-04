@@ -722,8 +722,9 @@ object QuickCameraManager {
         val outputSizes: Array<Size>? = map?.getOutputSizes(ImageFormat.YUV_420_888)
 
         // 优先使用 1280x720，最大 1920x1080
-        val size = outputSizes?.firstOrNull { it.width == 1800 && it.height == 2400 }
-            ?: Size(1080, 1920)
+//        val size = outputSizes?.firstOrNull { it.width == 1800 && it.height == 2400 }
+        val size = outputSizes?.firstOrNull { it.width == 1080 && it.height == 1920 }
+            ?: Size(720, 1280)
 
         Log.d(TAG, "ImageReader 分辨率: ${size.width}x${size.height} (低内存模式)")
 
@@ -768,8 +769,8 @@ object QuickCameraManager {
             val characteristics = cameraManager?.getCameraCharacteristics(cameraId!!)
             val map: StreamConfigurationMap? = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val sizes: Array<Size>? = map?.getOutputSizes(MediaRecorder::class.java)
-            sizes?.firstOrNull { it.width == 1920 && it.height == 1080 }
-                ?: sizes?.firstOrNull { it.width == 1080 && it.height == 1920 }
+            sizes?.firstOrNull { it.width == 1800 && it.height == 2400 }
+                ?: sizes?.firstOrNull { it.width == 1920 && it.height == 1080 }
                 ?: sizes?.getOrNull(0)
         } catch (e: Exception) {
             null

@@ -71,6 +71,17 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     private var volumeTime = 0L
     private var brightnessTime = 0L
     private var isResume = false
+    private var pendingOpenBluetoothAfterPermission = false
+    private var autoConnectP2pJob: Job? = null
+
+    private val enableBtLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            // 蓝牙已开启，可执行扫描、连接等操作
+            getPermission()
+        } else {
+            Toast.makeText(this, "请开启蓝牙以使用功能", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     @Volatile
     private var isDeviceDiscovered = false
@@ -80,11 +91,6 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
      */
     private val mPhoneEngineService by lazy {
         PSecuritySDK.getMobileEngineService()
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        Log.d(TAG,"--------------MainPhoneActivity---")
     }
 
     private val permissions: Array<String> = run {
@@ -125,7 +131,12 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
 //             val banServiceList: List<NetServiceType> = arrayListOf(NetServiceType.ALL)
 
             // PUBLIC表示 公网环境
-            val param = EngineParam(clientIds = clientIds, userAuthInfo = userAuthInfo, banServiceList = banServiceList, envType = EnvType.Companion.PUBLIC)
+            val param = EngineParam(
+                clientIds = clientIds,
+                userAuthInfo = userAuthInfo,
+                banServiceList = banServiceList,
+                envType = EnvType.Companion.PUBLIC
+            )
             mPhoneEngineService.initSDK(param) {
                 if (it.isSuccess) {
                     Log.d(TAG, "手机端初始化SDK成功")
@@ -155,9 +166,18 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     override fun onDestroy() {
         super.onDestroy()
         autoConnectBtJob?.cancel()
+        autoConnectP2pJob?.cancel()
         GlobalData.reset()
-        DeviceLinkerManager.release()
-        mPhoneEngineService.destroy()
+        try {
+            DeviceLinkerManager.release()
+        } catch (e: SecurityException) {
+            Log.w(TAG, "onDestroy: release failed because bluetooth permission is missing", e)
+        }
+        try {
+            mPhoneEngineService.destroy()
+        } catch (e: SecurityException) {
+            Log.w(TAG, "onDestroy: SDK destroy failed because bluetooth permission is missing", e)
+        }
     }
 
     fun initDevice() {
@@ -181,6 +201,13 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     }
 
     private fun openBluetooth() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !EasyPermissions.hasPermissions(this, Manifest.permission.BLUETOOTH_CONNECT)
+        ) {
+            pendingOpenBluetoothAfterPermission = true
+            checkPermissionList(true)
+            return
+        }
         // 初始化蓝牙适配器
         val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         if (bluetoothAdapter == null) {
@@ -190,15 +217,6 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         // 开启蓝牙（若未开启）
         if (!bluetoothAdapter.isEnabled) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            // 注册开启蓝牙的回调（可选）
-            val enableBtLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                if (result.resultCode == RESULT_OK) {
-                    // 蓝牙已开启，可执行扫描、连接等操作
-                    getPermission()
-                } else {
-                    Toast.makeText(this, "请开启蓝牙以使用功能", Toast.LENGTH_SHORT).show()
-                }
-            }
             enableBtLauncher.launch(enableBtIntent)
             return
         }
@@ -331,7 +349,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
             }
             if (!GlobalData.p2pConnectState.value) {
                 BtWifiConnectActivity.start(this, isConnetBt = false, isConnetP2p = true)
-            }else{
+            } else {
                 PSecuritySDK.getWifiP2PClientService()?.disconnect()
             }
         }
@@ -436,6 +454,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
                 lifecycleScope.launch {
                     binding.tvDeviceName.text = DeviceLinkerManager.getDeviceName()
                 }
+                autoConnectP2p()
             }
         }
 
@@ -479,6 +498,38 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
 
         GlobalEvent.autoConnectionEvent.collect(lifecycleScope) {
             autoConnectBt()
+        }
+    }
+
+    private fun autoConnectP2p() {
+        if (autoConnectP2pJob?.isActive == true || GlobalData.p2pConnectState.value) {
+            return
+        }
+        if (!SystemStateUtils.isWifiEnabled(this)) {
+            Log.w(TAG, "autoConnectP2p: Wi-Fi 未开启，跳过自动连接")
+            return
+        }
+        autoConnectP2pJob = lifecycleScope.launch {
+            delay(800)
+            if (!GlobalData.btConnectState.value || GlobalData.p2pConnectState.value) {
+                return@launch
+            }
+            Log.d(TAG, "autoConnectP2p: 开始尝试自动连接 P2P")
+            PSecuritySDK.getWifiP2PClientService()?.isConnect { isConnect ->
+                if (isConnect) {
+                    Log.d(TAG, "autoConnectP2p: P2P 已连接")
+                    GlobalData.setP2pConnectState(true)
+                    return@isConnect
+                }
+                PSecuritySDK.getWifiP2PClientService()?.sendConnectP2pRequest { success ->
+                    Log.d(TAG, "autoConnectP2p: sendConnectP2pRequest result=$success")
+                    if (success) {
+                        GlobalData.setP2pConnectState(true)
+                    } else {
+                        DeviceLinkerManager.connectP2p(mWifiP2pDevice)
+                    }
+                }
+            }
         }
     }
 
@@ -533,7 +584,12 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
                 deniedList.forEach { Log.e(TAG, "❌ 未授权权限: $it") }
                 checkPermissionList()
             } else {
-                getPermission()
+                if (pendingOpenBluetoothAfterPermission) {
+                    pendingOpenBluetoothAfterPermission = false
+                    openBluetooth()
+                } else {
+                    getPermission()
+                }
             }
         }
     }

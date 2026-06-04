@@ -678,6 +678,7 @@ class SendMessageActivity : BaseActivity() {
         mBTFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         GlassSdk.getGlassAsrService()?.stopSpeech()
         GlassSdk.getGlassMediaService()?.stopAudioRecord(audioRecord)
+        MyApplication.sendAudioStatus = false
         if (::huoVoiceAction.isInitialized) {
             GlassSdk.getGlassOfflineCmdService()?.remove(huoVoiceAction)
         }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.rokid.phone.glsurface.opengl.GLShaderUtil;
 import com.rokid.phone.glsurface.opengl.GlUtil;
@@ -17,6 +18,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 
 public class BackgroundGLSurfaceView extends GLSurfaceView {
+    private static final String TAG = "BackgroundGLSurfaceView";
     private FpsListener fpsListener;
     public void setFpsListener(FpsListener listener) {
         this.fpsListener = listener;
@@ -208,20 +210,40 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
          * @param height
          */
         public synchronized void setPreviewData(byte[] data, int width, int height) {
-            if (yFloatBuffer == null || uvFloatBuffer == null) {
-                yFloatBuffer = ByteBuffer.allocate(width * height);
-                uvFloatBuffer = ByteBuffer.allocate(width * height / 2);
+            if (width <= 0 || height <= 0) {
+                Log.w(TAG, "setPreviewData: invalid size " + width + "x" + height);
+                return;
+            }
+
+            int ySize = width * height;
+            int uvSize = ySize / 2;
+            int expectedSize = ySize + uvSize;
+            if (data == null || data.length < expectedSize) {
+                Log.w(TAG, "setPreviewData: invalid NV21 data length="
+                        + (data == null ? 0 : data.length)
+                        + ", expected=" + expectedSize
+                        + ", size=" + width + "x" + height);
+                return;
+            }
+
+            if (yFloatBuffer == null || uvFloatBuffer == null
+                    || yFloatBuffer.capacity() < ySize
+                    || uvFloatBuffer.capacity() < uvSize
+                    || this.width != width
+                    || this.height != height) {
+                yFloatBuffer = ByteBuffer.allocateDirect(ySize);
+                uvFloatBuffer = ByteBuffer.allocateDirect(uvSize);
             }
             this.width = width;
             this.height = height;
             //Logger.d( "BackgroundGLSurfaceView: data.length="+data.length+", width="+width+", height="+height);
-            yFloatBuffer.position(0);
-            yFloatBuffer.put(data, 0, width * height);
-            yFloatBuffer.position(0);
+            yFloatBuffer.clear();
+            yFloatBuffer.put(data, 0, ySize);
+            yFloatBuffer.flip();
 
-            uvFloatBuffer.position(0);
-            uvFloatBuffer.put(data, width * height, width * height / 2);
-            uvFloatBuffer.position(0);
+            uvFloatBuffer.clear();
+            uvFloatBuffer.put(data, ySize, uvSize);
+            uvFloatBuffer.flip();
         }
 
 

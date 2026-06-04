@@ -34,6 +34,11 @@ object SystemStateUtils {
     @JvmStatic
     fun isBluetoothEnabled(): Boolean {
         val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        return bluetoothAdapter?.isEnabled == true
+        return try {
+            bluetoothAdapter?.isEnabled == true
+        } catch (e: SecurityException) {
+            Log.w("SystemStateUtils", "Missing bluetooth permission when checking bluetooth state", e)
+            false
+        }
     }
 }

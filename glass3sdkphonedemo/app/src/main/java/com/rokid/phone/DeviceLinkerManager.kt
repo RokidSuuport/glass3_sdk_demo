@@ -1,10 +1,14 @@
 package com.rokid.phone
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pDevice
+import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import com.blankj.utilcode.util.ToastUtils
 import com.rokid.phone.data.Config
 import com.google.gson.Gson
@@ -226,7 +230,7 @@ object DeviceLinkerManager {
         wifiP2PClientService?.addWifiP2PClientListener(mIWifiP2PClientListener!!)
 
         mainScope.launch {
-            wifiP2pDevice?.let { device ->
+            wifiP2pDevice?.let { _ ->
                 wifiP2PClientService?.disconnect()
                 delay(500)
                 wifiP2PClientService?.initialize { it1 ->
@@ -249,12 +253,27 @@ object DeviceLinkerManager {
         systemCallSet.clear()
         mBluetoothDevice = null
         mWifiP2pDevice = null
-        PSecuritySDK.getClassicBlueToothClientService()?.removeClientListener(mIClassicBTClientListener)
-        mIWifiP2PClientListener?.apply {
-            PSecuritySDK.getWifiP2PClientService()?.removeWifiP2PClientListener(this)
+        if (hasBluetoothScanPermission()) {
+            try {
+                PSecuritySDK.getClassicBlueToothClientService()?.removeClientListener(mIClassicBTClientListener)
+                PSecuritySDK.getMessageService()?.removeMessageListener(messageListener)
+                mIWifiP2PClientListener?.apply {
+                    PSecuritySDK.getWifiP2PClientService()?.removeWifiP2PClientListener(this)
+                }
+            } catch (e: SecurityException) {
+                Log.w(TAG, "release: remove bluetooth listener failed because scan permission is missing", e)
+            }
+        } else {
+            Log.w(TAG, "release: skip remove bluetooth listener because BLUETOOTH_SCAN is missing")
         }
-        mainScope.cancel()
-        PSecuritySDK.getMessageService()?.removeMessageListener(messageListener)
+    }
+
+    private fun hasBluetoothScanPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(
+                MyApplication.instance.baseContext,
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED
     }
 
     fun addSystemInfoListener(systemCallback: (() -> Unit)) {
@@ -316,7 +335,7 @@ object DeviceLinkerManager {
             mGetGlassSystemInfoMsgTask = workScope.launch {
                 while (isActive) {
                     delay(800)
-                    Log.d(TAG,"----getSystemInfo")
+                    Log.d(TAG, "----getSystemInfo")
                     getGlassSystemInfoMsg()
                 }
             }
