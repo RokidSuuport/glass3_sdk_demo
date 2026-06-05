@@ -14,8 +14,7 @@ pluginManagement {
         maven { url 'https://maven.aliyun.com/repository/public/'}
         // Rokid 外网服务器地址
         maven { url 'https://maven.rokid.com/repository/maven-public/' }
-        // Rokid 公司内网服务器地址
-        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+
     }
 }
 dependencyResolutionManagement {
@@ -28,8 +27,6 @@ dependencyResolutionManagement {
         maven { url 'https://maven.aliyun.com/repository/public/'}
         // Rokid 外网服务器地址
         maven { url 'https://maven.rokid.com/repository/maven-public/' }
-        // Rokid 公司内网服务器地址
-        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
         maven { url 'https://www.jitpack.io' }
     }
 }
