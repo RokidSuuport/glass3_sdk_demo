@@ -200,6 +200,30 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/btConfigureAppVisibility"
+                android:layout_width="118dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/round_unselect_bg"
+                android:gravity="center"
+                android:paddingVertical="4dp"
+                android:text="应用显示设置"
+                android:textColor="@color/green_normal_40"
+                android:textSize="12sp" />
+
+
+        </LinearLayout>
+
     </LinearLayout>
 
     <ScrollView

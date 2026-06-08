@@ -24,10 +24,14 @@ import com.rokid.security.glass3.qrcode.api.GlassScanCallback
 import com.rokid.security.glass3.qrcode.api.GlassScanner
 import com.rokid.security.glass3.qrcode.model.GlassScanConfig
 import com.rokid.security.glass3.qrcode.model.ScanType
+import com.rokid.security.glass3.sdk.base.data.device.bean.GlassAppConfig
+import com.rokid.security.glass3.sdk.base.data.device.bean.GlassAppType
+import com.rokid.security.glass3.sdk.base.data.device.bean.ThirdPartyApp
 import com.rokid.security.glass3.sdk.base.data.media.PhotoResolution
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
 import com.rokid.security.system.server.asr.listener.SpeechCallback
+import com.rokid.security.system.server.device.listener.IAppVisibilityListener
 import com.rokid.security.system.server.media.callback.AudioCallback
 import com.rokid.security.system.server.media.callback.PhotoFileCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
@@ -42,18 +46,36 @@ import java.io.InputStream
 import java.io.OutputStream
 import kotlin.coroutines.resume
 
+/**
+ * 眼镜端 SDK 功能演示页面。
+ *
+ * 集中演示 TTS/ASR、P2P 与蓝牙消息、文件传输、音频流、相机共享、
+ * 二维码识别和应用可见性配置。页面通过眼镜前后键切换功能，点击键执行当前功能。
+ */
 class SendMessageActivity : BaseActivity() {
 
+    // 当前获得焦点的功能按钮 id，点击事件通过该 id 分发到对应 SDK 功能。
     private var currentSelectId: Int = -1
+
+    // 文件发送时在两个示例文件之间交替选择。
     private var randomFile = false
     private val TAG = "SendMessageActivity"
     private lateinit var binding: ActivitySendmessageBinding
+
+    // 记录文件开始发送时间，用于在完成回调中计算耗时。
     private var startTime = 0L
+
+    // 眼镜按键菜单当前位置，范围为 0..12。
     private var selectBtnStatus = 0
+
+    // Assets 中的示例文件会复制到公共 Download 目录，再用于传输测试。
     private val sdDownload = File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOWNLOADS)
 
     private var handlerLprCount = 1
     private lateinit var huoVoiceAction: VoiceAction
+
+    // 标记下一次操作是隐藏指定应用，还是恢复默认应用可见性。
+    private var isHide = true
 
     /**
      * 获取P2P发送文件的管理器
@@ -72,7 +94,10 @@ class SendMessageActivity : BaseActivity() {
     }
 
     /**
-     *  设置本端文件接收的监听器
+     * 蓝牙文件发送状态回调。
+     *
+     * FileReceiveListener 名称虽然是 ReceiveListener，但发送方也通过它接收
+     * 开始、进度、完成、失败和取消等传输状态。
      */
     private val bleFileReceiveListener = object : FileReceiveListener.Stub() {
         override fun onStart() {
@@ -113,6 +138,9 @@ class SendMessageActivity : BaseActivity() {
         }
     }
 
+    /**
+     * P2P 文件发送状态回调，负责输出进度并统计发送耗时和文件大小。
+     */
     private val p2pFileReceiveListener = object : FileReceiveListener.Stub() {
         override fun onStart() {
             startTime = System.currentTimeMillis()
@@ -154,6 +182,8 @@ class SendMessageActivity : BaseActivity() {
 
     val a1File = "xiyi.jpg"
     val a2File = "gonglu.png"
+
+    // 当前正在发送的文件，完成回调通过它统计源文件大小。
     var curFile = File("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -162,14 +192,18 @@ class SendMessageActivity : BaseActivity() {
         binding = ActivitySendmessageBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // 提前准备文件传输演示使用的两个本地文件。
         copyFileFromAssetsToExternalStorage(this, a1File)
         copyFileFromAssetsToExternalStorage(this, a2File)
 
+        // 默认选中第一个功能，确保眼镜点击键进入页面后可以直接操作。
         selectBtn(binding.btTts)
 
+        // 分别注册经典蓝牙和 P2P 文件传输状态监听。
         mBTFileOperator?.setFileReceiveListener(bleFileReceiveListener)
         mFileOperator?.setFileReceiveListener(p2pFileReceiveListener)
 
+        // 注册一条离线语音命令，页面销毁时会解除注册。
         huoVoiceAction = VoiceAction("火箭人", "huo jian ren", object : IVoiceCallback.Stub() {
             override fun onVoiceTriggered() {
                 Log.e(TAG, "火箭人")
@@ -177,6 +211,7 @@ class SendMessageActivity : BaseActivity() {
         })
         GlassSdk.getGlassOfflineCmdService()?.add(huoVoiceAction)
 
+        // 同时兼容键盘和眼镜触控板映射的 Enter/左右方向键。
         binding.keyMark.setOnKeyListener { view, keyCode, event ->
             when (event.action) {
                 KeyEvent.ACTION_DOWN -> {
@@ -209,7 +244,9 @@ class SendMessageActivity : BaseActivity() {
     }
 
 
-    // 将拍照任务封装为挂起函数
+    /**
+     * 将 SDK 的回调式拍照接口包装为挂起函数，便于协程按顺序等待拍照结果。
+     */
     private suspend fun takePhotoAndAwait(): String = suspendCancellableCoroutine { continuation ->
         Log.d(TAG, "-------------调用了拍照方法, handlerLprCount:$handlerLprCount")
         val file = QuickCameraManager.createImageFile()
@@ -242,6 +279,11 @@ class SendMessageActivity : BaseActivity() {
     }
 
 
+    /**
+     * 执行当前选中菜单项。
+     *
+     * 该方法只负责按按钮 id 分发功能；眼镜点击键和键盘 Enter 最终都会进入这里。
+     */
     private fun toClick() {
         when (currentSelectId) {
             R.id.btTts -> {
@@ -318,6 +360,7 @@ class SendMessageActivity : BaseActivity() {
                 val fileToSend2 = File(sdDownload, a2File)
                 logBuilder.clear()
                 log("p2p准备发送文件...")
+                // 连续操作时交替发送两个文件，方便验证不同大小/格式的传输。
                 if (randomFile) {
                     randomFile = false
                     Log.e(TAG, "文件目录: ${fileToSend1.absolutePath}")
@@ -341,6 +384,7 @@ class SendMessageActivity : BaseActivity() {
                 val fileToSend2 = File(sdDownload, a2File)
                 logBuilder.clear()
                 log("蓝牙准备发送文件...")
+                // 与 P2P 测试保持一致，交替发送两个 Assets 示例文件。
                 if (randomFile) {
                     randomFile = false
                     curFile = fileToSend1
@@ -411,10 +455,40 @@ class SendMessageActivity : BaseActivity() {
             R.id.btQRCodeXml -> {
                 startActivity(Intent(this, ActivityQRView::class.java))
             }
-
+            R.id.btConfigureAppVisibility -> {
+                // 第一次点击隐藏指定系统应用并把三方应用排到最前面
+                // 再次点击传入空配置，恢复设备默认的应用可见性。
+                if (isHide) {
+                    val appList = mutableListOf(
+                        GlassAppType.AI_WORK_ASSISTANT, GlassAppType.AI_CHAT,
+                        GlassAppType.AI_INSPECTION, GlassAppType.OFFLINE_FACE,
+                        GlassAppType.TAKE_PHOTO,
+                        GlassAppType.OFFLINE_PLATE, GlassAppType.HG_IDENTIFICATION
+                    )
+                    // 只要写了三方应用就会排到最前面
+                    val thirdList = mutableListOf(ThirdPartyApp("com.rokid.glesse", "glassdemo"))
+                    GlassSdk.getGlassDeviceService()?.configureAppVisibility(GlassAppConfig(appList,thirdList), object : IAppVisibilityListener.Stub() {
+                        override fun onResult(success: Boolean) {
+                            L.d(TAG, "--------setAppVisibility=${success}")
+                        }
+                    })
+                } else {
+                    GlassSdk.getGlassDeviceService()?.configureAppVisibility(GlassAppConfig(), object : IAppVisibilityListener.Stub() {
+                        override fun onResult(success: Boolean) {
+                            L.d(TAG, "--------setAppVisibility=${success}")
+                        }
+                    })
+                }
+                isHide = !isHide
+            }
         }
     }
 
+    /**
+     * 麦克风 PCM 数据回调。
+     *
+     * 录音开启后，将每一段有效音频通过消息服务发送给已连接的手机端。
+     */
     private val audioRecord = object : AudioCallback.Stub() {
         override fun onAudioStream(buffer: ByteArray?, bufferLen: Int) {
             if (buffer == null || bufferLen == 0) {
@@ -470,8 +544,9 @@ class SendMessageActivity : BaseActivity() {
     override fun onGlassKeyEvent(keyEvent: Int): Boolean {
         when (keyEvent) {
             GlassKeyEvent.KEYCODE_FRONT -> {
+                // 向前键移动到下一个功能，末尾自动回到第一个。
                 selectBtnStatus++
-                selectBtnStatus %= 12
+                selectBtnStatus %= 13
                 when (selectBtnStatus) {
                     1 -> {
                         unSelectBtn(binding.btTts)
@@ -528,19 +603,25 @@ class SendMessageActivity : BaseActivity() {
                         selectBtn(binding.btQRCodeXml)
                     }
 
-                    0 -> {
+                    12 -> {
                         unSelectBtn(binding.btQRCodeXml)
+                        selectBtn(binding.btConfigureAppVisibility)
+                    }
+
+                    0 -> {
+                        unSelectBtn(binding.btConfigureAppVisibility)
                         selectBtn(binding.btTts)
                     }
                 }
             }
 
             GlassKeyEvent.KEYCODE_BEHIND -> {
+                // 向后键移动到上一个功能，在第一个位置继续后退时跳到末尾。
                 selectBtnStatus--
                 if (selectBtnStatus < 0) {
-                    selectBtnStatus = 11
+                    selectBtnStatus = 12
                 }
-                selectBtnStatus %= 12
+                selectBtnStatus %= 13
                 when (selectBtnStatus) {
                     1 -> {
                         unSelectBtn(binding.wfSendTextBtn)
@@ -593,8 +674,13 @@ class SendMessageActivity : BaseActivity() {
                     }
 
                     11 -> {
-                        unSelectBtn(binding.btTts)
+                        unSelectBtn(binding.btConfigureAppVisibility)
                         selectBtn(binding.btQRCodeXml)
+                    }
+
+                    12 -> {
+                        unSelectBtn(binding.btTts)
+                        selectBtn(binding.btConfigureAppVisibility)
                     }
 
                     0 -> {
@@ -605,12 +691,16 @@ class SendMessageActivity : BaseActivity() {
             }
 
             GlassKeyEvent.KEYCODE_CLICK -> {
+                // 点击键执行当前焦点对应的功能。
                 toClick()
             }
         }
         return super.onGlassKeyEvent(keyEvent)
     }
 
+    /**
+     * 清除按钮焦点并恢复未选中的视觉状态。
+     */
     private fun unSelectBtn(textView: AppCompatTextView) {
         textView.isFocusable = false
         textView.isFocusableInTouchMode = false
@@ -619,6 +709,9 @@ class SendMessageActivity : BaseActivity() {
         textView.setBackgroundResource(R.drawable.round_unselect_bg)
     }
 
+    /**
+     * 记录并聚焦当前按钮，同时更新眼镜菜单的选中样式。
+     */
     private fun selectBtn(textView: AppCompatTextView) {
         textView.isClickable = true
         textView.isFocusable = true
@@ -630,6 +723,9 @@ class SendMessageActivity : BaseActivity() {
         textView.setBackgroundResource(R.drawable.round_select_bg)
     }
 
+    /**
+     * 消息或文件发送请求提交到服务端后的结果回调。
+     */
     private val mResultCallback = object : IResultCallback.Stub() {
         override fun onSuccess(result: Boolean) {
             Log.d(TAG, "mResultCallback onSuccess() result: $result")
@@ -641,6 +737,10 @@ class SendMessageActivity : BaseActivity() {
     }
 
     private val logBuilder = StringBuilder(4000)
+
+    /**
+     * 将最新日志插入顶部，并同步显示到页面日志区域。
+     */
     private fun log(msg: String) {
         if (logBuilder.length > 4000) {
             logBuilder.delete(0, logBuilder.length)
@@ -652,6 +752,9 @@ class SendMessageActivity : BaseActivity() {
         Log.d(TAG, msg)
     }
 
+    /**
+     * 将 Assets 中的演示文件复制到公共 Download 目录，供文件发送接口读取。
+     */
     fun copyFileFromAssetsToExternalStorage(context: Context, fileName: String) {
         var inputStream: InputStream? = null
         var outputStream: OutputStream? = null
@@ -673,6 +776,8 @@ class SendMessageActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // 页面退出时解除监听并停止仍在运行的语音、录音任务，避免回调持有 Activity。
         lifecycleScope.cancel()
         mFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         mBTFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
@@ -696,4 +801,3 @@ class SendMessageActivity : BaseActivity() {
 
 
 }
-
