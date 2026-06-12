@@ -6,264 +6,274 @@
     android:layout_height="match_parent"
     android:background="@color/black">
 
-    <ScrollView
-        android:id="@+id/scrollView"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_marginLeft="5dp"
-        android:orientation="vertical"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/clMedia"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btPhoto480P"
+            android:layout_width="50dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_select_bg"
+            android:text="P480P"
+            android:textColor="@color/green"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btPhoto720P"
+            android:layout_width="50dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="P720P"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintLeft_toRightOf="@id/btPhoto480P"
+            app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btPhoto1080P"
+            android:layout_width="50dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="P1080P"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintLeft_toRightOf="@+id/btPhoto720P"
+            app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btPhoto1080PLand"
+            android:layout_width="72dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="1080P_Land"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintLeft_toRightOf="@+id/btPhoto1080P"
+            app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btPhoto4K"
+            android:layout_width="50dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="P4K"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintLeft_toRightOf="@+id/btPhoto1080PLand"
+            app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
+
+        <!--                 <androidx.appcompat.widget.AppCompatButton-->
+        <!--                    android:id="@+id/bt_switch_720P"-->
+        <!--                    android:layout_width="wrap_content"-->
+        <!--                    android:layout_height="wrap_content"-->
+        <!--                    android:layout_marginStart="5dp"-->
+        <!--                    android:background="@drawable/round_unselect_bg"
+        android:textColor="@color/btn_text_selector"-->
+        <!--                    -->
+        <!--                    android:text="V720P"-->
+        <!--                    android:textSize="10sp"-->
+        <!--                    app:layout_constraintLeft_toRightOf="@id/bt_photo_4K"-->
+        <!--                    app:layout_constraintTop_toTopOf="@id/bt_photo_4K" />-->
+
+        <!--                 <androidx.appcompat.widget.AppCompatButton-->
+        <!--                    android:id="@+id/bt_switch_1080P"-->
+        <!--                    android:layout_width="wrap_content"-->
+        <!--                    android:layout_height="wrap_content"-->
+        <!--                    android:layout_marginStart="5dp"-->
+        <!--                    android:background="@drawable/round_unselect_bg"
+        android:textColor="@color/btn_text_selector"-->
+        <!--                    -->
+        <!--                    android:text="V1080P"-->
+        <!--                    android:textSize="10sp"-->
+        <!--                    app:layout_constraintLeft_toRightOf="@id/bt_switch_720P"-->
+        <!--                    app:layout_constraintTop_toTopOf="@id/bt_photo_4K" />-->
+
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btStartRecord720P"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="Record720P"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="@id/btPhoto480P"
+            app:layout_constraintTop_toBottomOf="@id/btPhoto4K" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btStartRecord1080P"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="Record1080P"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toEndOf="@id/btStartRecord720P"
+            app:layout_constraintTop_toTopOf="@id/btStartRecord720P" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btStartRecord1080PLand"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:paddingHorizontal="10dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:text="Record1080PLand"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toEndOf="@id/btStartRecord1080P"
+            app:layout_constraintTop_toTopOf="@id/btStartRecord720P" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btStopRecord"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="StopRecord"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="@id/btPhoto480P"
+            app:layout_constraintTop_toBottomOf="@id/btStartRecord720P" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btSendVideo"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="SendVideo"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="@id/btPhoto480P"
+            app:layout_constraintTop_toBottomOf="@id/btStopRecord" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btStopSendVideo"
+            android:layout_width="100dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="StopSendVideo"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toEndOf="@id/btSendVideo"
+            app:layout_constraintTop_toTopOf="@id/btSendVideo" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnSetZoom"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="SetZoom"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toEndOf="@id/btStopSendVideo"
+            app:layout_constraintTop_toTopOf="@id/btSendVideo" />
+
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnRecordAudio"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="采集音频"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="@id/btPhoto480P"
+            app:layout_constraintTop_toBottomOf="@id/btnSetZoom" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnStopRecordAudio"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="停止采集音频"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toEndOf="@id/btnRecordAudio"
+            app:layout_constraintTop_toBottomOf="@id/btnSetZoom" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnAiChat"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="AI Chat"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toStartOf="@id/btPhoto480P"
+            app:layout_constraintTop_toBottomOf="@id/btnRecordAudio" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnStopAiChat"
+            android:layout_width="80dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/round_unselect_bg"
+            android:text="Stop AI Chat"
+            android:textAllCaps="false"
+            android:textColor="@color/btn_text_selector"
+            android:textSize="10sp"
+            app:layout_constraintStart_toEndOf="@id/btnAiChat"
+            app:layout_constraintTop_toTopOf="@id/btnAiChat" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/clMedia">
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/clMedia"
+            <TextView
+                android:id="@+id/tvLog"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto480P"
-                    android:layout_width="50dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_select_bg"
-                    android:text="P480P"
-                    android:textColor="@color/green"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto720P"
-                    android:layout_width="50dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="P720P"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintLeft_toRightOf="@id/btPhoto480P"
-                    app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto1080P"
-                    android:layout_width="50dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="P1080P"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintLeft_toRightOf="@+id/btPhoto720P"
-                    app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto1080PLand"
-                    android:layout_width="72dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="1080P_Land"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintLeft_toRightOf="@+id/btPhoto1080P"
-                    app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto4K"
-                    android:layout_width="50dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="P4K"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintLeft_toRightOf="@+id/btPhoto1080PLand"
-                    app:layout_constraintTop_toTopOf="@id/btPhoto480P" />
-
-                <!--                 <androidx.appcompat.widget.AppCompatButton-->
-                <!--                    android:id="@+id/bt_switch_720P"-->
-                <!--                    android:layout_width="wrap_content"-->
-                <!--                    android:layout_height="wrap_content"-->
-                <!--                    android:layout_marginStart="5dp"-->
-                <!--                    android:background="@drawable/round_unselect_bg"
-                android:textColor="@color/btn_text_selector"-->
-                <!--                    -->
-                <!--                    android:text="V720P"-->
-                <!--                    android:textSize="10sp"-->
-                <!--                    app:layout_constraintLeft_toRightOf="@id/bt_photo_4K"-->
-                <!--                    app:layout_constraintTop_toTopOf="@id/bt_photo_4K" />-->
-
-                <!--                 <androidx.appcompat.widget.AppCompatButton-->
-                <!--                    android:id="@+id/bt_switch_1080P"-->
-                <!--                    android:layout_width="wrap_content"-->
-                <!--                    android:layout_height="wrap_content"-->
-                <!--                    android:layout_marginStart="5dp"-->
-                <!--                    android:background="@drawable/round_unselect_bg"
-                android:textColor="@color/btn_text_selector"-->
-                <!--                    -->
-                <!--                    android:text="V1080P"-->
-                <!--                    android:textSize="10sp"-->
-                <!--                    app:layout_constraintLeft_toRightOf="@id/bt_switch_720P"-->
-                <!--                    app:layout_constraintTop_toTopOf="@id/bt_photo_4K" />-->
-
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStartRecord720P"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="Record720P"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toStartOf="@id/btPhoto480P"
-                    app:layout_constraintTop_toBottomOf="@id/btPhoto4K" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStartRecord1080P"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="Record1080P"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toEndOf="@id/btStartRecord720P"
-                    app:layout_constraintTop_toTopOf="@id/btStartRecord720P" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStartRecord1080PLand"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:paddingHorizontal="10dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:text="Record1080PLand"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toEndOf="@id/btStartRecord1080P"
-                    app:layout_constraintTop_toTopOf="@id/btStartRecord720P" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStopRecord"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="StopRecord"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toStartOf="@id/btPhoto480P"
-                    app:layout_constraintTop_toBottomOf="@id/btStartRecord720P" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btSendVideo"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="SendVideo"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toStartOf="@id/btPhoto480P"
-                    app:layout_constraintTop_toBottomOf="@id/btStopRecord" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStopSendVideo"
-                    android:layout_width="100dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="StopSendVideo"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toEndOf="@id/btSendVideo"
-                    app:layout_constraintTop_toTopOf="@id/btSendVideo" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnSetZoom"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="SetZoom"
-                    android:layout_marginStart="5dp"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toEndOf="@id/btStopSendVideo"
-                    app:layout_constraintTop_toTopOf="@id/btSendVideo" />
-
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnRecordAudio"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="采集音频"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toStartOf="@id/btPhoto480P"
-                    app:layout_constraintTop_toBottomOf="@id/btnSetZoom" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnStopRecordAudio"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="停止采集音频"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toEndOf="@id/btnRecordAudio"
-                    app:layout_constraintTop_toBottomOf="@id/btnSetZoom" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnAiChat"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="AI Chat"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toStartOf="@id/btPhoto480P"
-                    app:layout_constraintTop_toBottomOf="@id/btnRecordAudio" />
-
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnStopAiChat"
-                    android:layout_width="80dp"
-                    android:layout_height="36dp"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="Stop AI Chat"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    app:layout_constraintStart_toEndOf="@id/btnAiChat"
-                    app:layout_constraintTop_toTopOf="@id/btnAiChat" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                android:layout_height="match_parent"
+                android:text=""
+                android:textColor="@color/green"
+                android:textSize="12sp" />
 
         </LinearLayout>
-
 
     </ScrollView>
 

@@ -168,6 +168,7 @@ object DeviceLinkerManager {
     private var findLastDevice: Boolean = false
     private var isNeedAutoConnect = false
     private var mIWifiP2PClientListener: IWifiP2PClientListener? = null
+    private var p2pConnectJob: Job? = null
 
     fun connectBt(bluetoothDevice: BluetoothDeviceInfo, action: (isConnect: Boolean) -> Unit) {
         // 检查设备是否为空
@@ -192,56 +193,89 @@ object DeviceLinkerManager {
     }
 
     fun connectP2p(wifiP2pDevice: WifiP2pDevice?) {
-        // 检查设备是否为空
-        if (wifiP2pDevice == null) {
-            return
+        if (wifiP2pDevice != null) {
+            mWifiP2pDevice = wifiP2pDevice
         }
-        mWifiP2pDevice = wifiP2pDevice
         if (!GlobalData.p2pConnectState.value) {
             wifiConnect(wifiP2pDevice)
         }
     }
 
     private fun wifiConnect(wifiP2pDevice: WifiP2pDevice?) {
-        Log.d(TAG, "---------wifiConnect")
+        val targetDeviceName = mConnectingBluetoothDevice?.name
+            ?: mBluetoothDevice?.name
+            ?: wifiP2pDevice?.deviceName
+        if (targetDeviceName.isNullOrBlank()) {
+            Log.e(TAG, "wifiConnect: 缺少目标设备名，无法发现对应的 P2P 设备")
+            return
+        }
+
+        Log.d(TAG, "wifiConnect: targetName=$targetDeviceName, cachedDevice=$wifiP2pDevice")
         // Wi-Fi P2P 连接
         val wifiP2PClientService = PSecuritySDK.getWifiP2PClientService()
-        mIWifiP2PClientListener?.let { wifiP2PClientService?.removeWifiP2PClientListener(it) }
+        if (wifiP2PClientService == null) {
+            Log.e(TAG, "wifiConnect: WifiP2PClientService 尚未初始化")
+            return
+        }
+
+        p2pConnectJob?.cancel()
+        mIWifiP2PClientListener?.let { wifiP2PClientService.removeWifiP2PClientListener(it) }
+        findLastDevice = false
+        isNeedAutoConnect = false
         mIWifiP2PClientListener = object : IWifiP2PClientListener {
             override fun onWifiP2pEnabled(enabled: Boolean) {
-                wifiP2PClientService?.removeWifiP2PClientListener(mIWifiP2PClientListener!!)
-                Log.i(TAG, "onWifiP2pEnabled:  ${enabled}")
+                Log.i(TAG, "onWifiP2pEnabled: $enabled")
+                if (enabled) {
+                    p2pConnectJob?.cancel()
+                    mIWifiP2PClientListener?.let {
+                        wifiP2PClientService.removeWifiP2PClientListener(it)
+                    }
+                }
             }
 
             override fun onPeersAvailable(devices: List<WifiP2pDevice>) {
                 if (!findLastDevice && isNeedAutoConnect) {
-                    val device =
-                        devices.find { it.deviceName == wifiP2pDevice?.deviceName && it.deviceAddress == wifiP2pDevice?.deviceAddress }
+                    Log.d(TAG, "wifiConnect: discovered=${devices.map { "${it.deviceName}/${it.deviceAddress}" }}")
+                    val device = devices.firstOrNull {
+                        it.deviceName == targetDeviceName &&
+                            it.deviceAddress == wifiP2pDevice?.deviceAddress
+                    } ?: devices.firstOrNull {
+                        it.deviceName == targetDeviceName
+                    }
                     if (device != null) {
                         findLastDevice = true
                         isNeedAutoConnect = false
-                        wifiP2PClientService?.connectDevice(device) { it1 ->
-                            wifiP2PClientService.removeWifiP2PClientListener(mIWifiP2PClientListener!!)
+                        mWifiP2pDevice = device
+                        wifiP2PClientService.connectDevice(device) { result ->
+                            Log.i(TAG, "wifiConnect: connectDevice result=$result")
                         }
                     }
                 }
             }
         }
-        wifiP2PClientService?.addWifiP2PClientListener(mIWifiP2PClientListener!!)
+        wifiP2PClientService.addWifiP2PClientListener(mIWifiP2PClientListener!!)
 
-        mainScope.launch {
-            wifiP2pDevice?.let { _ ->
-                wifiP2PClientService?.disconnect()
-                delay(500)
-                wifiP2PClientService?.initialize { it1 ->
-                    if (it1.isSuccess) {
-                        Log.i(TAG, "initView: initialize true")
-                        findLastDevice = false
-                        isNeedAutoConnect = true
-                        wifiP2PClientService.startDiscoverPeers {
-                            Log.i(TAG, "initView: startDiscoverPeers ${it.isSuccess}")
-                        }
+        p2pConnectJob = mainScope.launch {
+            wifiP2PClientService.disconnect()
+            delay(500)
+            wifiP2PClientService.initialize { result ->
+                if (result.isSuccess) {
+                    Log.i(TAG, "wifiConnect: initialize success")
+                    isNeedAutoConnect = true
+                    wifiP2PClientService.startDiscoverPeers {
+                        Log.i(TAG, "wifiConnect: startDiscoverPeers success=${it.isSuccess}")
                     }
+                } else {
+                    Log.e(TAG, "wifiConnect: initialize failed: $result")
+                }
+            }
+            delay(20_000)
+            if (!GlobalData.p2pConnectState.value) {
+                Log.e(TAG, "wifiConnect: 20 秒内未连接到 $targetDeviceName")
+                isNeedAutoConnect = false
+                wifiP2PClientService.stopPeerDiscovery()
+                mIWifiP2PClientListener?.let {
+                    wifiP2PClientService.removeWifiP2PClientListener(it)
                 }
             }
         }
@@ -253,6 +287,7 @@ object DeviceLinkerManager {
         systemCallSet.clear()
         mBluetoothDevice = null
         mWifiP2pDevice = null
+        p2pConnectJob?.cancel()
         if (hasBluetoothScanPermission()) {
             try {
                 PSecuritySDK.getClassicBlueToothClientService()?.removeClientListener(mIClassicBTClientListener)

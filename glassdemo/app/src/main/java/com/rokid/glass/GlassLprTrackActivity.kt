@@ -125,7 +125,7 @@ class GlassLprTrackActivity : BaseActivity() {
         // 移除车牌识别回调
         mAbsGlassTrackService?.removeGlassOnlineRecListener(mTrackListener)
         // 停止视频录制
-        GlassSdk.getGlassMediaService()?.stopRecord()
+//        GlassSdk.getGlassMediaService()?.stopRecord()
     }
 
     override fun onResume() {

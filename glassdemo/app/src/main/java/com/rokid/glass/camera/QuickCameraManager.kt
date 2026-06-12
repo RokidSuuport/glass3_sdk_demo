@@ -102,7 +102,8 @@ object QuickCameraManager {
 
     // Rokid/平台侧定义的实时 EIS session mode，需要在创建 SessionConfiguration 时传入。
     // 仅设置 CONTROL_VIDEO_STABILIZATION_MODE_ON 不一定会走到平台实时防抖链路。
-    private val STREAM_CONFIG_MODE_QTIEIS_REALTIME = 0xF004
+    private val STREAM_CONFIG_MODE_QTIEIS_REALTIME = 0xF004 // 帧率设置到30帧可以启动相机
+    private val STREAM_CONFIG_MODE_QTIEIS_LOOKAHEAD = 0xF008 // 帧率设置到30帧无法启动相机
 
 
     /**
@@ -499,9 +500,8 @@ object QuickCameraManager {
      * 开始录像
      * @param eisOn 电子防抖开关，默认关闭。
      */
-    fun startRecording(isAudioMute: Boolean = false, eisOn: Boolean = false, callback: (File?) -> Unit) {
+    fun startRecording(isAudioMute: Boolean = false, callback: (File?) -> Unit) {
         val weakCallback = WeakReference(callback)
-        this.eisOn = eisOn
         if (!isInitialized || cameraDevice == null || (!isAudioMute && !hasAudioPermission()) || isRecording) {
             weakCallback.get()?.invoke(null)
             return
@@ -594,6 +594,7 @@ object QuickCameraManager {
 
             // 开启 EIS 时使用平台侧实时防抖 operation mode 创建录像 session
             mStreamConfigOptMode = if (eisOn) STREAM_CONFIG_MODE_QTIEIS_REALTIME else 0
+//            mStreamConfigOptMode = if (eisOn) STREAM_CONFIG_MODE_QTIEIS_LOOKAHEAD else 0
             val sessionConfig = SessionConfiguration(
                 mStreamConfigOptMode,
                 outputConfigurations,
@@ -769,7 +770,7 @@ object QuickCameraManager {
             val characteristics = cameraManager?.getCameraCharacteristics(cameraId!!)
             val map: StreamConfigurationMap? = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             val sizes: Array<Size>? = map?.getOutputSizes(MediaRecorder::class.java)
-            sizes?.firstOrNull { it.width == 1800 && it.height == 2400 }
+            sizes?.firstOrNull { it.width == 1080 && it.height == 1920 }
                 ?: sizes?.firstOrNull { it.width == 1920 && it.height == 1080 }
                 ?: sizes?.getOrNull(0)
         } catch (e: Exception) {

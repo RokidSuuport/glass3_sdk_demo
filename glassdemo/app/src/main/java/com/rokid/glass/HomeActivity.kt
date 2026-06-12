@@ -37,6 +37,7 @@ import com.rokid.glesse.databinding.ActivityHomeBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
+import com.rokid.security.system.server.media.callback.VideoCallback
 import kotlinx.coroutines.flow.drop
 import kotlin.math.ceil
 
@@ -214,7 +215,7 @@ class HomeActivity : BaseActivity() {
                     }
                 })
                 GlassSdk.getGlassOfflineCmdService()?.add(zyVoiceAction)
-                AudioService.start(this)
+//                AudioService.start(this)
 //                GlassSdk.getGlassDeviceService()?.switchMicScene(3)
 //                startActivity(Intent(this, IdentificationActivity::class.java))
 //              //                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
@@ -226,6 +227,19 @@ class HomeActivity : BaseActivity() {
                 GlassSdk.getGlassDeviceService()?.setCameraLedEnable(false)
                 Log.e(DeviceUtil.TAG, "----是否带上眼镜： $isGlassTackOn")
                 Log.e(DeviceUtil.TAG, "----是否折叠眼镜腿： $isGlassLegFold")
+
+//                val min = 20
+//                // 主页录像仅用于视频演示，不持续占用麦克风，避免 ASR/录音功能启动失败。
+//                val enableAudio = false
+//                val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/video"
+//                Log.d(TAG, "onCreate: path = $path")
+//                val recordConfig = RecordConfig(
+//                    path, min, enableAudio,
+//                    width = PreviewResolution.ResolutionInfo_1080P_Land.width,
+//                    height = PreviewResolution.ResolutionInfo_1080P_Land.height
+//                )
+//                // 开始视频录制
+//                GlassSdk.getGlassMediaService()?.startRecord(videoCallback, recordConfig)
             } else {
                 Log.d(TAG, "SDK 初始化失败")
             }
@@ -272,6 +286,32 @@ class HomeActivity : BaseActivity() {
 //        Log.d(TAG,"-----时间=${str}")
     }
 
+    /**
+     * 视频录制回调
+     */
+    private val videoCallback = object : VideoCallback.Stub() {
+        override fun onError() {
+            Log.d(TAG, "onError: ")
+        }
+
+        override fun onFinish() {
+            Log.d(TAG, "onFinish: ")
+        }
+
+        override fun onNewFile(startTime: Long, endTime: Long, path: String, isLast: Boolean) {
+            Log.d(TAG, "onNewFile: $path")
+        }
+
+        override fun onErrorWithDetail(code: Int, errorMsg: String) {
+            Log.d(TAG, "onError: code = $code, errorMsg = $errorMsg")
+        }
+
+        override fun onStart() {
+            Log.d(TAG, "onStart: ")
+        }
+
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(eventReceiver)
@@ -287,6 +327,7 @@ class HomeActivity : BaseActivity() {
         if (::directionTracker.isInitialized) {
             directionTracker.stop()
         }
+        GlassSdk.getGlassMediaService()?.stopRecord()
 //        GlassSdk.getGlassMediaService()?.closeCamera(object : ICameraCloseCallback.Stub(){
 //            override fun onClosed(success: Boolean) {
 //                Log.d(TAG,"相机关闭结果----$success")

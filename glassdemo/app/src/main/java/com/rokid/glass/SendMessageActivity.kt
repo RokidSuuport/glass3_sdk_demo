@@ -1,12 +1,15 @@
 package com.rokid.glass
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.KeyEvent
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -54,6 +57,10 @@ import kotlin.coroutines.resume
  */
 class SendMessageActivity : BaseActivity() {
 
+    companion object {
+        private const val REQUEST_RECORD_AUDIO_PERMISSION = 1001
+    }
+
     // 当前获得焦点的功能按钮 id，点击事件通过该 id 分发到对应 SDK 功能。
     private var currentSelectId: Int = -1
 
@@ -73,6 +80,40 @@ class SendMessageActivity : BaseActivity() {
 
     private var handlerLprCount = 1
     private lateinit var huoVoiceAction: VoiceAction
+    private var startAsrAfterPermissionGranted = false
+
+    private val speechCallback = object : SpeechCallback.Stub() {
+        override fun onStart() {
+            Log.i(TAG, "语音转文本开始")
+            log("语音转文本开始，请开始说话")
+        }
+
+        override fun onIntermediateVad(content: String) {
+            Log.i(TAG, "语音转文本中间结果: $content")
+            log(content)
+        }
+
+        override fun onAsrComplete(content: String?) {
+            val result = content.orEmpty()
+            Log.i(TAG, "语音转文本完成: $result")
+            log(if (result.isBlank()) "语音转文本完成，但未识别到内容" else result)
+        }
+
+        override fun onAsrCompleteWithIntent(content: String?, intent: Int, intentJson: String) {
+            Log.i(TAG, "识别的内容=$content,意图index=$intent,意图json=$intentJson")
+            log("识别的内容=${content.orEmpty()},意图index=$intent,意图json=$intentJson")
+        }
+
+        override fun onError(code: Int) {
+            Log.e(TAG, "语音转文本失败: code=$code")
+            log("语音转文本失败: code=$code")
+        }
+
+        override fun onServiceConnectState(connect: Boolean) {
+            Log.i(TAG, "语音连接状态: $connect")
+            log("语音连接状态: $connect")
+        }
+    }
 
     // 标记下一次操作是隐藏指定应用，还是恢复默认应用可见性。
     private var isHide = true
@@ -297,57 +338,7 @@ class SendMessageActivity : BaseActivity() {
             }
 
             R.id.btAsr -> {
-                /**
-                 * 当用户说话时语音会转文本
-                 * 在线语音转文本 aksk 的认证过程看文档，文档连接：https://x-docs.rokid.com/docs/%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B.html#_9-%E5%88%9D%E5%A7%8B%E5%8C%96%E5%9C%A8%E7%BA%BF%E8%AF%AD%E9%9F%B3%E8%BD%AC%E6%96%87%E6%9C%AC%E5%92%8C%E6%96%87%E6%9C%AC%E8%BD%AC%E8%AF%AD%E9%9F%B3
-                 */
-                GlassSdk.getGlassAsrService()?.startSpeech(object : SpeechCallback.Stub() {
-                    override fun onStart() {
-                        Log.i(TAG, "语音转文本开始")
-                        log("语音转文本开始")
-                    }
-
-                    /**
-                     * asr识别过程结果
-                     * @param content 识别的内容
-                     */
-                    override fun onIntermediateVad(content: String) {
-                        Log.i(TAG, content)
-                        log(content)
-                    }
-
-                    /**
-                     * asr识别完成的结果
-                     * @param content 识别的内容
-                     */
-                    override fun onAsrComplete(content: String?) {
-                        content?.apply {
-                            Log.i(TAG, this)
-                            log(this)
-                        }
-                    }
-
-                    /**
-                     * asr识别完成带意图识别
-                     * @param content 识别的内容
-                     * @param intent  意图index
-                     * @param intentJson 意图json
-                     * */
-                    override fun onAsrCompleteWithIntent(content: String?, intent: Int, intentJson: String) {
-                        Log.i(TAG, "识别的内容=${content},意图index=${intent},意图json=${intentJson}")
-                        log("识别的内容=${content},意图index=${intent},意图json=${intentJson}")
-                    }
-
-                    override fun onError(code: Int) {
-                        Log.i(TAG, "语音转文本失败:code=${code}")
-                        log("语音转文本失败:code=${code}")
-                    }
-
-                    override fun onServiceConnectState(connect: Boolean) {
-                        Log.i(TAG, "语音连接状态:${connect}")
-                        log("语音连接状态:${connect}")
-                    }
-                })
+                startAsr()
             }
 
             R.id.wfSendTextBtn -> {
@@ -481,6 +472,59 @@ class SendMessageActivity : BaseActivity() {
                 }
                 isHide = !isHide
             }
+        }
+    }
+
+    private fun startAsr() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            startAsrAfterPermissionGranted = true
+            log("语音转文本需要麦克风权限")
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.RECORD_AUDIO),
+                REQUEST_RECORD_AUDIO_PERMISSION
+            )
+            return
+        }
+
+        if (!GlassSdk.isReady()) {
+            log("SDK 尚未初始化完成，请稍后重试")
+            return
+        }
+
+        val asrService = GlassSdk.getGlassAsrService()
+        if (asrService == null) {
+            log("ASR 服务不可用，请检查眼镜系统服务和开发版授权")
+            return
+        }
+
+        // 释放本页面可能正在进行的录音，再启动 ASR，避免麦克风资源冲突。
+        GlassSdk.getGlassMediaService()?.stopAudioRecord(audioRecord)
+        MyApplication.sendAudioStatus = false
+        asrService.stopSpeech()
+        log("正在启动语音转文本...")
+        asrService.startSpeech(speechCallback)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_RECORD_AUDIO_PERMISSION) {
+            return
+        }
+
+        val granted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
+        if (granted && startAsrAfterPermissionGranted) {
+            startAsrAfterPermissionGranted = false
+            startAsr()
+        } else {
+            startAsrAfterPermissionGranted = false
+            log("麦克风权限被拒绝，无法使用语音转文本")
         }
     }
 
@@ -789,15 +833,6 @@ class SendMessageActivity : BaseActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
 
 
 }

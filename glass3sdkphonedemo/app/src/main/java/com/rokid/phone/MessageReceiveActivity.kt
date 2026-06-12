@@ -97,7 +97,7 @@ class MessageReceiveActivity : ComponentActivity() {
         }
 
         override fun onClassicBTAudioStream(buffer: ByteArray) {
-            Log.e(TAG, "接受蓝牙音频数据大小 ${buffer.size}")
+            log("接受蓝牙音频数据大小 ${buffer.size}")
 //            audioTrack.write(buffer, 0, buffer.size)
             audioPlayer.writeAudioData(buffer)
         }

@@ -90,7 +90,7 @@ class GlassFaceTrackActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // 停止视频录制
-        GlassSdk.getGlassMediaService()?.stopRecord()
+//        GlassSdk.getGlassMediaService()?.stopRecord()
         // 停止人脸检测
         mAbsGlassOnlineRecService?.stopDetection()
         // 移除检测监听

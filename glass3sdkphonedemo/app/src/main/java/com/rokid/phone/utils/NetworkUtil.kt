@@ -5,9 +5,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import com.rokid.security.phone.sdk.base.data.EnvType
-import com.rokid.security.sdk.ability.net.SecuritySDKEnv
-import com.rokid.security.sdk.ability.net.UrlConfig.hostUrl
 
 /**
  * Author: zhangshengwei
@@ -44,24 +41,6 @@ object NetworkUtil {
             val networkInfo = connectivityManager.activeNetworkInfo
             @Suppress("DEPRECATION")
             return networkInfo != null && networkInfo.isConnected
-        }
-    }
-
-
-    /**
-     * 获取图片 url 前缀地址
-     *
-     * @return 公网固定是："https://tatooine.rokidcdn.com"  内网或私有化为其自身 url
-     */
-    fun getImageHost(): String {
-        return if(SecuritySDKEnv.envType == EnvType.PUBLIC ||
-            SecuritySDKEnv.envType == EnvType.PUBLIC_DEV ||
-            SecuritySDKEnv.envType == EnvType.PUBLIC_TEST) {
-
-            "https://tatooine.rokidcdn.com"
-        }
-        else {
-            hostUrl
         }
     }
 
