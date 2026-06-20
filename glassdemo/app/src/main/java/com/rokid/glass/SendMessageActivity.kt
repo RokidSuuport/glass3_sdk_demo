@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -39,6 +42,7 @@ import com.rokid.security.system.server.media.callback.AudioCallback
 import com.rokid.security.system.server.media.callback.PhotoFileCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
 import com.rokid.security.system.server.message.file.listener.FileReceiveListener
+import com.rokid.security.system.server.message.listener.IMessageListener
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -82,14 +86,25 @@ class SendMessageActivity : BaseActivity() {
     private lateinit var huoVoiceAction: VoiceAction
     private var startAsrAfterPermissionGranted = false
 
+    private val audioTrack = AudioTrack(
+        AudioManager.STREAM_MUSIC,                // 音频流类型
+        16000,                                    // 采样率（必须一致）
+        AudioFormat.CHANNEL_OUT_MONO,             // 声道配置（与录音一致）
+        AudioFormat.ENCODING_PCM_16BIT,           // 编码格式（必须一致）
+        AudioTrack.getMinBufferSize(              // 合理的缓冲区大小
+            16000,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT
+        ),
+        AudioTrack.MODE_STREAM                    // 流式模式（适合实时播放）
+    )
+
     private val speechCallback = object : SpeechCallback.Stub() {
         override fun onStart() {
-            Log.i(TAG, "语音转文本开始")
             log("语音转文本开始，请开始说话")
         }
 
         override fun onIntermediateVad(content: String) {
-            Log.i(TAG, "语音转文本中间结果: $content")
             log(content)
         }
 
@@ -100,17 +115,14 @@ class SendMessageActivity : BaseActivity() {
         }
 
         override fun onAsrCompleteWithIntent(content: String?, intent: Int, intentJson: String) {
-            Log.i(TAG, "识别的内容=$content,意图index=$intent,意图json=$intentJson")
             log("识别的内容=${content.orEmpty()},意图index=$intent,意图json=$intentJson")
         }
 
         override fun onError(code: Int) {
-            Log.e(TAG, "语音转文本失败: code=$code")
             log("语音转文本失败: code=$code")
         }
 
         override fun onServiceConnectState(connect: Boolean) {
-            Log.i(TAG, "语音连接状态: $connect")
             log("语音连接状态: $connect")
         }
     }
@@ -281,6 +293,9 @@ class SendMessageActivity : BaseActivity() {
             }
             true
         }
+
+
+        GlassSdk.getGlassMessageService()?.setMessageListener(mMessageListener)
 
     }
 
@@ -453,7 +468,7 @@ class SendMessageActivity : BaseActivity() {
                     val appList = mutableListOf(
                         GlassAppType.AI_WORK_ASSISTANT, GlassAppType.AI_CHAT,
                         GlassAppType.AI_INSPECTION, GlassAppType.OFFLINE_FACE,
-                        GlassAppType.TAKE_PHOTO,
+                        GlassAppType.TAKE_PHOTO, GlassAppType.XPERT,
                         GlassAppType.OFFLINE_PLATE, GlassAppType.HG_IDENTIFICATION
                     )
                     // 只要写了三方应用就会排到最前面
@@ -472,6 +487,21 @@ class SendMessageActivity : BaseActivity() {
                 }
                 isHide = !isHide
             }
+        }
+    }
+
+    private val mMessageListener = object : IMessageListener.Stub() {
+        override fun onTextMessage(msg: String) {
+            log(msg)
+        }
+
+        override fun onAudioStream(buffer: ByteArray) {
+            log("收到音频流，大小=${buffer.size}")
+            audioTrack.write(buffer, 0, buffer.size)
+        }
+
+        override fun onStreamDataReceived(tag: String, data: ByteArray) {
+            log("onStreamDataReceived=${data.size},tag=${tag}")
         }
     }
 
@@ -820,9 +850,9 @@ class SendMessageActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-
         // 页面退出时解除监听并停止仍在运行的语音、录音任务，避免回调持有 Activity。
         lifecycleScope.cancel()
+        GlassSdk.getGlassMessageService()?.removeMessageListener(mMessageListener)
         mFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         mBTFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         GlassSdk.getGlassAsrService()?.stopSpeech()
