@@ -99,6 +99,7 @@ class MessageReceiveActivity : BaseActivity() {
         super.onDestroy()
         GlassSdk.getGlassTtsService()?.removeSpeechCompleteListener()
         isTtsPlaying.set(false)
+        GlassSdk.getGlassTtsService()?.doCancelTts()
         GlassSdk.getGlassMessageService()?.removeMessageListener(mMessageListener)
         GlassSdk.getGlassMessageService()?.glassFileOperater?.removeFileReceiveListener(mFileReceiveListener)
         GlassSdk.getGlassMessageService()?.glassBtFileOperater?.removeFileReceiveListener(mFileReceiveListener)

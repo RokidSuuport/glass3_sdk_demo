@@ -89,7 +89,7 @@ class SendMessageActivity : BaseActivity() {
     private val audioTrack = AudioTrack(
         AudioManager.STREAM_MUSIC,                // 音频流类型
         16000,                                    // 采样率（必须一致）
-        AudioFormat.CHANNEL_OUT_MONO,             // 声道配置（与录音一致）
+        AudioFormat.CHANNEL_OUT_MONO,             // 单声道（与录音一致）
         AudioFormat.ENCODING_PCM_16BIT,           // 编码格式（必须一致）
         AudioTrack.getMinBufferSize(              // 合理的缓冲区大小
             16000,
