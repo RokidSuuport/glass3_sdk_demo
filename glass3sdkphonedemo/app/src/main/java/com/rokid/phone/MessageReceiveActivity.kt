@@ -97,12 +97,13 @@ class MessageReceiveActivity : ComponentActivity() {
         }
 
         override fun onClassicBTAudioStream(buffer: ByteArray) {
-            log("接受蓝牙音频数据大小 ${buffer.size}")
+            log("接收蓝牙音频数据大小 ${buffer.size}")
 //            audioTrack.write(buffer, 0, buffer.size)
             audioPlayer.writeAudioData(buffer)
         }
 
         override fun onBTStreamDataReceived(tag: String, data: ByteArray, clientId: String) {
+           super.onBTStreamDataReceived(tag, data, clientId)
             log("tag:${tag}  接收蓝牙音频数据大小 ${data.size}  clientId:$clientId")
 //            audioTrack.write(data, 0, data.size)
             audioPlayer.writeAudioData(data)

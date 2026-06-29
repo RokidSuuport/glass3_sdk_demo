@@ -33,11 +33,17 @@ import com.rokid.security.glass3.qrcode.model.ScanType
 import com.rokid.security.glass3.sdk.base.data.device.bean.GlassAppConfig
 import com.rokid.security.glass3.sdk.base.data.device.bean.GlassAppType
 import com.rokid.security.glass3.sdk.base.data.device.bean.ThirdPartyApp
+import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiConnectRequest
+import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiNetworkInfo
+import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiOperationCode
+import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiOperationStage
+import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiRemoveRequest
 import com.rokid.security.glass3.sdk.base.data.media.PhotoResolution
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
 import com.rokid.security.system.server.asr.listener.SpeechCallback
 import com.rokid.security.system.server.device.listener.IAppVisibilityListener
+import com.rokid.security.system.server.device.listener.IWifiOperationCallback
 import com.rokid.security.system.server.media.callback.AudioCallback
 import com.rokid.security.system.server.media.callback.PhotoFileCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
@@ -63,6 +69,9 @@ class SendMessageActivity : BaseActivity() {
 
     companion object {
         private const val REQUEST_RECORD_AUDIO_PERMISSION = 1001
+        private const val DEMO_WIFI_SSID = "EBG-RD"
+        private const val DEMO_WIFI_PASSWORD = "Rkd2023/"
+        private const val DEMO_WIFI_HIDDEN = false
     }
 
     // 当前获得焦点的功能按钮 id，点击事件通过该 id 分发到对应 SDK 功能。
@@ -76,7 +85,7 @@ class SendMessageActivity : BaseActivity() {
     // 记录文件开始发送时间，用于在完成回调中计算耗时。
     private var startTime = 0L
 
-    // 眼镜按键菜单当前位置，范围为 0..12。
+    // 眼镜按键菜单当前位置，对应 menuButtons() 中的下标。
     private var selectBtnStatus = 0
 
     // Assets 中的示例文件会复制到公共 Download 目录，再用于传输测试。
@@ -461,6 +470,15 @@ class SendMessageActivity : BaseActivity() {
             R.id.btQRCodeXml -> {
                 startActivity(Intent(this, ActivityQRView::class.java))
             }
+
+            R.id.btConnectWifi -> {
+                connectWifi()
+            }
+
+            R.id.btDisconnectWifi -> {
+                disconnectWifi()
+            }
+
             R.id.btConfigureAppVisibility -> {
                 // 第一次点击隐藏指定系统应用并把三方应用排到最前面
                 // 再次点击传入空配置，恢复设备默认的应用可见性。
@@ -473,20 +491,144 @@ class SendMessageActivity : BaseActivity() {
                     )
                     // 只要写了三方应用就会排到最前面
                     val thirdList = mutableListOf(ThirdPartyApp("com.rokid.glesse", "glassdemo"))
-                    GlassSdk.getGlassDeviceService()?.configureAppVisibility(GlassAppConfig(appList,thirdList), object : IAppVisibilityListener.Stub() {
-                        override fun onResult(success: Boolean) {
-                            L.d(TAG, "--------setAppVisibility=${success}")
-                        }
-                    })
+                    GlassSdk.getGlassDeviceService()
+                        ?.configureAppVisibility(GlassAppConfig(appList, thirdList), object : IAppVisibilityListener.Stub() {
+                            override fun onResult(success: Boolean) {
+                                L.d(TAG, "--------setAppVisibility=${success}")
+                            }
+                        })
                 } else {
-                    GlassSdk.getGlassDeviceService()?.configureAppVisibility(GlassAppConfig(), object : IAppVisibilityListener.Stub() {
-                        override fun onResult(success: Boolean) {
-                            L.d(TAG, "--------setAppVisibility=${success}")
-                        }
-                    })
+                    GlassSdk.getGlassDeviceService()
+                        ?.configureAppVisibility(GlassAppConfig(), object : IAppVisibilityListener.Stub() {
+                            override fun onResult(success: Boolean) {
+                                L.d(TAG, "--------setAppVisibility=${success}")
+                            }
+                        })
                 }
                 isHide = !isHide
             }
+        }
+    }
+
+    /**
+     * 连接指定 Wi-Fi。
+     *
+     * 修改 companion object 中的 DEMO_WIFI_SSID / DEMO_WIFI_PASSWORD 即可切换测试热点。
+     * 空密码会按开放网络处理；非空密码默认使用自动 PSK 模式。
+     */
+    private fun connectWifi() {
+        if (!checkDeviceServiceReady()) {
+            return
+        }
+
+        val ssid = DEMO_WIFI_SSID.trim()
+        if (ssid.isBlank()) {
+            log("请先配置要连接的 Wi-Fi 名称")
+            return
+        }
+
+        val currentWifiInfo = GlassSdk.getCurrentWifiInfo()
+        if (currentWifiInfo?.status == WifiNetworkInfo.STATUS_CURRENT &&
+            !currentWifiInfo.ssid.isNullOrBlank() && currentWifiInfo.ssid == ssid
+        ) {
+            log("当前已连接 Wi-Fi: ${currentWifiInfo.ssid}，不再重复连接")
+            return
+        }
+
+        val password = DEMO_WIFI_PASSWORD.takeIf { it.isNotBlank() }
+        val request = WifiConnectRequest(
+            ssid = ssid,
+            securityType = if (password == null) {
+                WifiConnectRequest.SECURITY_OPEN
+            } else {
+                WifiConnectRequest.SECURITY_AUTO_PSK
+            },
+            password = password,
+            hiddenSsid = DEMO_WIFI_HIDDEN
+        )
+        log("开始连接 Wi-Fi: $ssid")
+        GlassSdk.connectWifi(request, createWifiOperationCallback("连接 Wi-Fi"))
+    }
+
+    /**
+     * 断开当前 Wi-Fi。
+     *
+     * SDK 当前提供的是 removeWifi 接口，这里传 disconnectIfCurrent=true，
+     * 会先断开当前连接，再移除对应的已保存配置。
+     */
+    private fun disconnectWifi() {
+        if (!checkDeviceServiceReady()) {
+            return
+        }
+
+        val currentWifiInfo = GlassSdk.getCurrentWifiInfo()
+        if (currentWifiInfo?.ssid.isNullOrBlank()) {
+            log("当前没有已连接或正在连接的 Wi-Fi")
+            return
+        }
+
+        val request = WifiRemoveRequest(
+            ssid = currentWifiInfo.ssid,
+            bssid = currentWifiInfo.bssid,
+            networkId = currentWifiInfo.networkId,
+            disconnectIfCurrent = true
+        )
+        log("开始断开并移除 Wi-Fi: ${currentWifiInfo.ssid}")
+        GlassSdk.removeWifi(request, createWifiOperationCallback("断开 Wi-Fi"))
+    }
+
+    private fun checkDeviceServiceReady(): Boolean {
+        if (!GlassSdk.isReady()) {
+            log("SDK 尚未初始化完成，请稍后重试")
+            return false
+        }
+        if (GlassSdk.getGlassDeviceService() == null) {
+            log("设备服务不可用，请检查眼镜系统服务和开发版授权")
+            return false
+        }
+        return true
+    }
+
+    private fun createWifiOperationCallback(operationName: String) = object : IWifiOperationCallback.Stub() {
+        override fun onProgress(stage: Int, message: String?) {
+            val stageName = wifiStageName(stage)
+            val detail = message.orEmpty().takeIf { it.isNotBlank() && it != stageName }
+            log(if (detail == null) "$operationName 进度: $stageName" else "$operationName 进度: $stageName $detail")
+        }
+
+        override fun onResult(code: Int, message: String?, networkId: Int, ssid: String?) {
+            if (code == WifiOperationCode.SUCCESS) {
+                log("$operationName 成功: ssid=${ssid.orEmpty()}, networkId=$networkId")
+            } else {
+                log("$operationName 失败: code=$code(${wifiCodeName(code)}), msg=${message.orEmpty()}")
+            }
+        }
+    }
+
+    private fun wifiStageName(stage: Int): String {
+        return when (stage) {
+            WifiOperationStage.VALIDATING -> "校验参数"
+            WifiOperationStage.CONFIGURING -> "配置网络"
+            WifiOperationStage.CONNECTING -> "等待连接"
+            WifiOperationStage.VERIFYING -> "校验连接"
+            WifiOperationStage.REMOVING -> "移除配置"
+            else -> "未知阶段"
+        }
+    }
+
+    private fun wifiCodeName(code: Int): String {
+        return when (code) {
+            WifiOperationCode.SUCCESS -> "成功"
+            WifiOperationCode.ERROR_INVALID_ARGUMENT -> "参数错误"
+            WifiOperationCode.ERROR_PERMISSION_DENIED -> "权限不足"
+            WifiOperationCode.ERROR_UNSUPPORTED_SECURITY -> "不支持的安全类型"
+            WifiOperationCode.ERROR_WIFI_DISABLED -> "Wi-Fi 未开启"
+            WifiOperationCode.ERROR_ADD_OR_UPDATE_FAILED -> "配置失败"
+            WifiOperationCode.ERROR_AUTH_FAILED -> "认证失败"
+            WifiOperationCode.ERROR_TIMEOUT -> "连接超时"
+            WifiOperationCode.ERROR_NOT_FOUND -> "未找到配置"
+            WifiOperationCode.ERROR_INTERNAL -> "内部错误"
+            else -> "未知错误"
         }
     }
 
@@ -618,150 +760,11 @@ class SendMessageActivity : BaseActivity() {
     override fun onGlassKeyEvent(keyEvent: Int): Boolean {
         when (keyEvent) {
             GlassKeyEvent.KEYCODE_FRONT -> {
-                // 向前键移动到下一个功能，末尾自动回到第一个。
-                selectBtnStatus++
-                selectBtnStatus %= 13
-                when (selectBtnStatus) {
-                    1 -> {
-                        unSelectBtn(binding.btTts)
-                        selectBtn(binding.btAsr)
-                    }
-
-                    2 -> {
-                        unSelectBtn(binding.btAsr)
-                        selectBtn(binding.wfSendTextBtn)
-                    }
-
-                    3 -> {
-                        unSelectBtn(binding.wfSendTextBtn)
-                        selectBtn(binding.wfSendFileBtn)
-                    }
-
-                    4 -> {
-                        unSelectBtn(binding.wfSendFileBtn)
-                        selectBtn(binding.btSendTextBtn)
-                    }
-
-                    5 -> {
-                        unSelectBtn(binding.btSendTextBtn)
-                        selectBtn(binding.btSendFileBtn)
-                    }
-
-                    6 -> {
-                        unSelectBtn(binding.btSendFileBtn)
-                        selectBtn(binding.btSendAudioStream)
-                    }
-
-                    7 -> {
-                        unSelectBtn(binding.btSendAudioStream)
-                        selectBtn(binding.btStopSendAudioStream)
-                    }
-
-                    8 -> {
-                        unSelectBtn(binding.btStopSendAudioStream)
-                        selectBtn(binding.btCameraShare)
-                    }
-
-                    9 -> {
-                        unSelectBtn(binding.btCameraShare)
-                        selectBtn(binding.btQRCodeImage)
-                    }
-
-                    10 -> {
-                        unSelectBtn(binding.btQRCodeImage)
-                        selectBtn(binding.btQRCode)
-                    }
-
-                    11 -> {
-                        unSelectBtn(binding.btQRCode)
-                        selectBtn(binding.btQRCodeXml)
-                    }
-
-                    12 -> {
-                        unSelectBtn(binding.btQRCodeXml)
-                        selectBtn(binding.btConfigureAppVisibility)
-                    }
-
-                    0 -> {
-                        unSelectBtn(binding.btConfigureAppVisibility)
-                        selectBtn(binding.btTts)
-                    }
-                }
+                moveSelect(1)
             }
 
             GlassKeyEvent.KEYCODE_BEHIND -> {
-                // 向后键移动到上一个功能，在第一个位置继续后退时跳到末尾。
-                selectBtnStatus--
-                if (selectBtnStatus < 0) {
-                    selectBtnStatus = 12
-                }
-                selectBtnStatus %= 13
-                when (selectBtnStatus) {
-                    1 -> {
-                        unSelectBtn(binding.wfSendTextBtn)
-                        selectBtn(binding.btAsr)
-                    }
-
-                    2 -> {
-                        unSelectBtn(binding.wfSendFileBtn)
-                        selectBtn(binding.wfSendTextBtn)
-                    }
-
-                    3 -> {
-                        unSelectBtn(binding.btSendTextBtn)
-                        selectBtn(binding.wfSendFileBtn)
-                    }
-
-                    4 -> {
-                        unSelectBtn(binding.btSendFileBtn)
-                        selectBtn(binding.btSendTextBtn)
-                    }
-
-                    5 -> {
-                        unSelectBtn(binding.btSendAudioStream)
-                        selectBtn(binding.btSendFileBtn)
-                    }
-
-                    6 -> {
-                        unSelectBtn(binding.btStopSendAudioStream)
-                        selectBtn(binding.btSendAudioStream)
-                    }
-
-                    7 -> {
-                        unSelectBtn(binding.btCameraShare)
-                        selectBtn(binding.btStopSendAudioStream)
-                    }
-
-                    8 -> {
-                        unSelectBtn(binding.btQRCodeImage)
-                        selectBtn(binding.btCameraShare)
-                    }
-
-                    9 -> {
-                        unSelectBtn(binding.btQRCode)
-                        selectBtn(binding.btQRCodeImage)
-                    }
-
-                    10 -> {
-                        unSelectBtn(binding.btQRCodeXml)
-                        selectBtn(binding.btQRCode)
-                    }
-
-                    11 -> {
-                        unSelectBtn(binding.btConfigureAppVisibility)
-                        selectBtn(binding.btQRCodeXml)
-                    }
-
-                    12 -> {
-                        unSelectBtn(binding.btTts)
-                        selectBtn(binding.btConfigureAppVisibility)
-                    }
-
-                    0 -> {
-                        unSelectBtn(binding.btAsr)
-                        selectBtn(binding.btTts)
-                    }
-                }
+                moveSelect(-1)
             }
 
             GlassKeyEvent.KEYCODE_CLICK -> {
@@ -770,6 +773,37 @@ class SendMessageActivity : BaseActivity() {
             }
         }
         return super.onGlassKeyEvent(keyEvent)
+    }
+
+    private fun menuButtons(): List<AppCompatTextView> {
+        return listOf(
+            binding.btTts,
+            binding.btAsr,
+            binding.wfSendTextBtn,
+            binding.wfSendFileBtn,
+            binding.btSendTextBtn,
+            binding.btSendFileBtn,
+            binding.btSendAudioStream,
+            binding.btStopSendAudioStream,
+            binding.btCameraShare,
+            binding.btQRCodeImage,
+            binding.btQRCode,
+            binding.btQRCodeXml,
+            binding.btConnectWifi,
+            binding.btDisconnectWifi,
+            binding.btConfigureAppVisibility
+        )
+    }
+
+    private fun moveSelect(step: Int) {
+        val buttons = menuButtons()
+        if (buttons.isEmpty()) {
+            return
+        }
+        val oldSelectIndex = selectBtnStatus.coerceIn(0, buttons.lastIndex)
+        unSelectBtn(buttons[oldSelectIndex])
+        selectBtnStatus = (oldSelectIndex + step + buttons.size) % buttons.size
+        selectBtn(buttons[selectBtnStatus])
     }
 
     /**
@@ -862,7 +896,6 @@ class SendMessageActivity : BaseActivity() {
             GlassSdk.getGlassOfflineCmdService()?.remove(huoVoiceAction)
         }
     }
-
 
 
 }
