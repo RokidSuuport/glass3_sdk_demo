@@ -14,13 +14,11 @@ import android.view.animation.RotateAnimation
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.rokid.phone.DeviceLinkerManager.mConnectingBluetoothDevice
+import com.rokid.phone.DeviceLinkerManager
 import com.rokid.phone.base.ui.MviActivity
+import com.rokid.phone.data.GlobalData
 import com.rokid.phone.databinding.ActivityDiscoverDeviceBinding
 import com.rokid.phone.ui.BtWifiConnectActivity
 import com.rokid.phone.ui.WifiP2PSettingActivity
@@ -61,14 +59,15 @@ class ClassicBtActivity : MviActivity<ActivityDiscoverDeviceBinding, TestState, 
         }
     }
 
-    private val bluetoothConnectPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            ensureBluetoothEnabled()
-        } else {
-            Toast.makeText(this, "请授权蓝牙连接权限", Toast.LENGTH_SHORT).show()
-            finish()
+    private val bluetoothConnectPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                ensureBluetoothEnabled()
+            } else {
+                Toast.makeText(this, "请授权蓝牙连接权限", Toast.LENGTH_SHORT).show()
+                finish()
+            }
         }
-    }
 
     override fun render(state: TestState) {
     }
@@ -155,12 +154,19 @@ class ClassicBtActivity : MviActivity<ActivityDiscoverDeviceBinding, TestState, 
     }
 
     fun itemClick() {
-        viewModel.sendIntent(TestIntent.disconnect)
-        lifecycleScope.launch {
-            mConnectingBluetoothDevice = mDevice
+        if (mDevice != null && DeviceLinkerManager.mConnectingBluetoothDevice != null &&
+            DeviceLinkerManager.mConnectingBluetoothDevice!!.name == mDevice!!.name
+            && GlobalData.btConnectState.value
+        ) {
+            finish()
+        } else {
+            if (GlobalData.btConnectState.value) {
+                viewModel.sendIntent(TestIntent.disconnect)
+            }
+            DeviceLinkerManager.mConnectingBluetoothDevice = mDevice
+            BtWifiConnectActivity.start(this, isConnetBt = true, isConnetP2p = false)
+            finish()
         }
-        BtWifiConnectActivity.start(this, isConnetBt = true, isConnetP2p = false)
-        finish()
     }
 
     override fun initViewBinding(): ActivityDiscoverDeviceBinding {
