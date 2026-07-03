@@ -7,6 +7,7 @@ import android.media.AudioTrack
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
@@ -85,19 +86,62 @@ class VideoReceiveActivity : ComponentActivity() {
     @Volatile
     private var hasAudioFrame = false
 
-    private data class PreviewConfig(val fps: Int, val bitrate: Int)
+    private data class ResolutionOption(val width: Int, val height: Int) {
+        override fun toString(): String = "${width} x ${height}"
+    }
+
+    private data class PreviewConfig(
+        val fps: Int,
+        val bitrate: Int,
+        val resolution: ResolutionOption,
+        val isARMixEnabled: Boolean
+    )
 
     private var currentConfig: PreviewConfig? = null
 
     private companion object {
         const val MAX_STREAM_RETRY_COUNT = 3
-        const val FIRST_PACKET_TIMEOUT_MS = 3_500L
+        const val FIRST_PACKET_TIMEOUT_MS = 1000L * 8
         const val STREAM_RETRY_DELAY_MS = 300L
-        const val VIDEO_STALL_TIMEOUT_MS = 1_500L
+        const val VIDEO_STALL_TIMEOUT_MS = 1000L * 5
+        val DEFAULT_RESOLUTION = ResolutionOption(1920, 1080)
+        val SUPPORTED_RESOLUTIONS = listOf(
+            ResolutionOption(2268, 3024),
+            ResolutionOption(2876, 2156),
+            ResolutionOption(2688, 2016),
+            ResolutionOption(3072, 1728),
+            ResolutionOption(2582, 1936),
+            ResolutionOption(2400, 1800),
+            ResolutionOption(1800, 2400),
+            ResolutionOption(2560, 1440),
+            ResolutionOption(2400, 1350),
+            ResolutionOption(2048, 1536),
+            ResolutionOption(2016, 1512),
+            ResolutionOption(1512, 2016),
+            ResolutionOption(2340, 1080),
+            ResolutionOption(1920, 1080),
+            ResolutionOption(1080, 1920),
+            ResolutionOption(1600, 1200),
+            ResolutionOption(1440, 1080),
+            ResolutionOption(1280, 720),
+            ResolutionOption(720, 1280),
+            ResolutionOption(1024, 768),
+            ResolutionOption(800, 600),
+            ResolutionOption(648, 648),
+            ResolutionOption(854, 480),
+            ResolutionOption(800, 480),
+            ResolutionOption(640, 480),
+            ResolutionOption(480, 640),
+            ResolutionOption(640, 360),
+            ResolutionOption(360, 640),
+            ResolutionOption(352, 288),
+            ResolutionOption(320, 240)
+        )
     }
 
     @SuppressLint("SetTextI18n")
     private fun initView() {
+        initResolutionSpinner()
         binding.btnStartPreview.setOnClickListener {
             validateAndStartPreview()
         }
@@ -106,6 +150,19 @@ class VideoReceiveActivity : ComponentActivity() {
             lifecycleScope.launch(Dispatchers.Main) { binding.tvFps.text = "帧率: ${"%04.1f".format(fps)}" }
         }
         audioTrack.play()
+    }
+
+    private fun initResolutionSpinner() {
+        val adapter = ArrayAdapter(
+            this,
+            R.layout.item_video_resolution_spinner,
+            SUPPORTED_RESOLUTIONS
+        ).apply {
+            setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown)
+        }
+        binding.spinnerResolution.adapter = adapter
+        val defaultIndex = SUPPORTED_RESOLUTIONS.indexOf(DEFAULT_RESOLUTION).takeIf { it >= 0 } ?: 0
+        binding.spinnerResolution.setSelection(defaultIndex)
     }
 
     private fun formatFps(fps: Float): String {
@@ -141,8 +198,10 @@ class VideoReceiveActivity : ComponentActivity() {
 
         val fps = parseFps() ?: return
         val bitrate = parseBitrate() ?: return
+        val resolution = parseResolution()
+        val isARMixEnabled = binding.swArMix.isChecked
 
-        startPreview(fps, bitrate)
+        startPreview(fps, bitrate, resolution, isARMixEnabled)
     }
 
     private fun parseFps(): Int? {
@@ -163,6 +222,10 @@ class VideoReceiveActivity : ComponentActivity() {
         }
     }
 
+    private fun parseResolution(): ResolutionOption {
+        return binding.spinnerResolution.selectedItem as? ResolutionOption ?: DEFAULT_RESOLUTION
+    }
+
     private fun clearErrors() {
         binding.etFrameRate.error = null
         binding.etBitrate.error = null
@@ -170,7 +233,12 @@ class VideoReceiveActivity : ComponentActivity() {
 
     /* ================= 预览控制 ================= */
     @SuppressLint("SetTextI18n")
-    private fun startPreview(fps: Int, bitrate: Int) {
+    private fun startPreview(
+        fps: Int,
+        bitrate: Int,
+        resolution: ResolutionOption,
+        isARMixEnabled: Boolean
+    ) {
         if (!GlobalData.btConnectState.value) {
             toast("蓝牙未连接，无法拉取音视频流")
             return
@@ -186,7 +254,7 @@ class VideoReceiveActivity : ComponentActivity() {
         switchPage(PageState.PREVIEW)
         Log.d(TAG, "---------startPreview()---${currentState}")
 
-        currentConfig = PreviewConfig(fps, bitrate)
+        currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled)
         startTime = System.currentTimeMillis()
         lastCallTime = startTime
         lastAudioTime = startTime
@@ -237,7 +305,7 @@ class VideoReceiveActivity : ComponentActivity() {
                 if (System.currentTimeMillis() - lastCallTime > VIDEO_STALL_TIMEOUT_MS && isGetVideo) {
                     tryCount++
                     binding.tvDuration.text = "视频流中断:${TimeUtils.formatDuration(duration)}"
-                    if (tryCount >= 5) {
+                    if (tryCount >= 3) {
                         tryCount = 0
                         hasVideoFrame = false
                         isGetVideo = false
@@ -301,11 +369,11 @@ class VideoReceiveActivity : ComponentActivity() {
 
     private fun buildVideoStreamParam(config: PreviewConfig): GlassVideoStreamParam {
         return GlassVideoStreamParam().apply {
-            width = 1920
-            height = 1080
+            width = config.resolution.width
+            height = config.resolution.height
             fps = config.fps
             bitrate = config.bitrate
-            isARMixEnabled = false
+            isARMixEnabled = config.isARMixEnabled
         }
     }
 
@@ -401,6 +469,8 @@ class VideoReceiveActivity : ComponentActivity() {
         videoRetryJob?.cancel()
         audioRetryJob?.cancel()
         stopCurrentStream()
+        videoRequestCount = 0
+        audioRequestCount = 0
         isGetVideo = false
         hasVideoFrame = false
         hasAudioFrame = false
@@ -443,6 +513,7 @@ class VideoReceiveActivity : ComponentActivity() {
         override fun onAudioStream(buffer: ByteBuffer) {
             if (currentState != PageState.PREVIEW || !isPreviewStarted) return
             val audioData = ByteArray(buffer.remaining())
+            audioRequestCount = 0
             buffer.get(audioData)
             handleAudioBuffer(audioData, "onAudioStream")
         }
@@ -512,7 +583,12 @@ class VideoReceiveActivity : ComponentActivity() {
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         Log.d(TAG, "--------onResume--currentState=${currentState}")
         if (currentState == PageState.PREVIEW) {
-            startPreview(parseFps() ?: defaultFps, parseBitrate() ?: defaultBitrate)
+            startPreview(
+                parseFps() ?: defaultFps,
+                parseBitrate() ?: defaultBitrate,
+                parseResolution(),
+                binding.swArMix.isChecked
+            )
         }
     }
 
