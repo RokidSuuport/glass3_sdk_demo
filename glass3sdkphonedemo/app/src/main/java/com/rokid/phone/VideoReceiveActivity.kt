@@ -106,11 +106,6 @@ class VideoReceiveActivity : ComponentActivity() {
         const val VIDEO_STALL_TIMEOUT_MS = 1000L * 5
         val DEFAULT_RESOLUTION = ResolutionOption(1920, 1080)
         val SUPPORTED_RESOLUTIONS = listOf(
-            ResolutionOption(2268, 3024),
-            ResolutionOption(2876, 2156),
-            ResolutionOption(2688, 2016),
-            ResolutionOption(3072, 1728),
-            ResolutionOption(2582, 1936),
             ResolutionOption(2400, 1800),
             ResolutionOption(1800, 2400),
             ResolutionOption(2560, 1440),
@@ -120,9 +115,6 @@ class VideoReceiveActivity : ComponentActivity() {
             ResolutionOption(1512, 2016),
             ResolutionOption(2340, 1080),
             ResolutionOption(1920, 1080),
-            ResolutionOption(1080, 1920),
-            ResolutionOption(1600, 1200),
-            ResolutionOption(1440, 1080),
             ResolutionOption(1280, 720),
             ResolutionOption(720, 1280),
             ResolutionOption(1024, 768),
