@@ -1,12 +1,14 @@
 package com.rokid.glass
 
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.View
 import androidx.lifecycle.lifecycleScope
 import com.rokid.glass.base.BaseActivity
+import com.rokid.glass.data.GlobalData
 import com.rokid.glesse.databinding.ActivityTrackBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.sdk.base.data.media.PreviewResolution
@@ -95,10 +97,15 @@ class GlassLprTrackActivity : BaseActivity() {
          * 车牌识别的回调
          * @param lprModel
          */
+        @SuppressLint("DefaultLocale")
         override fun onLPRTrack(lprModel: LPRModel) {
             lifecycleScope.launch(Dispatchers.Main) {
                 Log.e(TAG, "车牌号:${lprModel.plateNo}")
-                log("车牌颜色:${lprModel.color} 车牌号:${lprModel.plateNo} 分数:${lprModel.score}")
+                val msg = String.format("车牌颜色:%s 车牌号:%s 分数:%.2f", lprModel.color, lprModel.plateNo, lprModel.score)
+                log(msg)
+                if (GlobalData.btConnectState.value) {
+                    GlassSdk.getGlassMessageService()?.sendTextMessageByClassicBT(msg)
+                }
             }
         }
 
