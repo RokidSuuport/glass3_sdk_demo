@@ -16,7 +16,6 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.rokid.glass.base.BaseActivity
 import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.camera.QuickCameraManager
-import com.rokid.glass.data.GlobalData
 import com.rokid.glass.utils.FileSizeUtil
 import com.rokid.glass.utils.FileUtils
 import com.rokid.glesse.R
@@ -35,7 +34,6 @@ import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
 import com.rokid.security.system.server.asr.listener.SpeechCallback
 import com.rokid.security.system.server.device.listener.IAppVisibilityListener
-import com.rokid.security.system.server.media.callback.AudioCallback
 import com.rokid.security.system.server.media.callback.PhotoFileCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
 import com.rokid.security.system.server.message.file.listener.FileReceiveListener
@@ -59,6 +57,8 @@ class SendMessageActivity : BaseActivity() {
 
     companion object {
         private const val REQUEST_RECORD_AUDIO_PERMISSION = 1001
+        private const val AUDIO_STREAM_START = "AUDIO_STREAM_START"
+        private const val AUDIO_STREAM_STOP = "AUDIO_STREAM_STOP"
     }
 
     // 当前获得焦点的功能按钮 id，点击事件通过该 id 分发到对应 SDK 功能。
@@ -391,19 +391,13 @@ class SendMessageActivity : BaseActivity() {
 
 
             R.id.btSendAudioStream -> {
-//                GlassSdk.getGlassMessageService()?.sendAudioStreamData()
-                if (!MyApplication.sendAudioStatus) {
-                    log("发送音频流数据")
-                    GlassSdk.getGlassMediaService()?.startAudioRecord(audioRecord)
-                    MyApplication.sendAudioStatus = true
-                }
+                GlassSdk.getGlassMessageService()?.sendTextMessageByClassicBT(AUDIO_STREAM_START)
+                log("请求手机端开始接收音频流")
             }
 
             R.id.btStopSendAudioStream -> {
-                MyApplication.sendAudioStatus = false
-                log("停止发送音频流数据")
-//                GlassSdk.getGlassMessageService()?.stopAudioStreamData()
-                GlassSdk.getGlassMediaService()?.stopAudioRecord(audioRecord)
+                GlassSdk.getGlassMessageService()?.sendTextMessageByClassicBT(AUDIO_STREAM_STOP)
+                log("请求手机端停止接收音频流")
             }
 
             R.id.btCameraShare -> {
@@ -500,9 +494,6 @@ class SendMessageActivity : BaseActivity() {
             return
         }
 
-        // 释放本页面可能正在进行的录音，再启动 ASR，避免麦克风资源冲突。
-        GlassSdk.getGlassMediaService()?.stopAudioRecord(audioRecord)
-        MyApplication.sendAudioStatus = false
         asrService.stopSpeech()
         log("正在启动语音转文本...")
         asrService.startSpeech(speechCallback)
@@ -525,46 +516,6 @@ class SendMessageActivity : BaseActivity() {
         } else {
             startAsrAfterPermissionGranted = false
             log("麦克风权限被拒绝，无法使用语音转文本")
-        }
-    }
-
-    /**
-     * 麦克风 PCM 数据回调。
-     *
-     * 录音开启后，将每一段有效音频通过消息服务发送给已连接的手机端。
-     */
-    private val audioRecord = object : AudioCallback.Stub() {
-        override fun onAudioStream(buffer: ByteArray?, bufferLen: Int) {
-            if (buffer == null || bufferLen == 0) {
-                return
-            }
-            if (!GlobalData.btConnectState.value) {
-                return
-            }
-            /**
-             * 发送二进制流数据
-             * @param tag 业务标记
-             * @param data 音频数据
-             * @param clientId 手机客户端id
-             * @param callback 发送数据流成功或失败的回调
-             */
-            GlassSdk.getGlassMessageService()
-                ?.sendStreamData("AudioTag1", buffer, "GlassSample", object : IResultCallback.Stub() {
-                    override fun onSuccess(result: Boolean) {
-//                    Log.i(TAG, "发送带业务标记的音频数据流数成功")
-                        log("发送带业务标记的音频数据流数成功")
-                    }
-
-                    override fun onFailed(code: Int, errormsg: String?) {
-                        Log.i(TAG, "发送带业务标记的音频数据流数失败:code=${code}，errormsg=${errormsg}")
-                        log("发送带业务标记的音频数据流数失败:code=${code},errormsg=${errormsg}")
-                    }
-
-                })
-        }
-
-        override fun getCallbackId(): String? {
-            return "SendMessageRecord"
         }
     }
 
@@ -821,13 +772,11 @@ class SendMessageActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // 页面退出时解除监听并停止仍在运行的语音、录音任务，避免回调持有 Activity。
+        // 页面退出时解除监听并停止仍在运行的语音任务，避免回调持有 Activity。
         lifecycleScope.cancel()
         mFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         mBTFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         GlassSdk.getGlassAsrService()?.stopSpeech()
-        GlassSdk.getGlassMediaService()?.stopAudioRecord(audioRecord)
-        MyApplication.sendAudioStatus = false
         if (::huoVoiceAction.isInitialized) {
             GlassSdk.getGlassOfflineCmdService()?.remove(huoVoiceAction)
         }
