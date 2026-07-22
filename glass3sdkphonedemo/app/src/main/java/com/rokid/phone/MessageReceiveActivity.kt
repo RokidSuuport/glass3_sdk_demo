@@ -16,12 +16,8 @@ import kotlinx.coroutines.launch
 class MessageReceiveActivity : ComponentActivity() {
 
     private val TAG = "MessageReceiveActivity"
-    private val AUDIO_TAG = "AUDIO_TAG"
-    private val AUDIO_STREAM_START = "AUDIO_STREAM_START"
-    private val AUDIO_STREAM_STOP = "AUDIO_STREAM_STOP"
     private lateinit var binding: ActivityMessageBinding
     private lateinit var audioPlayer: ExternalAudioPlayer
-    private var isAudioStreamRequested = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,10 +88,6 @@ class MessageReceiveActivity : ComponentActivity() {
         override fun onClassicBTTextMessage(msg: String, clientId: String) {
             super.onClassicBTTextMessage(msg, clientId)
             log("onClassicBTTextMessage= $msg  $clientId")
-            when (msg) {
-                AUDIO_STREAM_START -> requestAudioStream()
-                AUDIO_STREAM_STOP -> stopAudioStream()
-            }
         }
 
         @SuppressLint("SetTextI18n")
@@ -111,29 +103,8 @@ class MessageReceiveActivity : ComponentActivity() {
         }
     }
 
-    private fun requestAudioStream() {
-        if (isAudioStreamRequested) return
-        val device = PSecuritySDK.getAbsDeviceInfoService() ?: run {
-            log("设备服务未初始化，无法请求眼镜音频流")
-            return
-        }
-        isAudioStreamRequested = true
-        device.requestAudioStream(AUDIO_TAG) { isSuccess ->
-            if (!isSuccess) isAudioStreamRequested = false
-            log(if (isSuccess) "请求眼镜音频流成功" else "请求眼镜音频流失败")
-        }
-    }
-
-    private fun stopAudioStream() {
-        if (!isAudioStreamRequested) return
-        isAudioStreamRequested = false
-        PSecuritySDK.getAbsDeviceInfoService()?.stopAudioStream(AUDIO_TAG) { isSuccess ->
-            log(if (isSuccess) "停止眼镜音频流成功" else "停止眼镜音频流失败")
-        }
-    }
-
     override fun onDestroy() {
-        stopAudioStream()
+        DeviceLinkerManager.stopAudioStream()
         super.onDestroy()
         PSecuritySDK.getMessageService()?.removeMessageListener(mMessageListener)
         audioPlayer.release()

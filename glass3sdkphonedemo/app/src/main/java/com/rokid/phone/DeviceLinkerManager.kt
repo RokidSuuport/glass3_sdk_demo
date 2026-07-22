@@ -46,6 +46,9 @@ import kotlinx.coroutines.launch
 object DeviceLinkerManager {
 
     const val TAG = "DeviceLinkerManager"
+    private const val AUDIO_TAG = "AUDIO_TAG"
+    private const val AUDIO_STREAM_START = "AUDIO_STREAM_START"
+    private const val AUDIO_STREAM_STOP = "AUDIO_STREAM_STOP"
     var mWifiP2pDevice: WifiP2pDevice? = null
 
     //上一次连接的设备状态
@@ -57,6 +60,9 @@ object DeviceLinkerManager {
 
     @Volatile
     private var isSerialConnecting = false
+
+    @Volatile
+    private var isAudioStreamRequested = false
 
     //正在连接的蓝牙设备信息，连接完成后会与mBluetoothDevice一致
     var mConnectingBluetoothDevice: BluetoothDeviceInfo? = null
@@ -283,6 +289,7 @@ object DeviceLinkerManager {
 
 
     fun release() {
+        stopAudioStream()
         closeSystemMsgTask()
         systemCallSet.clear()
         mBluetoothDevice = null
@@ -321,6 +328,7 @@ object DeviceLinkerManager {
 
     private val messageListener = object : IMessageListener {
         override fun onClassicBTTextMessage(msg: String, clientId: String) {
+            if (handleAudioStreamControl(msg)) return
             try {
 //                Log.d(TAG,"--------处理前msg=$msg,clientId=$clientId")
                 // 普通蓝牙文本不是系统业务消息，解析不到 CustomMessage 时直接忽略。
@@ -362,6 +370,46 @@ object DeviceLinkerManager {
             } catch (e: Exception) {
                 Log.d(TAG, "onClassicBTTextMessage 解析异常: ${e.message}", e)
             }
+        }
+    }
+
+    private fun handleAudioStreamControl(msg: String): Boolean {
+        return when (msg) {
+            AUDIO_STREAM_START -> {
+                requestAudioStream()
+                true
+            }
+
+            AUDIO_STREAM_STOP -> {
+                stopAudioStream()
+                true
+            }
+
+            else -> false
+        }
+    }
+
+    private fun requestAudioStream() {
+        if (isAudioStreamRequested) {
+            Log.d(TAG, "requestAudioStream: audio stream is already requested")
+            return
+        }
+        val device = PSecuritySDK.getAbsDeviceInfoService() ?: run {
+            Log.e(TAG, "requestAudioStream: device service is not initialized")
+            return
+        }
+        isAudioStreamRequested = true
+        device.requestAudioStream(AUDIO_TAG) { isSuccess ->
+            if (!isSuccess) isAudioStreamRequested = false
+            Log.i(TAG, "requestAudioStream: success=$isSuccess")
+        }
+    }
+
+    fun stopAudioStream() {
+        if (!isAudioStreamRequested) return
+        isAudioStreamRequested = false
+        PSecuritySDK.getAbsDeviceInfoService()?.stopAudioStream(AUDIO_TAG) { isSuccess ->
+            Log.i(TAG, "stopAudioStream: success=$isSuccess")
         }
     }
 
