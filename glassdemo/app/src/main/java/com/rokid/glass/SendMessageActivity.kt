@@ -420,8 +420,7 @@ class SendMessageActivity : BaseActivity() {
             }
 
             R.id.btStopSendAudioStream -> {
-                GlassSdk.getGlassMessageService()?.sendTextMessageByClassicBT(AUDIO_STREAM_STOP)
-                log("请求手机端停止接收音频流")
+                stopAudioStreamLocally(notifyPhone = true)
             }
 
             R.id.btCameraShare -> {
@@ -834,6 +833,7 @@ class SendMessageActivity : BaseActivity() {
 
 
     override fun onDestroy() {
+        stopAudioStreamLocally(notifyPhone = true)
         super.onDestroy()
         // 页面退出时解除监听并停止仍在运行的语音任务，避免回调持有 Activity。
         lifecycleScope.cancel()
@@ -844,6 +844,15 @@ class SendMessageActivity : BaseActivity() {
         if (::huoVoiceAction.isInitialized) {
             GlassSdk.getGlassOfflineCmdService()?.remove(huoVoiceAction)
         }
+    }
+
+    private fun stopAudioStreamLocally(notifyPhone: Boolean) {
+        val messageService = GlassSdk.getGlassMessageService()
+        messageService?.stopAudioStreamData()
+        if (notifyPhone) {
+            messageService?.sendTextMessageByClassicBT(AUDIO_STREAM_STOP)
+        }
+        log("眼镜端已主动停止发送音频流")
     }
 
 

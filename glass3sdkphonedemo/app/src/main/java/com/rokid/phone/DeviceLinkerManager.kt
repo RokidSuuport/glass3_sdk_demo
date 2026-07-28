@@ -84,6 +84,7 @@ object DeviceLinkerManager {
                     getSystemMsgTask()
                 }
             } else {
+                isAudioStreamRequested = false
                 Log.d(TAG, "onConnect方法蓝牙连接失败")
                 GlobalEvent.autoConnectionEvent.call(workScope)
             }
@@ -405,9 +406,12 @@ object DeviceLinkerManager {
     }
 
     fun stopAudioStream() {
-        if (!isAudioStreamRequested) return
-        isAudioStreamRequested = false
-        PSecuritySDK.getAbsDeviceInfoService()?.stopAudioStream(AUDIO_TAG) { isSuccess ->
+        val device = PSecuritySDK.getAbsDeviceInfoService() ?: run {
+            Log.e(TAG, "stopAudioStream: device service is not initialized; keep requested state")
+            return
+        }
+        device.stopAudioStream(AUDIO_TAG) { isSuccess ->
+            if (isSuccess) isAudioStreamRequested = false
             Log.i(TAG, "stopAudioStream: success=$isSuccess")
         }
     }

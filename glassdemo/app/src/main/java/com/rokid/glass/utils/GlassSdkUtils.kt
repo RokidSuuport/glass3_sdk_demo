@@ -101,6 +101,8 @@ object GlassSdkUtils {
 
         override fun onClientDisconnected(device: BluetoothDevice) {
             GlobalData.setBtConnectState(false)
+            mMessageService?.stopAudioStreamData()
+            Log.i(TAG, "Classic Bluetooth disconnected; stopped local audio stream")
             mIClassicBTListeners.forEach { it.onClientDisconnected(device) }
         }
 
