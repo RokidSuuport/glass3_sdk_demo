@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.lifecycle.lifecycleScope
 import com.rokid.glass.base.BaseActivity
+import com.rokid.glass.utils.FileSizeUtil
 import com.rokid.glass.utils.TimeUtils
 import com.rokid.glesse.databinding.ActivityFaceTrackBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
@@ -24,7 +25,6 @@ class GlassFaceTrackActivity : BaseActivity() {
     private lateinit var binding: ActivityFaceTrackBinding
     private var lastTrackId: Long = -1L
     private var oldBitmap: Bitmap? = null
-    private var startTime = 0L
     private var lastTime = 0L
     private val logBuilder = StringBuilder()
 
@@ -173,38 +173,48 @@ class GlassFaceTrackActivity : BaseActivity() {
         @SuppressLint("SetTextI18n")
         override fun onProcessedFaceModels(processedFaceModels: List<FaceModel>) {
             if (processedFaceModels.isEmpty()) {
+                log("没有人脸数据")
                 return
             }
             val faceModel = processedFaceModels.maxByOrNull { it.rect.width() * it.rect.height() }
             if (faceModel == null) {
-                Log.i(TAG, "未获取到符合要求人脸数据")
                 log("未获取到符合要求人脸数据")
                 return
             }
-            if (startTime == 0L) {
-                startTime = System.currentTimeMillis()
-            }
-            val duration = System.currentTimeMillis() - startTime
+            var duration = System.currentTimeMillis() - lastTime
             // 图像质量低于35人脸检测不到
             if (faceModel.iqaScore < 40) {
+                lastTime = System.currentTimeMillis()
                 val faeInfo =
-                    StringBuilder("时长:${TimeUtils.formatDuration(duration)} 图像质量偏低:${"%.1f".format(faceModel.iqaScore)},人脸置信度:${"%.1f".format(faceModel.faceScore)},人脸跟踪:${faceModel.trackId}")
-                Log.d(TAG, faeInfo.toString())
+                    StringBuilder(
+                        "时长:${TimeUtils.formatDuration(duration)} 图像质量偏低:${"%.1f".format(faceModel.iqaScore)},人脸置信度:${
+                            "%.1f".format(
+                                faceModel.faceScore
+                            )
+                        },人脸跟踪:${faceModel.trackId}"
+                    )
                 log(faeInfo.toString())
                 return
             }
             val faeInfo =
-                StringBuilder("时长:${TimeUtils.formatDuration(duration)} 图像质量:${"%.1f".format(faceModel.iqaScore)},人脸置信度:${"%.1f".format(faceModel.faceScore)},人脸跟踪:${faceModel.trackId}")
-            Log.e(TAG, faeInfo.toString())
+                StringBuilder(
+                    "时长:${TimeUtils.formatDuration(duration)} 图像质量:${"%.1f".format(faceModel.iqaScore)},人脸置信度:${
+                        "%.1f".format(
+                            faceModel.faceScore
+                        )
+                    },人脸跟踪:${faceModel.trackId}"
+                )
             if (faceModel.trackId == lastTrackId) {
+                lastTime = System.currentTimeMillis()
                 faeInfo.append("人脸图片相同")
                 log(faeInfo.toString())
-                Log.d(TAG, faeInfo.toString())
                 return
             }
 //            lastTrackId = faceModel.trackId
             // 先更新人脸抓拍图
             val smallBitmap = mAbsGlassOnlineRecService?.getFaceSamllBitmap(faceModel.trackId)
+            duration = System.currentTimeMillis() - lastTime
+            lastTime = System.currentTimeMillis()
             if (smallBitmap == null) {
                 log("时长:${TimeUtils.formatDuration(duration)} 未获取到人脸图片")
                 return
@@ -223,27 +233,35 @@ class GlassFaceTrackActivity : BaseActivity() {
 //            FileOutputStream(outputFile).use { fos ->
 //                smallBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
 //            }
-            // 人脸抓拍时间间隔
-            val pastTime = System.currentTimeMillis() - lastTime
-            lastTime = System.currentTimeMillis()
             if (smallBitmap.isRecycled) {
                 return
             }
             // 回收上一张图片
             if (oldBitmap?.isRecycled == false) {
+                Log.d(TAG, "回收上一张人脸图片: ${getBitmapSizeInfo(oldBitmap)}")
                 oldBitmap?.recycle()
                 oldBitmap = null
             }
             oldBitmap = smallBitmap
+            val oldBitmapSizeInfo = getBitmapSizeInfo(smallBitmap)
             lifecycleScope.launch(Dispatchers.Main) {
                 binding.ivCapture.setImageBitmap(smallBitmap)
                 // float 类型保留1位
                 var result =
-                    "时长:${TimeUtils.formatDuration(duration)} 间隔:${TimeUtils.formatDuration(pastTime)} 质量:${"%.1f".format(faceModel.iqaScore)} 人脸跟踪:${faceModel.trackId}"
+                    "时长:${TimeUtils.formatDuration(duration)} 质量:${
+                        "%.1f".format(faceModel.iqaScore)
+                    } 人脸跟踪:${faceModel.trackId} 图片大小:$oldBitmapSizeInfo"
                 log(result)
-                Log.e(TAG, result)
             }
         }
+    }
+
+    private fun getBitmapSizeInfo(bitmap: Bitmap?): String {
+        if (bitmap == null || bitmap.isRecycled) {
+            return "0 B"
+        }
+        val sizeText = FileSizeUtil.formatFileSize(bitmap.allocationByteCount.toDouble())
+        return "${bitmap.width}x${bitmap.height}, $sizeText, ${bitmap.config}"
     }
 
     private fun log(msg: String) {
@@ -254,6 +272,7 @@ class GlassFaceTrackActivity : BaseActivity() {
         lifecycleScope.launch(Dispatchers.Main) {
             binding.tvLog.text = logBuilder.toString()
         }
+        Log.d(TAG, "----msg=${msg}")
     }
 
 }

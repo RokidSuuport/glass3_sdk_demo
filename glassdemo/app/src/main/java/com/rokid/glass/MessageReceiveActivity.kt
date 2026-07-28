@@ -15,8 +15,10 @@ import com.rokid.security.glass3.sdk.base.data.notification.bean.NotificationMes
 import com.rokid.security.system.server.message.file.listener.FileReceiveListener
 import com.rokid.security.system.server.message.listener.IMessageListener
 import com.rokid.security.system.server.notification.listener.NotificationListener
+import com.rokid.security.system.server.tts.listener.SpeechCompleteListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 class MessageReceiveActivity : BaseActivity() {
 
@@ -25,6 +27,7 @@ class MessageReceiveActivity : BaseActivity() {
 //    }
     private lateinit var binding: ActivityMessageReceiveBinding
     private val TAG = "MessageActivity"
+    private val isTtsPlaying = AtomicBoolean(false)
 
     private val audioTrack = AudioTrack(
         AudioManager.STREAM_MUSIC,                // 音频流类型
@@ -41,18 +44,40 @@ class MessageReceiveActivity : BaseActivity() {
 
     private val mMessageListener = object : IMessageListener.Stub() {
         override fun onTextMessage(msg: String) {
-            Log.e(TAG, msg)
             log(msg)
+            GlassSdk.getGlassTtsService()?.apply {
+                // 连续收到文本时先停止上一段
+//                doCancelTts()
+                isTtsPlaying.set(true)
+                doSpeechTts(msg)
+            }
         }
 
         override fun onAudioStream(buffer: ByteArray) {
-            Log.e(TAG, "收到 onAudioStream")
+            // doSpeechTts 会自行播放；TTS 期间回调的 PCM 不再通过 AudioTrack 重复播放。
+            if (isTtsPlaying.get()) {
+                return
+            }
             log("收到音频流，大小=${buffer.size}")
             audioTrack.write(buffer, 0, buffer.size)
         }
 
         override fun onStreamDataReceived(tag: String, data: ByteArray) {
-            Log.e(TAG, "onStreamDataReceived")
+            log("onStreamDataReceived，大小=${data.size},tag=${tag}")
+        }
+    }
+
+    private val speechCompleteListener = object : SpeechCompleteListener.Stub() {
+        override fun onComplete() {
+            log("TTS 播放完成")
+            isTtsPlaying.set(false)
+        }
+
+        override fun onServiceConnectState(connected: Boolean) {
+            log("TTS 播放服务连接状态：$connected")
+            if (!connected) {
+                isTtsPlaying.set(false)
+            }
         }
     }
 
@@ -61,6 +86,7 @@ class MessageReceiveActivity : BaseActivity() {
         enableEdgeToEdge()
         binding = ActivityMessageReceiveBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        GlassSdk.getGlassTtsService()?.setSpeechCompleteListener(speechCompleteListener)
         GlassSdk.getGlassMessageService()?.setMessageListener(mMessageListener)
         GlassSdk.getGlassMessageService()?.glassFileOperater?.setFileReceiveListener(mFileReceiveListener)
         GlassSdk.getGlassMessageService()?.glassBtFileOperater?.setFileReceiveListener(mBtFileReceiveListener)
@@ -71,6 +97,9 @@ class MessageReceiveActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        GlassSdk.getGlassTtsService()?.removeSpeechCompleteListener()
+        isTtsPlaying.set(false)
+        GlassSdk.getGlassTtsService()?.doCancelTts()
         GlassSdk.getGlassMessageService()?.removeMessageListener(mMessageListener)
         GlassSdk.getGlassMessageService()?.glassFileOperater?.removeFileReceiveListener(mFileReceiveListener)
         GlassSdk.getGlassMessageService()?.glassBtFileOperater?.removeFileReceiveListener(mFileReceiveListener)
@@ -118,61 +147,52 @@ class MessageReceiveActivity : BaseActivity() {
         lifecycleScope.launch(Dispatchers.Main) {
             binding.tvLog.text = logBuilder.toString()
         }
+        Log.e(TAG, msg)
     }
 
     private val mFileReceiveListener = object : FileReceiveListener.Stub() {
         override fun onStart() {
-            Log.e(TAG, "onStart: 本端开始接收文件")
-            log("本端开始接收文件")
+            log("onStart: 本端开始接收文件")
         }
 
         override fun onProgressChanged(progress: Float) {
-            Log.e(TAG, "onProgressChanged: 本端接收文件的进度 $progress")
-            log("接收文件的进度 $progress")
+            log("onProgressChanged: 本端接收文件的进度 $progress")
         }
 
         override fun onComplete(filePath: String) {
-            Log.e(TAG, "onComplete: 本端接收文件完成")
             log("接收文件完成 $filePath")
             handleReceivedFile(filePath)
         }
 
         override fun onFail() {
-            Log.e(TAG, "onFail: 接收文件失败")
-            log("接收文件失败")
+            log("onFail: 接收文件失败")
         }
 
         override fun onCancel() {
-            Log.e(TAG, "onCancel: 对方取消了发送文件")
-            log("对方取消了发送文件")
+            log("onCancel: 对方取消了发送文件")
         }
     }
 
     private val mBtFileReceiveListener = object : FileReceiveListener.Stub() {
         override fun onStart() {
-            Log.e(TAG, "onStart: 蓝牙本端开始接收文件")
             log("蓝牙本端开始接收文件")
         }
 
         override fun onProgressChanged(progress: Float) {
-            Log.e(TAG, "onProgressChanged: 蓝牙本端接收文件的进度 $progress")
             log("蓝牙接收文件的进度 $progress")
         }
 
         override fun onComplete(filePath: String) {
-            Log.e(TAG, "onComplete: 蓝牙本端接收文件完成")
             log("蓝牙接收文件完成 $filePath")
             handleReceivedFile(filePath)
         }
 
         override fun onFail() {
-            Log.e(TAG, "onFail: 蓝牙接收文件失败")
-            log("蓝牙接收文件失败")
+            log("onFail()蓝牙接收文件失败")
         }
 
         override fun onCancel() {
-            Log.e(TAG, "onCancel: 蓝牙对方取消了发送文件")
-            log("蓝牙对方取消了发送文件")
+            log("onCancel()蓝牙对方取消了发送文件")
         }
     }
 

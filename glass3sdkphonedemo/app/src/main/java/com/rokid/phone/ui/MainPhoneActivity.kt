@@ -23,9 +23,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.rokid.phone.DeviceLinkerManager
 import com.rokid.phone.DeviceLinkerManager.getBlueToothDevice
 import com.rokid.phone.DeviceLinkerManager.getP2pDevice
-import com.rokid.phone.DeviceLinkerManager.mBluetoothDevice
-import com.rokid.phone.DeviceLinkerManager.mConnectingBluetoothDevice
-import com.rokid.phone.DeviceLinkerManager.mWifiP2pDevice
 import com.rokid.phone.GalleryActivity
 import com.rokid.phone.MessageReceiveActivity
 import com.rokid.phone.MyApplication
@@ -71,8 +68,10 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     private var volumeTime = 0L
     private var brightnessTime = 0L
     private var isResume = false
+    private var isBtConnecting = false
     private var pendingOpenBluetoothAfterPermission = false
     private var autoConnectP2pJob: Job? = null
+    private var autoConnectBtJob: Job? = null
 
     private val enableBtLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -184,9 +183,9 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         SystemGlobalConstant.deviceId =
             SPUtil.getInstance(MyApplication.instance.baseContext).getString(SpKeyConstant.DEVICE_ID, "")
         CoroutineScope(Dispatchers.IO).launch {
-            mWifiP2pDevice = getP2pDevice()
-            mBluetoothDevice = getBlueToothDevice()
-            mConnectingBluetoothDevice = mBluetoothDevice
+            DeviceLinkerManager.mWifiP2pDevice = getP2pDevice()
+            DeviceLinkerManager.mBluetoothDevice = getBlueToothDevice()
+            DeviceLinkerManager.mConnectingBluetoothDevice = DeviceLinkerManager.mBluetoothDevice
         }
     }
 
@@ -198,6 +197,9 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         }
         isResume = true
         connectStatus(GlobalData.btConnectState.value, GlobalData.p2pConnectState.value)
+        if(GlobalData.sdkInitState.value){
+            autoConnectBt()
+        }
     }
 
     private fun openBluetooth() {
@@ -259,10 +261,8 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         super.onStop()
         isResume = false
         autoConnectBtJob?.cancel()
-
     }
 
-    private var autoConnectBtJob: Job? = null
 
     /**
      * 自动连接上次连接的蓝牙设备
@@ -270,16 +270,23 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     private fun autoConnectBt(isDelay: Boolean = false) {
         autoConnectBtJob?.cancel()
         autoConnectBtJob = lifecycleScope.launch {
-            val bluetoothDevice = mBluetoothDevice
+            val bluetoothDevice = DeviceLinkerManager.mBluetoothDevice
             if (isDelay) {
                 delay(3000)
+                if (!isResume) {
+                    return@launch
+                }
             }
             if ((!GlobalData.btConnectState.value) && bluetoothDevice != null) {
                 Log.d(TAG, "--->蓝牙连接中...")
                 if (!GlobalData.btConnectState.value) {
                     binding.ivConnect.setImageResource(R.mipmap.icon_connecting)
                 }
+                isBtConnecting = true
                 DeviceLinkerManager.connectBt(bluetoothDevice) {
+                    if (!isResume) {
+                        return@connectBt
+                    }
                     autoConnectBt(true)
                 }
             }
@@ -319,14 +326,16 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         }
 
         binding.ivAdd.setOnClickListener {
+            autoConnectBtJob?.cancel()
+            autoConnectBtJob = null
             startActivity(Intent(this, ClassicBtActivity::class.java))
         }
 
         binding.ivConnect.setOnClickListener {
             Log.i(TAG, "ivConnect setOnClickListener: ${GlobalData.btConnectState.value}")
             if (!GlobalData.btConnectState.value) {
-                if (mBluetoothDevice != null) {
-                    mConnectingBluetoothDevice = mBluetoothDevice
+                if (DeviceLinkerManager.mBluetoothDevice != null) {
+                    DeviceLinkerManager.mConnectingBluetoothDevice = DeviceLinkerManager.mBluetoothDevice
                     BtWifiConnectActivity.start(this, isConnetBt = true, isConnetP2p = false)
                 } else {
                     startActivity(Intent(this, ClassicBtActivity::class.java))
@@ -526,7 +535,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
                     if (success) {
                         GlobalData.setP2pConnectState(true)
                     } else {
-                        DeviceLinkerManager.connectP2p(mWifiP2pDevice)
+                        DeviceLinkerManager.connectP2p(DeviceLinkerManager.mWifiP2pDevice)
                     }
                 }
             }
@@ -625,7 +634,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     private fun connectStatus(bt_success: Boolean, p2_success: Boolean) {
         lifecycleScope.launch {
             if (bt_success && !isDeviceDiscovered) {
-                mBluetoothDevice?.address?.let {
+                DeviceLinkerManager.mBluetoothDevice?.address?.let {
                     isDeviceDiscovered = true
                     startDiscover(it)
                 }
@@ -678,7 +687,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         }
 
     private fun unregisterDiscoveryLauncher() {
-        mBluetoothDevice?.address?.let {
+        DeviceLinkerManager.mBluetoothDevice?.address?.let {
             deviceManager.disassociate(it)
         }
         uuidDeviceDiscoveryManager?.unregisterDiscoveryLauncher()

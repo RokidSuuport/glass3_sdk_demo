@@ -33,6 +33,7 @@ class SendMessageActivity : ComponentActivity() {
     private var startTime = 0L
     private lateinit var sdDownload: File
     private var mCount = 0
+    private var mMsgCount = 0
 
     /**
      * P2P发送文件管理器
@@ -122,7 +123,12 @@ class SendMessageActivity : ComponentActivity() {
             }
         }
         binding.btSendTextBtn.setOnClickListener {
-            PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT("蓝牙消息测试", "GlassSample")
+            mMsgCount++
+            var msg = "秋天不回来，我要去爬山啦"
+            if (mMsgCount % 2 == 0) {
+                msg = "蓝牙消息测试"
+            }
+            PSecuritySDK.getMessageService()?.sendTextMessageByClassicBT(msg, "GlassSample")
             log("蓝牙消息测试")
         }
         binding.btSendFileBtn.setOnClickListener {

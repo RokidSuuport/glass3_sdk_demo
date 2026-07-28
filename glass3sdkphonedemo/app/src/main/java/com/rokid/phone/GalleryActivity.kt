@@ -3,25 +3,85 @@ package com.rokid.phone
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.View
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.rokid.phone.adapter.MediaAdapter
+import com.rokid.security.phone.sdk.api.PSecuritySDK
+import com.rokid.security.phone.sdk.api.msg.listener.FileReceiveV2Listener
 import java.io.File
+import kotlin.math.roundToInt
 
 class GalleryActivity : ComponentActivity() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: MediaAdapter
+    private lateinit var receiveProgressContainer: View
+    private lateinit var receiveProgressText: TextView
+    private lateinit var receiveProgressBar: ProgressBar
     private val mediaList = mutableListOf<File>()
+    private val mediaPathSet = mutableSetOf<String>()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val hideReceiveProgressRunnable = Runnable {
+        receiveProgressContainer.visibility = View.GONE
+    }
+    private var fileReceiveListenerRegistered = false
+
+    private val fileReceiveListener = object : FileReceiveV2Listener {
+        override fun onStart(filePath: String) {
+            runOnUiThread {
+                showReceiveProgress(filePath, 0f, "正在接收")
+            }
+        }
+
+        override fun onProgressChanged(filePath: String, progress: Float) {
+            runOnUiThread {
+                showReceiveProgress(filePath, progress, "正在接收")
+            }
+        }
+
+        override fun onComplete(filePath: String) {
+            val file = File(filePath)
+            runOnUiThread {
+                showReceiveProgress(filePath, 100f, "接收完成")
+                if (file.exists() && isImageOrVideo(file)) {
+                    addOrUpdateMedia(file)
+                }
+                hideReceiveProgressDelayed()
+            }
+        }
+
+        override fun onFail() {
+            runOnUiThread {
+                showReceiveProgress("", 0f, "接收失败")
+                hideReceiveProgressDelayed()
+            }
+        }
+
+        override fun onCancel(filePath: String) {
+            runOnUiThread {
+                showReceiveProgress(filePath, 0f, "接收已取消")
+                hideReceiveProgressDelayed()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_gallery)
 
         recyclerView = findViewById(R.id.recyclerView)
+        receiveProgressContainer = findViewById(R.id.receiveProgressContainer)
+        receiveProgressText = findViewById(R.id.receiveProgressText)
+        receiveProgressBar = findViewById(R.id.receiveProgressBar)
+
         recyclerView.layoutManager = GridLayoutManager(this, 3)
         adapter = MediaAdapter(mediaList) { file ->
             if (file.extension.lowercase() in listOf("mp4", "avi", "mov")) {
@@ -40,8 +100,14 @@ class GalleryActivity : ComponentActivity() {
                 }
             } else {
                 // 打开图片预览
+                val imagePaths = mediaList
+                    .filter { isImage(it) }
+                    .map { it.absolutePath }
+                    .toCollection(ArrayList())
                 val intent = Intent(this, ImagePreviewActivity::class.java)
                 intent.putExtra("imagePath", file.absolutePath)
+                intent.putStringArrayListExtra("imagePaths", imagePaths)
+                intent.putExtra("imageIndex", imagePaths.indexOf(file.absolutePath).coerceAtLeast(0))
                 startActivity(intent)
             }
         }
@@ -49,15 +115,31 @@ class GalleryActivity : ComponentActivity() {
         loadMedia()
     }
 
+    override fun onStart() {
+        super.onStart()
+        registerFileReceiveListener()
+        loadMedia()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterFileReceiveListener()
+        mainHandler.removeCallbacks(hideReceiveProgressRunnable)
+        receiveProgressContainer.visibility = View.GONE
+    }
+
     private fun loadMedia() {
-        val appMediaDir = getExternalFilesDir(null)
-        if (appMediaDir != null && appMediaDir.exists()) {
-            mediaList.clear()
-            scanFiles(appMediaDir)
-            adapter.notifyDataSetChanged()
-        } else {
-            Toast.makeText(this, "目录不存在: ${appMediaDir?.path}", Toast.LENGTH_SHORT).show()
+        mediaList.clear()
+        mediaPathSet.clear()
+
+        getMediaDirectories().forEach { dir ->
+            if (dir.exists()) {
+                scanFiles(dir)
+            }
         }
+
+        mediaList.sortByDescending { it.lastModified() }
+        adapter.notifyDataSetChanged()
     }
 
     private fun scanFiles(dir: File) {
@@ -67,15 +149,83 @@ class GalleryActivity : ComponentActivity() {
                 scanFiles(file)
             } else {
                 if (isImageOrVideo(file)) {
-                    mediaList.add(file)
+                    addMediaIfAbsent(file)
                 }
             }
         }
     }
 
+    private fun addOrUpdateMedia(file: File) {
+        val path = file.absolutePath
+        val oldIndex = mediaList.indexOfFirst { it.absolutePath == path }
+        if (oldIndex >= 0) {
+            mediaList.removeAt(oldIndex)
+        } else {
+            mediaPathSet.add(path)
+        }
+        mediaList.add(file)
+        mediaList.sortByDescending { it.lastModified() }
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun addMediaIfAbsent(file: File) {
+        if (mediaPathSet.add(file.absolutePath)) {
+            mediaList.add(file)
+        }
+    }
+
+    private fun getMediaDirectories(): List<File> {
+        return listOfNotNull(
+            getExternalFilesDir(null),
+            filesDir
+        ).distinctBy { it.absolutePath }
+    }
+
+    private fun showReceiveProgress(filePath: String, progress: Float, status: String) {
+        val progressValue = progress.roundToInt().coerceIn(0, 100)
+        val fileName = File(filePath).name
+        val displayName = if (fileName.isBlank()) "" else " $fileName"
+
+        mainHandler.removeCallbacks(hideReceiveProgressRunnable)
+        receiveProgressContainer.visibility = View.VISIBLE
+        receiveProgressBar.progress = progressValue
+        receiveProgressText.text = "$status$displayName $progressValue%"
+    }
+
+    private fun hideReceiveProgressDelayed() {
+        mainHandler.removeCallbacks(hideReceiveProgressRunnable)
+        mainHandler.postDelayed(hideReceiveProgressRunnable, 1500)
+    }
+
+    private fun registerFileReceiveListener() {
+        if (fileReceiveListenerRegistered) {
+            return
+        }
+        PSecuritySDK.getMessageService()?.getFileOperater()?.addFileReceiveV2Listener(fileReceiveListener)
+        PSecuritySDK.getMessageService()?.getBtFileOperater()?.addFileReceiveV2Listener(fileReceiveListener)
+        fileReceiveListenerRegistered = true
+    }
+
+    private fun unregisterFileReceiveListener() {
+        if (!fileReceiveListenerRegistered) {
+            return
+        }
+        PSecuritySDK.getMessageService()?.getFileOperater()?.removeFileReceiveV2Listener(fileReceiveListener)
+        PSecuritySDK.getMessageService()?.getBtFileOperater()?.removeFileReceiveV2Listener(fileReceiveListener)
+        fileReceiveListenerRegistered = false
+    }
+
     private fun isImageOrVideo(file: File): Boolean {
+        return isImage(file) || isVideo(file)
+    }
+
+    private fun isImage(file: File): Boolean {
         val name = file.name.lowercase()
         return name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png")
-                || name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov")
+    }
+
+    private fun isVideo(file: File): Boolean {
+        val name = file.name.lowercase()
+        return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov")
     }
 }

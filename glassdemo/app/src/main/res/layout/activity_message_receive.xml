@@ -11,7 +11,6 @@
         android:id="@+id/wfSendTextBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
         android:gravity="center"
         android:text="接收消息"
         android:textColor="@color/green" />

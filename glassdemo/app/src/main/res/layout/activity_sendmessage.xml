@@ -42,10 +42,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
-                android:textColor="@color/green_normal_40"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="语音转文本"
+                android:textColor="@color/green_normal_40"
                 android:textSize="12sp" />
 
             <androidx.appcompat.widget.AppCompatTextView
@@ -115,11 +115,12 @@
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/btSendAudioStream"
-                android:layout_width="88dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
                 android:gravity="center"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="发送音频流"
                 android:textColor="@color/green_normal_40"
@@ -127,11 +128,12 @@
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/btStopSendAudioStream"
-                android:layout_width="108dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
                 android:gravity="center"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="停止发送音频"
                 android:textColor="@color/green_normal_40"
@@ -139,11 +141,12 @@
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/btCameraShare"
-                android:layout_width="88dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
                 android:gravity="center"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="共享相机"
                 android:textColor="@color/green_normal_40"
@@ -159,14 +162,14 @@
             android:orientation="horizontal">
 
 
-
             <androidx.appcompat.widget.AppCompatTextView
                 android:id="@+id/btQRCodeImage"
-                android:layout_width="118dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
                 android:gravity="center"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="获取图片二维码"
                 android:textColor="@color/green_normal_40"
@@ -193,6 +196,7 @@
                 android:background="@drawable/round_unselect_bg"
                 android:gravity="center"
                 android:paddingHorizontal="10dp"
+
                 android:paddingVertical="4dp"
                 android:text="扫一扫XML"
                 android:textColor="@color/green_normal_40"
@@ -207,15 +211,40 @@
             android:gravity="center"
             android:orientation="horizontal">
 
-
-
             <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/btConfigureAppVisibility"
-                android:layout_width="118dp"
+                android:id="@+id/btConnectWifi"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
                 android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="连接Wi-Fi"
+                android:textColor="@color/green_normal_40"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/btDisconnectWifi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/round_unselect_bg"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="断开Wi-Fi"
+                android:textColor="@color/green_normal_40"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/btConfigureAppVisibility"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/round_unselect_bg"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
                 android:text="应用显示设置"
                 android:textColor="@color/green_normal_40"

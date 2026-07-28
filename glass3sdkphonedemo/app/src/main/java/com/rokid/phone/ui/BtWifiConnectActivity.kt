@@ -48,6 +48,10 @@ class BtWifiConnectActivity : BaseActivity<ActivityDiscoverP2pDevice2Binding>() 
     private var isConnetBt = false
     private var isConnetP2p = false
 
+    override fun initViewBinding(): ActivityDiscoverP2pDevice2Binding {
+        return ActivityDiscoverP2pDevice2Binding.inflate(layoutInflater)
+    }
+
     override fun onInit(savedInstanceState: Bundle?) {
         initView()
     }
@@ -111,6 +115,7 @@ class BtWifiConnectActivity : BaseActivity<ActivityDiscoverP2pDevice2Binding>() 
             if (isConnetBt) {
                 if (!GlobalData.btConnectState.value) {
                     Log.i(TAG, "蓝牙未连接,跳转到蓝牙界面 ")
+                    showStatus()
                     if (DeviceLinkerManager.mConnectingBluetoothDevice == null) {
                         jumpToBtActivity()
                     } else {
@@ -119,14 +124,13 @@ class BtWifiConnectActivity : BaseActivity<ActivityDiscoverP2pDevice2Binding>() 
                         if (device != null) {
                             connectBtJob?.cancel()
                             connectBtJob = lifecycleScope.launch {
-                                delay(1000 * 10)
+                                delay(1000 * 11)
                                 if (!GlobalData.btConnectState.value) {
                                     jumpToBtActivity()
                                 }
                             }
                             mClassicBlueToothClientService?.connectToServer(device) { result ->
                                 Log.i(TAG, "btConnectState connectToServer: $result")
-
                             }
                         }
                     }
@@ -331,10 +335,6 @@ class BtWifiConnectActivity : BaseActivity<ActivityDiscoverP2pDevice2Binding>() 
             }
             finish()
         }
-    }
-
-    override fun initViewBinding(): ActivityDiscoverP2pDevice2Binding {
-        return ActivityDiscoverP2pDevice2Binding.inflate(layoutInflater)
     }
 
     override fun onDestroy() {

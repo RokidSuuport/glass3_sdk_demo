@@ -244,7 +244,7 @@ object DeviceLinkerManager {
                     Log.d(TAG, "wifiConnect: discovered=${devices.map { "${it.deviceName}/${it.deviceAddress}" }}")
                     val device = devices.firstOrNull {
                         it.deviceName == targetDeviceName &&
-                            it.deviceAddress == wifiP2pDevice?.deviceAddress
+                                it.deviceAddress == wifiP2pDevice?.deviceAddress
                     } ?: devices.firstOrNull {
                         it.deviceName == targetDeviceName
                     }
@@ -312,10 +312,10 @@ object DeviceLinkerManager {
 
     private fun hasBluetoothScanPermission(): Boolean {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            ContextCompat.checkSelfPermission(
-                MyApplication.instance.baseContext,
-                Manifest.permission.BLUETOOTH_SCAN
-            ) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(
+                    MyApplication.instance.baseContext,
+                    Manifest.permission.BLUETOOTH_SCAN
+                ) == PackageManager.PERMISSION_GRANTED
     }
 
     fun addSystemInfoListener(systemCallback: (() -> Unit)) {
@@ -337,7 +337,6 @@ object DeviceLinkerManager {
                 if (customMessage.type == ProjectBusinessType.SYSTEM_INFO_RESPONSE) {
                     val systemInfo = mGson.fromJson(customMessage.message, RKSystemInfo::class.java)
                     if (systemInfo != null) {
-                        closeSystemMsgTask()
                         SystemGlobalConstant.osType = systemInfo.osType
                         SystemGlobalConstant.cpuType = systemInfo.cpuType
                         SystemGlobalConstant.version = systemInfo.version
@@ -413,11 +412,17 @@ object DeviceLinkerManager {
         }
     }
 
+    private var isFirstGetSystemInfo = true
     fun getSystemMsgTask() {
         if (mGetGlassSystemInfoMsgTask == null) {
             mGetGlassSystemInfoMsgTask = workScope.launch {
                 while (isActive) {
-                    delay(800)
+                    if (isFirstGetSystemInfo) {
+                        delay(800)
+                        isFirstGetSystemInfo = false
+                    } else {
+                        delay(1000 * 8)
+                    }
                     Log.d(TAG, "----getSystemInfo")
                     getGlassSystemInfoMsg()
                 }

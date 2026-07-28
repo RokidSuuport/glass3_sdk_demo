@@ -20,132 +20,197 @@
 
     <!-- ================= 设置态 ================= -->
 
-    <LinearLayout
+    <ScrollView
         android:id="@+id/config_container"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:padding="24dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="视频流参数设置"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <androidx.cardview.widget.CardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#FF1C1F26"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="8dp">
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="24dp">
 
-            <LinearLayout
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:text="视频流参数设置"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                app:cardBackgroundColor="#FF1C1F26"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="8dp">
 
-                <!-- FPS -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                    <TextView
-                        android:layout_width="0dp"
+                    <!-- FPS -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="帧率"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <EditText
-                        android:id="@+id/et_frame_rate"
-                        android:layout_width="80dp"
-                        android:layout_height="40dp"
-                        android:gravity="center"
-                        android:hint="10"
-                        android:inputType="number"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#66FFFFFF" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="帧率"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                        <EditText
+                            android:id="@+id/et_frame_rate"
+                            android:layout_width="80dp"
+                            android:layout_height="40dp"
+                            android:gravity="center"
+                            android:hint="10"
+                            android:inputType="number"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#66FFFFFF" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="fps"
+                            android:textColor="#AAAAAA" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="6dp"
+                        android:background="#33FFFFFF" />
+
+                    <!-- Bitrate -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="fps"
-                        android:textColor="#AAAAAA" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="码率"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp" />
+
+                        <EditText
+                            android:id="@+id/et_bitrate"
+                            android:layout_width="120dp"
+                            android:layout_height="40dp"
+                            android:gravity="center"
+                            android:hint="3000000"
+                            android:inputType="number"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#66FFFFFF" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="bps"
+                            android:textColor="#AAAAAA" />
+
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="6dp"
+                        android:background="#33FFFFFF" />
+
+                    <!-- Resolution -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="分辨率"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp" />
+
+                        <Spinner
+                            android:id="@+id/spinner_resolution"
+                            android:layout_width="180dp"
+                            android:layout_height="40dp"
+                            android:backgroundTint="#66FFFFFF"
+                            android:popupBackground="#FFFFFFFF" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="6dp"
+                        android:background="#33FFFFFF" />
+
+                    <!-- AR Mix -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="AR 叠加"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp" />
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/sw_ar_mix"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:checked="true"
+                            android:textColor="#FFFFFF" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btn_start_preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="10dp"
+                        android:backgroundTint="#FF3D8BFF"
+                        android:text="开始预览"
+                        android:textColor="#FFFFFF" />
+
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginVertical="16dp"
-                    android:background="#33FFFFFF" />
-
-                <!-- Bitrate -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="码率"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp" />
-
-                    <EditText
-                        android:id="@+id/et_bitrate"
-                        android:layout_width="120dp"
-                        android:layout_height="40dp"
-                        android:gravity="center"
-                        android:hint="3000_000"
-                        android:inputType="number"
-                        android:textColor="#FFFFFF"
-                        android:textColorHint="#66FFFFFF" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="bps"
-                        android:textColor="#AAAAAA" />
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/btn_start_preview"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="24dp"
-                    android:backgroundTint="#FF3D8BFF"
-                    android:text="开始预览"
-                    android:textColor="#FFFFFF" />
-
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="参数校验通过后将启动音视频流"
-            android:textColor="#66FFFFFF"
-            android:textSize="12sp" />
-    </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="参数校验通过后将启动音视频流"
+                android:textColor="#66FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </ScrollView>
 
     <TextView
         android:id="@+id/tvDuration"
