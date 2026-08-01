@@ -34,4 +34,17 @@ class PrivateSpeechActionContractTest {
         assertTrue(activitySource.contains("PrivateSpeechAction.ASR_CLOSE -> closeAsrClient()"))
         assertTrue(activitySource.contains("PrivateSpeechAction.TTS_CLOSE -> closeTtsClient()"))
     }
+
+    @Test
+    fun ttsDemoDescribesIndependentGlassDeployment() {
+        val activitySource = File(
+            "src/main/java/com/rokid/glass/speech/private/PrivateSpeechActivity.kt"
+        ).readText()
+
+        assertTrue(
+            activitySource.contains(
+                "DEFAULT_TTS_TEXT = \"这是独立部署在眼镜端的在线 ASR/TTS 应用\""
+            )
+        )
+    }
 }

@@ -320,7 +320,7 @@ class PrivateSpeechActivity : SpeechGestureActivity() {
     companion object {
         private const val REQUEST_RECORD_AUDIO = 702
         private const val MAX_LOG_LINES = 160
-        private const val DEFAULT_TTS_TEXT = "你好，这是私有化部署在线语音服务测试。"
+        private const val DEFAULT_TTS_TEXT = "这是独立部署在眼镜端的在线 ASR/TTS 应用"
         private val TAB_TITLES = listOf("初始化", "ASR", "TTS")
         private val ACTION_GROUPS = listOf(
             listOf(PrivateSpeechAction.INIT, PrivateSpeechAction.RELEASE),

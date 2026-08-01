@@ -10,10 +10,18 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Online-Speech 在线语音"
+        android:text="独立ASR/TTS"
         android:textColor="#FFFFFF"
         android:textSize="17sp"
         android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="这是独立部署在眼镜端的在线 ASR/TTS 应用，通过 Online-Speech 实现。用户也可通过 OpenSdkAudioSource 修改输入音源，并部署到其他 Android 系统。"
+        android:textColor="#BDBDBD"
+        android:textSize="11sp" />
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabs_private_speech"

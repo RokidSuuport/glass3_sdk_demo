@@ -10,43 +10,43 @@
         android:id="@+id/btn_private_asr_connect"
         android:layout_width="match_parent"
         android:layout_height="40dp"
-        android:backgroundTint="#1E88E5"
-        android:foreground="@drawable/speech_button_focus_foreground"
+        android:background="@drawable/speech_button_background"
+        android:backgroundTint="@null"
         android:text="connect()"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF" />
+        android:textColor="@color/speech_button_text" />
 
     <Button
         android:id="@+id/btn_private_asr_start"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_marginTop="4dp"
-        android:backgroundTint="#43A047"
-        android:foreground="@drawable/speech_button_focus_foreground"
+        android:background="@drawable/speech_button_background"
+        android:backgroundTint="@null"
         android:text="startAsrWithMic()"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF" />
+        android:textColor="@color/speech_button_text" />
 
     <Button
         android:id="@+id/btn_private_asr_stop"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_marginTop="4dp"
-        android:backgroundTint="#E53935"
-        android:foreground="@drawable/speech_button_focus_foreground"
+        android:background="@drawable/speech_button_background"
+        android:backgroundTint="@null"
         android:text="stopAsrWithMic()"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF" />
+        android:textColor="@color/speech_button_text" />
 
     <Button
         android:id="@+id/btn_private_asr_close"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_marginTop="4dp"
-        android:backgroundTint="#8E24AA"
-        android:foreground="@drawable/speech_button_focus_foreground"
+        android:background="@drawable/speech_button_background"
+        android:backgroundTint="@null"
         android:text="close()"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF" />
+        android:textColor="@color/speech_button_text" />
 
 </LinearLayout>

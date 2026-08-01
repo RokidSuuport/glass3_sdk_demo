@@ -10,21 +10,21 @@
         android:id="@+id/btn_private_init"
         android:layout_width="match_parent"
         android:layout_height="44dp"
-        android:backgroundTint="#1E88E5"
-        android:foreground="@drawable/speech_button_focus_foreground"
+        android:background="@drawable/speech_button_background"
+        android:backgroundTint="@null"
         android:text="Init SDK (create clients)"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF" />
+        android:textColor="@color/speech_button_text" />
 
     <Button
         android:id="@+id/btn_private_release"
         android:layout_width="match_parent"
         android:layout_height="44dp"
         android:layout_marginTop="6dp"
-        android:backgroundTint="#6D4C41"
-        android:foreground="@drawable/speech_button_focus_foreground"
+        android:background="@drawable/speech_button_background"
+        android:backgroundTint="@null"
         android:text="Close SDK + Unbind"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF" />
+        android:textColor="@color/speech_button_text" />
 
 </LinearLayout>

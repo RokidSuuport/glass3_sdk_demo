@@ -6,31 +6,32 @@ import org.junit.Test
 
 class SpeechFocusContractTest {
     @Test
-    fun everySpeechButtonUsesPersistentSelectedForeground() {
+    fun everySpeechButtonUsesPersistentSelectedOutline() {
         val layoutNames = listOf(
             "fragment_private_speech_init.xml",
             "fragment_private_speech_asr.xml",
             "fragment_private_speech_tts.xml",
-            "activity_public_speech.xml",
         )
 
         layoutNames.forEach { name ->
             val xml = File("src/main/res/layout/$name").readText()
             val buttonCount = Regex("<Button").findAll(xml).count()
-            val focusForegroundCount = Regex(
-                "android:foreground=\"@drawable/speech_button_focus_foreground\""
+            val selectedOutlineCount = Regex(
+                "android:background=\"@drawable/speech_button_background\""
             ).findAll(xml).count()
-            assertTrue("$name must apply focus foreground to every button", buttonCount > 0)
+            assertTrue("$name must apply outline background to every button", buttonCount > 0)
             assertTrue(
-                "$name has $buttonCount buttons but $focusForegroundCount focus foregrounds",
-                buttonCount == focusForegroundCount,
+                "$name has $buttonCount buttons but $selectedOutlineCount outline backgrounds",
+                buttonCount == selectedOutlineCount,
             )
         }
 
         val selector = File(
-            "src/main/res/drawable/speech_button_focus_foreground.xml"
+            "src/main/res/drawable/speech_button_background.xml"
         ).readText()
         assertTrue(selector.contains("android:state_selected=\"true\""))
+        assertTrue(selector.contains("@drawable/round_select_bg"))
+        assertTrue(selector.contains("@drawable/round_unselect_bg"))
     }
 
     @Test
@@ -45,10 +46,6 @@ class SpeechFocusContractTest {
             assertTrue(source.contains("buttons.forEach { it.isSelected = false }"))
             assertTrue(source.contains("isSelected = true"))
         }
-
-        val publicSource = source("publicservice/PublicSpeechActivity.kt")
-        assertTrue(publicSource.contains("controls.forEach { it.isSelected = false }"))
-        assertTrue(publicSource.contains("isSelected = true"))
     }
 
     private fun source(relativePath: String): String {

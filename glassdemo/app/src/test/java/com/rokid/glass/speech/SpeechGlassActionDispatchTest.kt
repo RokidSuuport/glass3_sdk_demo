@@ -21,16 +21,6 @@ class SpeechGlassActionDispatchTest {
         assertTrue(privateActivity.contains(": SpeechGestureActivity()"))
         assertTrue(privateActivity.contains("dispatchAction(actionFor(navigation.current))"))
 
-        val publicActivity = source("publicservice/PublicSpeechActivity.kt")
-        assertTrue(publicActivity.contains(": SpeechGestureActivity()"))
-        assertFalse(publicActivity.contains("setOnClickListener"))
-        assertTrue(publicActivity.contains("runSelectedAction(navigation.current.itemIndex)"))
-
-        val chooser = source("SpeechServiceChooserActivity.kt")
-        assertTrue(chooser.contains(": SpeechGestureActivity()"))
-        assertFalse(chooser.contains("setOnClickListener"))
-        assertTrue(chooser.contains("openSelected(chooserState.selectedIndex)"))
-        assertFalse(chooser.contains("setOnFocusChangeListener"))
         assertTrue(privateActivity.contains("pager.isUserInputEnabled = false"))
         assertTrue(privateActivity.contains("tab.view.isClickable = false"))
     }
@@ -54,14 +44,6 @@ class SpeechGlassActionDispatchTest {
         assertTrue(source.contains("KeyEvent.KEYCODE_ENTER"))
         assertTrue(source.contains("KeyEvent.KEYCODE_NUMPAD_ENTER"))
         assertTrue(source.contains("onGlassKeyEvent(GlassKeyEvent.KEYCODE_CLICK)"))
-    }
-
-    @Test
-    fun publicSpeechDoesNotLogInitialTtsConnectionState() {
-        val source = source("publicservice/PublicSpeechActivity.kt")
-
-        assertTrue(source.contains("override fun onServiceConnectState(connected: Boolean) = Unit"))
-        assertFalse(source.contains("TTS 服务连接："))
     }
 
     private fun source(relativePath: String): String {

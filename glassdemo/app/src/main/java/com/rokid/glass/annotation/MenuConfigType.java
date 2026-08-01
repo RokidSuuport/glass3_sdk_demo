@@ -9,7 +9,7 @@ public interface MenuConfigType {
         String MENU_LPR_RECOG = "menu_lpr_recog";   // 车牌识别
         String RECEIVE_MSG = "receive_msg";   // 接收消息
         String SEND_MSG = "send_msg";   // 发送消息
-        String ONLINE_ASR_TTS = "online_asr_tts";   // 在线 ASR/TTS 双服务 Demo
+        String ONLINE_ASR_TTS = "online_asr_tts";   // Online-Speech ASR/TTS Demo
         String SDK_TAKE_PHOTO = "sdk_take_photo";   // sdk拍照录像界面
     }
 }

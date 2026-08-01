@@ -81,12 +81,6 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name="com.rokid.glass.speech.SpeechServiceChooserActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.rokid.glass.speech.publicservice.PublicSpeechActivity"
-            android:exported="false" />
-        <activity
             android:name="com.rokid.glass.speech.privateservice.PrivateSpeechActivity"
             android:exported="false" />
         <activity

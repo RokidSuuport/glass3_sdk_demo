@@ -24,7 +24,7 @@ import com.rokid.glass.base.BaseActivity
 import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.component.MenuItem
 import com.rokid.glass.data.GlobalData
-import com.rokid.glass.speech.SpeechServiceChooserActivity
+import com.rokid.glass.speech.privateservice.PrivateSpeechActivity
 import com.rokid.glass.utils.DeviceUtil
 import com.rokid.glass.utils.DeviceUtil.isGlassLegFold
 import com.rokid.glass.utils.DeviceUtil.isGlassTackOn
@@ -402,7 +402,7 @@ class HomeActivity : BaseActivity() {
 
             add(
                 MenuItem(
-                    "在线ASR/TTS",
+                    "独立ASR/TTS",
                     MenuConfigType.MenuInfoType.ONLINE_ASR_TTS,
                     R.mipmap.app_online_speech,
                     R.mipmap.app_online_speech,
@@ -509,7 +509,7 @@ class HomeActivity : BaseActivity() {
             }
 
             MenuConfigType.MenuInfoType.ONLINE_ASR_TTS -> {
-                startActivity(Intent(this, SpeechServiceChooserActivity::class.java))
+                startActivity(Intent(this, PrivateSpeechActivity::class.java))
             }
         }
     }
