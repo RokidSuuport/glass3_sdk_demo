@@ -3,6 +3,18 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+def privateSpeechDomain = providers.gradleProperty("online.demo.domain").orElse("")
+def privateSpeechAk = providers.gradleProperty("online.demo.ak").orElse("")
+def privateSpeechSk = providers.gradleProperty("online.demo.sk").orElse("")
+def privateSpeechUid = providers.gradleProperty("online.demo.uid").orElse("")
+def privateSpeechDeviceId = providers.gradleProperty("online.demo.deviceId").orElse("")
+def privateSpeechAsrPath = providers.gradleProperty("online.demo.asrPath")
+        .orElse("/ar/audio/api/ws/asr/streaming")
+def privateSpeechTtsPath = providers.gradleProperty("online.demo.ttsPath")
+        .orElse("/ar/audio/api/ws/tts")
+def privateSpeechTrustAllCerts = providers.gradleProperty("online.demo.trustAllCerts")
+        .orElse("false")
+
 android {
     namespace 'com.rokid.glesse'
     compileSdk 34
@@ -13,6 +25,15 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+
+        buildConfigField "String", "PRIVATE_SPEECH_DOMAIN", "\"${privateSpeechDomain.get()}\""
+        buildConfigField "String", "PRIVATE_SPEECH_AK", "\"${privateSpeechAk.get()}\""
+        buildConfigField "String", "PRIVATE_SPEECH_SK", "\"${privateSpeechSk.get()}\""
+        buildConfigField "String", "PRIVATE_SPEECH_UID", "\"${privateSpeechUid.get()}\""
+        buildConfigField "String", "PRIVATE_SPEECH_DEVICE_ID", "\"${privateSpeechDeviceId.get()}\""
+        buildConfigField "String", "PRIVATE_SPEECH_ASR_PATH", "\"${privateSpeechAsrPath.get()}\""
+        buildConfigField "String", "PRIVATE_SPEECH_TTS_PATH", "\"${privateSpeechTtsPath.get()}\""
+        buildConfigField "boolean", "PRIVATE_SPEECH_TRUST_ALL_CERTS", privateSpeechTrustAllCerts.get()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -35,6 +56,7 @@ android {
 //        freeCompilerArgs += "-Xskip-metadata-version-check"
     }
     buildFeatures {
+        buildConfig true
 //        compose true
     }
     viewBinding {
@@ -71,6 +93,9 @@ dependencies {
         exclude group: 'com.rokid.security', module: 'glass3.open.sdk'
     }
     implementation("com.rokid.security:glass3.open.sdk:2.2.0-E")
+    implementation("com.rokid.security.sdk:online-speech:0.1.1") {
+        exclude group: "com.rokid.security", module: "glass3.open.sdk"
+    }
 //    implementation("com.rokid.security:glass3.open.sdk:2.1.9-E")
 //    implementation("com.rokid.security:glass3.open.sdk:2.1.8-E-20260518.101638-5")
 //    implementation('com.rokid.security:glass3.open.sdk:2.1.7-E') {

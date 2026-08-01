@@ -18,7 +18,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.rokid.glass.base.BaseActivity
 import com.rokid.glass.base.GlassKeyEvent
-import com.rokid.glass.camera.QuickCameraManager
 import com.rokid.glass.utils.FileSizeUtil
 import com.rokid.glass.utils.FileUtils
 import com.rokid.glesse.R
@@ -37,25 +36,21 @@ import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiNetworkInfo
 import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiOperationCode
 import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiOperationStage
 import com.rokid.security.glass3.sdk.base.data.device.wifi.WifiRemoveRequest
-import com.rokid.security.glass3.sdk.base.data.media.PhotoResolution
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
 import com.rokid.security.system.server.asr.listener.SpeechCallback
 import com.rokid.security.system.server.device.listener.IAppVisibilityListener
 import com.rokid.security.system.server.device.listener.IWifiOperationCallback
-import com.rokid.security.system.server.media.callback.PhotoFileCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
 import com.rokid.security.system.server.message.file.listener.FileReceiveListener
 import com.rokid.security.system.server.message.listener.IMessageListener
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import kotlin.coroutines.resume
 
 /**
  * 眼镜端 SDK 功能演示页面。
@@ -91,7 +86,6 @@ class SendMessageActivity : BaseActivity() {
     // Assets 中的示例文件会复制到公共 Download 目录，再用于传输测试。
     private val sdDownload = File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOWNLOADS)
 
-    private var handlerLprCount = 1
     private lateinit var huoVoiceAction: VoiceAction
     private var startAsrAfterPermissionGranted = false
 
@@ -307,42 +301,6 @@ class SendMessageActivity : BaseActivity() {
         GlassSdk.getGlassMessageService()?.setMessageListener(mMessageListener)
 
     }
-
-
-    /**
-     * 将 SDK 的回调式拍照接口包装为挂起函数，便于协程按顺序等待拍照结果。
-     */
-    private suspend fun takePhotoAndAwait(): String = suspendCancellableCoroutine { continuation ->
-        Log.d(TAG, "-------------调用了拍照方法, handlerLprCount:$handlerLprCount")
-        val file = QuickCameraManager.createImageFile()
-        if (file == null) {
-            continuation.resume("创建图片文件失败") // 创建图片文件失败，直接恢复协程
-            return@suspendCancellableCoroutine
-        }
-        val photoFileCallback = object : PhotoFileCallback.Stub() {
-            override fun onTakePhoto(path: String) {
-                L.d(TAG, "onTakePhoto-->path = $path")
-                // 拍照成功，恢复协程并传递结果
-                GlassSdk.getGlassMediaService()?.removePhotoCallback(this)
-                continuation.resume("ok")
-            }
-
-            override fun getCallbackId(): String? {
-                return "10002"
-            }
-
-            override fun onTakePhotoV2(path: String, width: Int, height: Int) {
-//                L.d(TAG, "onTakePhoto--> width = $width,height = $height, path = $path")
-//                // 拍照成功（带分辨率信息），恢复协程并传递结果
-//                continuation.resume("")
-//                GlassSdk.getGlassMediaService()?.removePhotoCallback(this)
-            }
-        }
-        GlassSdk.getGlassMediaService()?.addPhotoCallback(photoFileCallback)
-        // 调用拍照接口
-        GlassSdk.getGlassMediaService()?.takePhoto(PhotoResolution.RESOLUTION_1080P, file.absolutePath)
-    }
-
 
     /**
      * 执行当前选中菜单项。

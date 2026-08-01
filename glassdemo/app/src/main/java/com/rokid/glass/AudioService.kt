@@ -163,10 +163,4 @@ class AudioService : Service() {
         return binder
     }
 
-    fun startCameraService() {
-        val intent = Intent(this, CameraPageActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(intent)
-    }
-
 }

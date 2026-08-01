@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <Button
+        android:id="@+id/btn_private_asr_connect"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:backgroundTint="#1E88E5"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:text="connect()"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_private_asr_start"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:backgroundTint="#43A047"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:text="startAsrWithMic()"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_private_asr_stop"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:backgroundTint="#E53935"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:text="stopAsrWithMic()"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_private_asr_close"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:backgroundTint="#8E24AA"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:text="close()"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>

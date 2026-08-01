@@ -8,7 +8,7 @@ import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.rokid.glass.base.BaseActivity
-import com.rokid.glass.camera.QuickCameraManager
+import com.rokid.glass.utils.ImageFileUtils
 import com.rokid.glesse.databinding.ActivityMessageReceiveBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.sdk.base.data.notification.bean.NotificationMessage
@@ -129,10 +129,10 @@ class MessageReceiveActivity : BaseActivity() {
         override fun onFaceRecognizeNotification(face1: ByteArray?, face2: ByteArray?, message: String?) {
             Log.d(TAG, "收到了人脸识别通知")
             face1?.let {
-                QuickCameraManager.saveImage2(it)
+                ImageFileUtils.saveJpeg(it)
             }
             face2?.let {
-                QuickCameraManager.saveImage2(it)
+                ImageFileUtils.saveJpeg(it)
             }
         }
     }

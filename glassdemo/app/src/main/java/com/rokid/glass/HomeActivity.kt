@@ -24,6 +24,7 @@ import com.rokid.glass.base.BaseActivity
 import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.component.MenuItem
 import com.rokid.glass.data.GlobalData
+import com.rokid.glass.speech.SpeechServiceChooserActivity
 import com.rokid.glass.utils.DeviceUtil
 import com.rokid.glass.utils.DeviceUtil.isGlassLegFold
 import com.rokid.glass.utils.DeviceUtil.isGlassTackOn
@@ -401,10 +402,10 @@ class HomeActivity : BaseActivity() {
 
             add(
                 MenuItem(
-                    "应用拍照录像",
-                    MenuConfigType.MenuInfoType.THIRD_APP_TAKE_PHOTO,
-                    R.mipmap.app_take_photo,
-                    R.mipmap.app_take_photo,
+                    "在线ASR/TTS",
+                    MenuConfigType.MenuInfoType.ONLINE_ASR_TTS,
+                    R.mipmap.app_online_speech,
+                    R.mipmap.app_online_speech,
                     R.drawable.home_bg,
                     R.drawable.home_bg_focus,
                     false
@@ -507,8 +508,8 @@ class HomeActivity : BaseActivity() {
                 startActivity(Intent(this, GlassLprTrackActivity::class.java))
             }
 
-            MenuConfigType.MenuInfoType.THIRD_APP_TAKE_PHOTO -> {
-                startActivity(Intent(this, CameraPageActivity::class.java))
+            MenuConfigType.MenuInfoType.ONLINE_ASR_TTS -> {
+                startActivity(Intent(this, SpeechServiceChooserActivity::class.java))
             }
         }
     }
@@ -593,23 +594,5 @@ class HomeActivity : BaseActivity() {
         addAction(MyApplication.ACTION_LEG_STATUS)
         priority = 100 // 设置高优先级确保优先接收广播
     }
-
-    //截图
-    fun screenShot() {
-//        QuickCameraManager.initialize(true) {
-//            if (it) {
-//                if (QuickCameraManager.isCameraDoing()) {
-//                    runOnUiThread {
-//                        SpriteToastUtil.showSpriteToast(MyApplication.getContext(), this.getString(R.string.camera_busy), 0, 1500, true)
-//                    }
-//                    return@initialize
-//                }
-//                QuickCameraManager.takePicture { outFile ->
-//                    Log.d(TAG, "拍照图片路径---->${outFile?.absolutePath}")
-//                }
-//            }
-//        }
-    }
-
 
 }

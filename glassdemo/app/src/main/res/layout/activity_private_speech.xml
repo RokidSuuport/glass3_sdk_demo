@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Online-Speech 在线语音"
+        android:textColor="#FFFFFF"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabs_private_speech"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="#111111"
+        app:tabIndicatorColor="#1E88E5"
+        app:tabSelectedTextColor="#FFFFFF"
+        app:tabTextColor="#BBBBBB" />
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/pager_private_speech"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/tv_private_speech_log"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="#101010"
+        android:padding="6dp"
+        android:scrollbars="vertical"
+        android:textColor="#DDDDDD"
+        android:textSize="11sp" />
+
+</LinearLayout>

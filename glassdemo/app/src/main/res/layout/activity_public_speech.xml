@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="GlassSdk 在线语音"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:id="@+id/row_public_asr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_public_asr_start"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:foreground="@drawable/speech_button_focus_foreground"
+            android:text="开始ASR" />
+
+        <Button
+            android:id="@+id/btn_public_asr_stop"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:foreground="@drawable/speech_button_focus_foreground"
+            android:text="停止ASR" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/row_public_tts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_public_tts_start"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:foreground="@drawable/speech_button_focus_foreground"
+            android:text="播放TTS" />
+
+        <Button
+            android:id="@+id/btn_public_tts_stop"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:foreground="@drawable/speech_button_focus_foreground"
+            android:text="停止TTS" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_public_speech_log"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:background="#101010"
+        android:padding="8dp"
+        android:scrollbars="vertical"
+        android:textColor="#DDDDDD"
+        android:textSize="12sp" />
+
+</LinearLayout>

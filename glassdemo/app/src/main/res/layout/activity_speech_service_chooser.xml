@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="18dp"
+        android:text="在线 ASR/TTS"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btn_public_speech"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:textAllCaps="false"
+        android:text="GlassSdk 在线语音" />
+
+    <Button
+        android:id="@+id/btn_private_speech"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:textAllCaps="false"
+        android:text="Online-Speech 在线语音" />
+
+</LinearLayout>

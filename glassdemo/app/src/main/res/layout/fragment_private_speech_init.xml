@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <Button
+        android:id="@+id/btn_private_init"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:backgroundTint="#1E88E5"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:text="Init SDK (create clients)"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_private_release"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="6dp"
+        android:backgroundTint="#6D4C41"
+        android:foreground="@drawable/speech_button_focus_foreground"
+        android:text="Close SDK + Unbind"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>
