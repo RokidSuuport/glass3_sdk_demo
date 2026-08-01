@@ -25,26 +25,41 @@
             android:orientation="horizontal">
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/btTts"
+                android:id="@+id/btnOnlineTts"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/round_select_bg"
-                android:paddingHorizontal="10dp"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
-                android:text="文本转语音"
+                android:text="在线TTS"
                 android:textColor="@color/green"
                 android:textSize="12sp" />
 
             <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/btAsr"
+                android:id="@+id/btnOfflineTts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/round_unselect_bg"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:text="离线TTS"
+                android:textColor="@color/green_normal_40"
+                android:textSize="12sp" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/btnOnlineAsr"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="12dp"
                 android:background="@drawable/round_unselect_bg"
-                android:paddingHorizontal="10dp"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
-                android:text="语音转文本"
+                android:text="在线ASR"
                 android:textColor="@color/green_normal_40"
                 android:textSize="12sp" />
 
