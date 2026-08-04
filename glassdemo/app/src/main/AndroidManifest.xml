@@ -119,9 +119,6 @@
             android:name="com.rokid.glass.SdkMediaActivity"
             android:exported="true" />
         <activity
-            android:name="com.rokid.glass.MediaRecordActivity"
-            android:exported="true" />
-        <activity
             android:name="com.rokid.glass.OfflineCmdTestActivity"
             android:exported="false" />
         <activity
