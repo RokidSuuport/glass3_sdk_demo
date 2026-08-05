@@ -7,9 +7,11 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.utils.Nv21VideoRecorder
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.camera.CameraShareHelper
@@ -23,7 +25,7 @@ import java.util.Locale
  * Mix 录制模式 Fragment
  * 相机+屏幕叠加录制 MP4
  */
-class MixRecordFragment : Fragment() {
+class MixRecordFragment : Fragment(), CameraShareGestureHandler {
 
     companion object {
         private const val TAG = "MixRecordFragment"
@@ -46,6 +48,7 @@ class MixRecordFragment : Fragment() {
     private lateinit var tvRecordTime: TextView
     private lateinit var tvRecordInfo: TextView
     private lateinit var tvOverlayTime: TextView
+    private lateinit var btnStopRecord: Button
     
     private var nv21Helper: CameraShareHelper? = null
     private var nv21Recorder: Nv21VideoRecorder? = null
@@ -88,6 +91,12 @@ class MixRecordFragment : Fragment() {
         tvRecordTime = view.findViewById(R.id.tv_record_time)
         tvRecordInfo = view.findViewById(R.id.tv_record_info)
         tvOverlayTime = view.findViewById(R.id.tv_overlay_time)
+        btnStopRecord = view.findViewById(R.id.btn_stop_record)
+        btnStopRecord.setOnClickListener {
+            stopMixMode()
+            btnStopRecord.isEnabled = false
+            btnStopRecord.text = "已停止"
+        }
         
         tvOverlayTime.text = timeFormat.format(Date())
         mainHandler.post(overlayTimeUpdater)
@@ -142,6 +151,8 @@ class MixRecordFragment : Fragment() {
                     recordStartTime = System.currentTimeMillis()
                     activity?.runOnUiThread {
                         tvRecordInfo.text = "录制中: ${width}x${height}\n文件: $path"
+                        btnStopRecord.isEnabled = true
+                        btnStopRecord.requestFocus()
                         mainHandler.post(recordTimeUpdater)
                     }
                 }
@@ -159,6 +170,7 @@ class MixRecordFragment : Fragment() {
                     Log.e(TAG, "Mix error: code=$code, msg=$msg")
                     activity?.runOnUiThread {
                         tvRecordInfo.text = "错误: $code, $msg"
+                        btnStopRecord.isEnabled = false
                     }
                 }
             },
@@ -166,6 +178,7 @@ class MixRecordFragment : Fragment() {
     }
 
     private fun stopMixMode() {
+        mainHandler.removeCallbacks(recordTimeUpdater)
         nv21Recorder?.stop { path ->
             Log.d(TAG, "Recording saved: $path")
             activity?.runOnUiThread {
@@ -186,6 +199,12 @@ class MixRecordFragment : Fragment() {
             }
         }
         nv21Helper = null
+    }
+
+    override fun handleGlassKeyEvent(keyEvent: Int): Boolean {
+        if (keyEvent != GlassKeyEvent.KEYCODE_CLICK || !btnStopRecord.isEnabled) return false
+        btnStopRecord.performClick()
+        return true
     }
 
     private fun updateFps(width: Int, height: Int) {

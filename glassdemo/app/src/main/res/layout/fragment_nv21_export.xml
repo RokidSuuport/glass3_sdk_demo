@@ -30,11 +30,15 @@
 
         <!-- 分辨率 -->
         <LinearLayout
+            android:id="@+id/row_resolution"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:focusable="false"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="6dp">
 
             <TextView
                 android:layout_width="80dp"
@@ -53,11 +57,15 @@
 
         <!-- FPS -->
         <LinearLayout
+            android:id="@+id/row_fps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:focusable="false"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="6dp">
 
             <TextView
                 android:layout_width="80dp"
@@ -76,16 +84,20 @@
 
         <!-- Zoom -->
         <LinearLayout
+            android:id="@+id/row_zoom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:focusable="false"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="6dp">
 
             <TextView
-                android:layout_width="80dp"
+                android:layout_width="100dp"
                 android:layout_height="wrap_content"
-                android:text="Zoom:"
+                android:text="变焦(Zoom):"
                 android:textColor="@android:color/white"
                 android:textSize="14sp" />
 
@@ -110,11 +122,15 @@
 
         <!-- 防抖开关 -->
         <LinearLayout
+            android:id="@+id/row_eis"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:focusable="false"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:padding="6dp">
 
             <TextView
                 android:layout_width="80dp"
@@ -144,7 +160,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="应用" />
+                android:background="@drawable/camera_mode_button_bg"
+                android:focusable="false"
+                android:text="应用"
+                android:textColor="@android:color/white" />
 
             <Button
                 android:id="@+id/btn_toggle_config"
@@ -152,7 +171,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="隐藏" />
+                android:background="@drawable/camera_mode_button_bg"
+                android:focusable="false"
+                android:text="隐藏"
+                android:textColor="@android:color/white" />
         </LinearLayout>
     </LinearLayout>
 
@@ -175,6 +197,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
+        android:focusable="false"
         android:text="配置" />
 
 </FrameLayout>

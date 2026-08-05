@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="40dp"
-        android:text="Camera Share Demo"
+        android:text="相机数据输出 Demo"
         android:textColor="@android:color/white"
         android:textSize="24sp"
         android:textStyle="bold" />
@@ -21,8 +21,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:background="@drawable/camera_mode_button_bg"
+        android:backgroundTint="@null"
+        android:focusable="false"
         android:padding="16dp"
-        android:text="Surface 共享模式"
+        android:text="Surface 实时预览"
+        android:textColor="@android:color/white"
         android:textSize="16sp" />
 
     <Button
@@ -30,8 +34,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:background="@drawable/camera_mode_button_bg"
+        android:backgroundTint="@null"
+        android:focusable="false"
         android:padding="16dp"
-        android:text="NV21 导出模式"
+        android:text="NV21 帧数据导出"
+        android:textColor="@android:color/white"
         android:textSize="16sp" />
 
     <Button
@@ -39,8 +47,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
+        android:background="@drawable/camera_mode_button_bg"
+        android:backgroundTint="@null"
+        android:focusable="false"
         android:padding="16dp"
-        android:text="Mix 录制模式"
+        android:text="混合画面录制"
+        android:textColor="@android:color/white"
         android:textSize="16sp" />
 
     <TextView

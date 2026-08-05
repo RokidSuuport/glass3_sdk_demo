@@ -36,6 +36,11 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
     private int mTextureBufferId;
 
     private int[] mTextureID = new int[2];
+    private volatile int mSurfaceWidth;
+    private volatile int mSurfaceHeight;
+    private volatile int mFrameWidth;
+    private volatile int mFrameHeight;
+    private volatile boolean mAspectRatioDirty = true;
 
     private float vertexData[] = {
             -1f, -1f,// 左下角
@@ -133,6 +138,10 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             //Logger.d( "BackgroundGLSurfaceView: onDrawFrame() mProgram="+mProgram+", width="+width+", height="+height+", mTextureID[0]="+mTextureID[0]+", mTextureID[1]="+mTextureID[1]);
             GLES20.glUseProgram(mProgram);
 
+            if (mAspectRatioDirty) {
+                updateFitCenterVertexBuffer();
+            }
+
             // 绑定顶点和纹理坐标
             GLES20.glEnableVertexAttribArray(av_Position);
             GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
@@ -169,6 +178,9 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             //当surface的尺寸发生改变时，该方法被调用，。往往在这里设置ViewPort。或者Camara等。
 //            Logger.d( "BackgroundGLSurfaceView: onSurfaceChanged() w="+w+", h="+h);
             gl.glViewport(0, 0, w, h);
+            mSurfaceWidth = w;
+            mSurfaceHeight = h;
+            mAspectRatioDirty = true;
         }
 
         @Override
@@ -186,9 +198,17 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
          * @param height
          */
         public synchronized void setPreviewData(byte[] data, int width, int height) {
-            if (yFloatBuffer == null || uvFloatBuffer == null) {
+            int ySize = width * height;
+            int uvSize = ySize / 2;
+            if (yFloatBuffer == null || yFloatBuffer.capacity() < ySize ||
+                    uvFloatBuffer == null || uvFloatBuffer.capacity() < uvSize) {
                 yFloatBuffer = ByteBuffer.allocate(width * height);
                 uvFloatBuffer = ByteBuffer.allocate(width * height / 2);
+            }
+            if (mFrameWidth != width || mFrameHeight != height) {
+                mFrameWidth = width;
+                mFrameHeight = height;
+                mAspectRatioDirty = true;
             }
             this.width = width;
             this.height = height;
@@ -229,7 +249,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
         mVertexBufferId = vbo[0];
         // ARRAY_BUFFER 将使用 Float*Array 而 ELEMENT_ARRAY_BUFFER 必须使用 Uint*Array
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES20.GL_STATIC_DRAW);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES20.GL_DYNAMIC_DRAW);
 
         mTextureBuffer = ByteBuffer.allocateDirect(textureData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -241,6 +261,42 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, textureData.length * 4, mTextureBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER,0);
+    }
+
+    /** 完整显示 NV21 帧，比例不一致的区域保留黑边，避免强制铺满导致拉伸。 */
+    private void updateFitCenterVertexBuffer() {
+        if (mVertexBuffer == null || mVertexBufferId == 0 ||
+                mSurfaceWidth <= 0 || mSurfaceHeight <= 0 ||
+                mFrameWidth <= 0 || mFrameHeight <= 0) {
+            return;
+        }
+
+        float frameAspect = (float) mFrameWidth / mFrameHeight;
+        float surfaceAspect = (float) mSurfaceWidth / mSurfaceHeight;
+        float scaleX = 1f;
+        float scaleY = 1f;
+        if (frameAspect > surfaceAspect) {
+            scaleY = surfaceAspect / frameAspect;
+        } else {
+            scaleX = frameAspect / surfaceAspect;
+        }
+
+        vertexData[0] = -scaleX;
+        vertexData[1] = -scaleY;
+        vertexData[2] = scaleX;
+        vertexData[3] = -scaleY;
+        vertexData[4] = -scaleX;
+        vertexData[5] = scaleY;
+        vertexData[6] = scaleX;
+        vertexData[7] = scaleY;
+
+        mVertexBuffer.clear();
+        mVertexBuffer.put(vertexData);
+        mVertexBuffer.position(0);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
+        GLES20.glBufferSubData(GLES20.GL_ARRAY_BUFFER, 0, vertexData.length * 4, mVertexBuffer);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+        mAspectRatioDirty = false;
     }
 
 

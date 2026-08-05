@@ -127,7 +127,7 @@ open class BaseGlassActivity : AppCompatActivity() {
     private var clickJob: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    private fun ringHomeClick() {
+    protected fun ringHomeClick() {
         val curTime = System.currentTimeMillis()
         val timeDiff = curTime - lastHomeClickTime
 

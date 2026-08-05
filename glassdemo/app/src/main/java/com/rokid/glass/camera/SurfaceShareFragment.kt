@@ -177,7 +177,8 @@ class SurfaceShareFragment : Fragment() {
             zoomLevel = 1,
         )
 
-        currentConfigText = "1280x720@15fps, EIS=OFF, zoom=1"
+        currentConfigText =
+            "1280x720@15fps, EIS=OFF, zoom=1\n演示提示: 15秒后自动切换到1920x1080@15fps, zoom=2"
         currentZoomLevel = 1
 
         Log.d(TAG, "Starting surface share: ${initialConfig.previewWidth}x${initialConfig.previewHeight}@${initialConfig.previewTargetFps}fps")
@@ -299,7 +300,8 @@ class SurfaceShareFragment : Fragment() {
                 enableVideoStabilization = false,
                 zoomLevel = 2,
             )
-            currentConfigText = "1920x1080@15fps, EIS=OFF, zoom=2"
+            currentConfigText =
+                "1920x1080@15fps, EIS=OFF, zoom=2\n演示提示: 已自动切换，15秒后切换到24fps, zoom=1"
             currentZoomLevel = 2
             switchToNewConfig(config)
             
@@ -325,7 +327,8 @@ class SurfaceShareFragment : Fragment() {
                 enableVideoStabilization = false,
                 zoomLevel = 1,
             )
-            currentConfigText = "1920x1080@24fps, EIS=OFF, zoom=1"
+            currentConfigText =
+                "1920x1080@24fps, EIS=OFF, zoom=1\n演示提示: 自动切换演示完成"
             currentZoomLevel = 1
             switchToNewConfig(config)
         }
@@ -358,6 +361,8 @@ class SurfaceShareFragment : Fragment() {
         private lateinit var texCoordBuffer: FloatBuffer
         private var surfaceWidth = 0
         private var surfaceHeight = 0
+        private var cameraWidth = 0
+        private var cameraHeight = 0
 
         private val vertexData = floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)
         private val texCoordData = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f, 1f, 1f)
@@ -394,6 +399,7 @@ class SurfaceShareFragment : Fragment() {
             surfaceWidth = width
             surfaceHeight = height
             GLES20.glViewport(0, 0, width, height)
+            updateCenterCropVertices()
         }
 
         override fun onDrawFrame(gl: GL10?) {
@@ -429,9 +435,57 @@ class SurfaceShareFragment : Fragment() {
 
         fun onCameraSizeChanged(width: Int, height: Int) {
             Log.d(TAG, "Renderer camera size changed: ${width}x${height}, surface=${surfaceWidth}x${surfaceHeight}")
+            cameraWidth = width
+            cameraHeight = height
             if (surfaceWidth > 0 && surfaceHeight > 0) {
                 GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight)
+                updateCenterCropVertices()
             }
+        }
+
+        /**
+         * SDK 的 SurfaceTexture 变换矩阵负责相机纹理的 90° 旋转；这里按旋转后的
+         * 宽高比缩放顶点做 FIT_CENTER，完整显示预览帧并避免非等比拉伸。
+         */
+        private fun updateCenterCropVertices() {
+            if (!::vertexBuffer.isInitialized ||
+                surfaceWidth <= 0 || surfaceHeight <= 0 ||
+                cameraWidth <= 0 || cameraHeight <= 0
+            ) {
+                return
+            }
+
+            val rotatedCameraWidth = cameraHeight.toFloat()
+            val rotatedCameraHeight = cameraWidth.toFloat()
+            val cameraAspect = rotatedCameraWidth / rotatedCameraHeight
+            val surfaceAspect = surfaceWidth.toFloat() / surfaceHeight.toFloat()
+
+            var scaleX = 1f
+            var scaleY = 1f
+            if (cameraAspect > surfaceAspect) {
+                scaleY = surfaceAspect / cameraAspect
+            } else {
+                scaleX = cameraAspect / surfaceAspect
+            }
+
+            vertexData[0] = -scaleX
+            vertexData[1] = -scaleY
+            vertexData[2] = scaleX
+            vertexData[3] = -scaleY
+            vertexData[4] = -scaleX
+            vertexData[5] = scaleY
+            vertexData[6] = scaleX
+            vertexData[7] = scaleY
+            vertexBuffer.clear()
+            vertexBuffer.put(vertexData)
+            vertexBuffer.position(0)
+
+            Log.d(
+                TAG,
+                "FIT_CENTER camera=${cameraWidth}x${cameraHeight}, " +
+                    "rotated=${cameraHeight}x${cameraWidth}, surface=${surfaceWidth}x${surfaceHeight}, " +
+                    "scale=${scaleX}x${scaleY}",
+            )
         }
 
         fun initShaderProgram() {
@@ -457,6 +511,7 @@ class SurfaceShareFragment : Fragment() {
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer()
                 .put(texCoordData)
+            updateCenterCropVertices()
         }
 
         private fun loadShader(type: Int, shaderCode: String): Int {

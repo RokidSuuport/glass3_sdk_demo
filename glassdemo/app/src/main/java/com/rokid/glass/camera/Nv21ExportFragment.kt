@@ -14,6 +14,7 @@ import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.view.glsurface.view.BackgroundGLSurfaceView
 import com.rokid.glesse.R
 import com.rokid.security.glass3.open.sdk.GlassSdk
@@ -25,7 +26,7 @@ import com.rokid.security.glass3.sdk.base.data.media.CameraShareConfig
  * 显示纯相机 NV21 数据（不含屏幕叠加）
  * 支持用户自定义分辨率、FPS、Zoom、防抖等参数
  */
-class Nv21ExportFragment : Fragment() {
+class Nv21ExportFragment : Fragment(), CameraShareGestureHandler {
 
     companion object {
         private const val TAG = "Nv21ExportFragment"
@@ -113,6 +114,8 @@ class Nv21ExportFragment : Fragment() {
     private lateinit var seekbarZoom: SeekBar
     private lateinit var tvZoomValue: TextView
     private lateinit var switchEis: Switch
+    private lateinit var configControls: List<View>
+    private var selectedConfigIndex = 0
     
     private val nv21Helper = CameraShareHelper()
     private var frameCount = 0L
@@ -168,8 +171,18 @@ class Nv21ExportFragment : Fragment() {
         seekbarZoom = view.findViewById(R.id.seekbar_zoom)
         tvZoomValue = view.findViewById(R.id.tv_zoom_value)
         switchEis = view.findViewById(R.id.switch_eis)
+        configControls = listOf(
+            view.findViewById<View>(R.id.row_resolution),
+            view.findViewById<View>(R.id.row_fps),
+            view.findViewById<View>(R.id.row_zoom),
+            view.findViewById<View>(R.id.row_eis),
+            btnApply,
+            btnToggleConfig,
+        )
+        configControls.forEach { it.isFocusable = false }
         
         setupConfigUI()
+        btnShowConfig.isFocusable = false
         startNv21Export()
     }
 
@@ -263,18 +276,12 @@ class Nv21ExportFragment : Fragment() {
         
         // 显示配置按钮
         btnShowConfig.setOnClickListener {
-            configPanel.visibility = if (configPanel.visibility == View.VISIBLE) {
-                View.GONE
-            } else {
-                View.VISIBLE
-            }
-            btnShowConfig.text = if (configPanel.visibility == View.VISIBLE) "隐藏" else "配置"
+            setConfigPanelVisible(true)
         }
         
         // 隐藏配置按钮
         btnToggleConfig.setOnClickListener {
-            configPanel.visibility = View.GONE
-            btnShowConfig.text = "配置"
+            setConfigPanelVisible(false)
         }
         
         // 应用配置按钮
@@ -316,8 +323,71 @@ class Nv21ExportFragment : Fragment() {
         updateDisplay()
 
         // 隐藏配置面板
-        configPanel.visibility = View.GONE
-        btnShowConfig.text = "配置"
+        setConfigPanelVisible(false)
+    }
+
+    /** 配置面板显示时移除外层按钮，避免遮挡 Spinner 的下拉菜单。 */
+    private fun setConfigPanelVisible(visible: Boolean) {
+        configPanel.visibility = if (visible) View.VISIBLE else View.GONE
+        btnShowConfig.visibility = if (visible) View.GONE else View.VISIBLE
+        if (visible) {
+            selectedConfigIndex = 0
+            focusSelectedConfig()
+        } else {
+            configControls.forEach { it.isSelected = false }
+        }
+    }
+
+    override fun handleGlassKeyEvent(keyEvent: Int): Boolean {
+        if (configPanel.visibility != View.VISIBLE) {
+            if (keyEvent == GlassKeyEvent.KEYCODE_CLICK && btnShowConfig.visibility == View.VISIBLE) {
+                btnShowConfig.performClick()
+                return true
+            }
+            return false
+        }
+        when (keyEvent) {
+            GlassKeyEvent.KEYCODE_FRONT -> moveConfigSelection(1)
+            GlassKeyEvent.KEYCODE_BEHIND -> moveConfigSelection(-1)
+            GlassKeyEvent.KEYCODE_CLICK -> activateSelectedConfig()
+            else -> return false
+        }
+        return true
+    }
+
+    private fun moveConfigSelection(offset: Int) {
+        selectedConfigIndex =
+            (selectedConfigIndex + offset + configControls.size) % configControls.size
+        focusSelectedConfig()
+    }
+
+    private fun focusSelectedConfig() {
+        updateConfigHighlight()
+    }
+
+    private fun updateConfigHighlight() {
+        configControls.forEachIndexed { index, view ->
+            view.isSelected = index == selectedConfigIndex
+        }
+    }
+
+    /** 单击直接轮换配置值，避免打开 Spinner 后眼镜腿方向键被弹窗消费。 */
+    private fun activateSelectedConfig() {
+        when (selectedConfigIndex) {
+            0 -> spinnerResolution.setSelection(
+                (spinnerResolution.selectedItemPosition + 1) % spinnerResolution.count,
+            )
+            1 -> spinnerFps.setSelection(
+                (spinnerFps.selectedItemPosition + 1) % spinnerFps.count,
+            )
+            2 -> {
+                currentZoom = if (currentZoom >= seekbarZoom.max) 1 else currentZoom + 1
+                seekbarZoom.progress = currentZoom
+                tvZoomValue.text = currentZoom.toString()
+            }
+            3 -> switchEis.isChecked = !switchEis.isChecked
+            else -> configControls[selectedConfigIndex].performClick()
+        }
     }
 
     /**

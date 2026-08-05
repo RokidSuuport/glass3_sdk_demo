@@ -7,10 +7,12 @@
     <!-- 录制信息面板 -->
     <LinearLayout
         android:id="@+id/record_panel"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="20dp"
+        android:layout_marginEnd="24dp"
         android:background="#80000000"
         android:orientation="vertical"
         android:padding="16dp">
@@ -35,12 +37,21 @@
 
         <TextView
             android:id="@+id/tv_record_info"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:breakStrategy="simple"
             android:text="准备录制..."
             android:textColor="@android:color/white"
             android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btn_stop_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:enabled="false"
+            android:text="停止录制" />
 
     </LinearLayout>
 
