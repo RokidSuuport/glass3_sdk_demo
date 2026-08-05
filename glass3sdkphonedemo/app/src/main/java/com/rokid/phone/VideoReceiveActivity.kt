@@ -76,6 +76,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private var videoRequestCount = 0
     private var audioRequestCount = 0
     private var isAudioRequestedForCurrentStream = false
+    private var isCheckingP2p = false
 
     @Volatile
     private var isPreviewStarted = false
@@ -193,7 +194,59 @@ class VideoReceiveActivity : ComponentActivity() {
         val resolution = parseResolution()
         val isARMixEnabled = binding.swArMix.isChecked
 
-        startPreview(fps, bitrate, resolution, isARMixEnabled)
+        checkP2pAndStartPreview(fps, bitrate, resolution, isARMixEnabled)
+    }
+
+    /**
+     * 视频控制命令走蓝牙，而视频帧走 Wi-Fi P2P。请求前使用 SDK 的 isConnect
+     * 检查实际 P2P 数据通道，避免系统 P2P 组仍存在、但 SDK 数据连接已失效时
+     * 进入黑屏页面并等待多轮首帧超时。
+     */
+    private fun checkP2pAndStartPreview(
+        fps: Int,
+        bitrate: Int,
+        resolution: ResolutionOption,
+        isARMixEnabled: Boolean
+    ) {
+        if (!GlobalData.btConnectState.value) {
+            toast("蓝牙未连接，无法拉取音视频流")
+            return
+        }
+        if (isCheckingP2p) {
+            return
+        }
+
+        val p2pService = PSecuritySDK.getWifiP2PClientService()
+        if (p2pService == null) {
+            GlobalData.setP2pConnectState(false)
+            toast("请重新连接 Wi-Fi P2P")
+            return
+        }
+
+        isCheckingP2p = true
+        binding.btnStartPreview.isEnabled = false
+        p2pService.isConnect { isConnected ->
+            runOnUiThread {
+                isCheckingP2p = false
+                binding.btnStartPreview.isEnabled = true
+                if (isFinishing || isDestroyed) {
+                    return@runOnUiThread
+                }
+
+                GlobalData.setP2pConnectState(isConnected)
+                if (!isConnected) {
+                    Log.w(TAG, "start preview blocked: Wi-Fi P2P data channel disconnected")
+                    if (currentState == PageState.PREVIEW) {
+                        stopPreview()
+                        switchPage(PageState.CONFIG)
+                    }
+                    toast("请重新连接 Wi-Fi P2P")
+                    return@runOnUiThread
+                }
+
+                startPreview(fps, bitrate, resolution, isARMixEnabled)
+            }
+        }
     }
 
     private fun parseFps(): Int? {
@@ -575,7 +628,7 @@ class VideoReceiveActivity : ComponentActivity() {
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         Log.d(TAG, "--------onResume--currentState=${currentState}")
         if (currentState == PageState.PREVIEW) {
-            startPreview(
+            checkP2pAndStartPreview(
                 parseFps() ?: defaultFps,
                 parseBitrate() ?: defaultBitrate,
                 parseResolution(),
