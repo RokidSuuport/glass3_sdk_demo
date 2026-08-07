@@ -102,7 +102,7 @@ class SdkMediaActivity : BaseGlassActivity() {
 
         binding.btPhoto4K.setOnClickListener {
             log("----开始拍照4K")
-            // 4K 拍的视频是横屏
+            // 4K 拍照为横屏，分辨率：4032 × 3024
             val fileName = "test_${System.currentTimeMillis()}.png"
             val publicPicturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
             val file = File(publicPicturesDir, fileName)
