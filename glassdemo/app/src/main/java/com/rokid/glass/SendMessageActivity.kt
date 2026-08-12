@@ -519,7 +519,7 @@ class SendMessageActivity : BaseActivity() {
             securityType = if (password == null) {
                 WifiConnectRequest.SECURITY_OPEN
             } else {
-                WifiConnectRequest.SECURITY_AUTO_PSK
+                WifiConnectRequest.SECURITY_WPA_PSK
             },
             password = password,
             hiddenSsid = DEMO_WIFI_HIDDEN
