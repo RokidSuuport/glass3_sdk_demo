@@ -68,23 +68,46 @@ class SendMessageSpeechButtonsContractTest {
         assertTrue(source.contains("未收到完成回调"))
         assertTrue(source.contains("离线 TTS 请求已发送"))
         assertTrue(source.contains("removeSpeechCompleteListener"))
+        assertFalse(source.contains("OnlineTtsStabilityRun"))
+        assertFalse(source.contains("ONLINE_TTS_REPEAT_COUNT"))
     }
 
     @Test
-    fun onlineTtsWaitsForServiceConnectionBeforeDispatchingQueuedSpeech() {
+    fun onlineTtsDispatchesOneRequestWithoutWaitingForConnectionReplay() {
         val source = File(
             "src/main/java/com/rokid/glass/SendMessageActivity.kt"
         ).readText()
 
-        assertTrue(source.contains("onlineTtsWaitingForConnection"))
-        assertTrue(source.contains("if (connected && onlineTtsWaitingForConnection)"))
         assertTrue(source.contains("dispatchOnlineTts()"))
-        assertTrue(source.contains("在线 TTS 服务连接成功，开始播放"))
-        assertTrue(source.contains("正在连接在线 TTS 服务，请稍候..."))
+        assertTrue(source.contains("在线 TTS 服务连接成功"))
+        assertTrue(source.contains("在线 TTS 请求已发送"))
+        assertFalse(source.contains("onlineTtsWaitingForConnection"))
+        assertFalse(source.contains("正在连接在线 TTS 服务，请稍候..."))
         assertFalse(
             source.substringAfter("private fun playOnlineTts()")
                 .substringBefore("private fun dispatchOnlineTts()")
                 .contains("service.doSpeechTts(ONLINE_TTS_DEMO_TEXT)")
+        )
+    }
+
+    @Test
+    fun onlineAsrReportsNetworkConnectionAuthorizationAndTimeoutFailures() {
+        val source = File(
+            "src/main/java/com/rokid/glass/SendMessageActivity.kt"
+        ).readText()
+
+        assertTrue(source.contains("OnlineAsrStatusMessages.noNetwork"))
+        assertTrue(source.contains("OnlineAsrStatusMessages.serviceUnavailable"))
+        assertTrue(source.contains("OnlineAsrStatusMessages.connectionFailed"))
+        assertTrue(source.contains("OnlineAsrStatusMessages.connectionTimeout"))
+        assertTrue(source.contains("OnlineAsrStatusMessages.error(code)"))
+        assertTrue(source.contains("onlineAsrTimeoutJob"))
+        assertTrue(source.contains("scheduleOnlineAsrTimeout()"))
+        assertTrue(source.contains("cancelOnlineAsrTimeout()"))
+        assertTrue(
+            source.substringAfter("private fun startAsr()")
+                .substringBefore("private fun playOnlineTts()")
+                .contains("if (!isNetworkAvailable())")
         )
     }
 }

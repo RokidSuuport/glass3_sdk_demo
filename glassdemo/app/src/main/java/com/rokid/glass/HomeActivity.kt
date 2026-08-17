@@ -267,9 +267,9 @@ class HomeActivity : BaseActivity() {
             }
         }
         binding.workHomeRecyclerLaunch.run {
-            // 使用垂直方向的GridLayoutManager，每行3列
+            // 使用水平方向的LinearLayoutManager排列首页菜单
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false).apply {
-                // 禁用滑动（通过外部按钮翻页）
+                // 关闭平滑滚动条计算
                 isSmoothScrollbarEnabled = false
             }
             // 禁用所有滚动和越界效果
