@@ -191,10 +191,10 @@ class HomeActivity : BaseActivity() {
             if (it) {
                 Log.d(TAG, "SDK 初始化成功")
                 initIconData()
-                //离线语音转文字,当说打开编号12的警灯将会打印打开编号12的警灯，推荐3-5个词，不要有叠音
-                jdVoiceAction = VoiceAction("打开编号12的警灯", "da kai bian hao shi er de jing deng", object : IVoiceCallback.Stub() {
+                //离线语音指令,当说开始检查将会打印开始检查，推荐3-5个词，不要有叠音
+                jdVoiceAction = VoiceAction("开始检查", "kai shi jian cha", object : IVoiceCallback.Stub() {
                     override fun onVoiceTriggered() {
-                        Log.e(TAG, "打开编号12的警灯")
+                        Log.e(TAG, "开始检查")
                     }
                 })
                 GlassSdk.getGlassOfflineCmdService()?.add(jdVoiceAction)
@@ -202,20 +202,13 @@ class HomeActivity : BaseActivity() {
 //                GlassSdk.getGlassOfflineTtsService()?.playTtsMsg("进入眼镜端演示工程")
                 Log.d(TAG, "---眼镜SN号=${GlassSdk.getGlassDeviceService()?.serialNumber}")
                 Log.d(TAG, "---电量值=${GlassSdk.getGlassDeviceService()?.deviceStatusInfo?.powerValue}")
-                //离线语音转文字,当说下雪了将会打印下雪了，推荐3-5个词，不要有叠音
-                snowVoiceAction = VoiceAction("下雪了", "xia xue le", object : IVoiceCallback.Stub() {
+                //离线语音指令, 推荐3-5个词，不要有叠音
+                snowVoiceAction = VoiceAction("应急照明", "ying ji zhao ming", object : IVoiceCallback.Stub() {
                     override fun onVoiceTriggered() {
-                        Log.e(TAG, "下雪了")
+                        Log.e(TAG, "应急照明")
                     }
                 })
                 GlassSdk.getGlassOfflineCmdService()?.add(snowVoiceAction)
-
-                zyVoiceAction = VoiceAction("智涌", "zhi yong", object : IVoiceCallback.Stub() {
-                    override fun onVoiceTriggered() {
-                        Log.e(TAG, "智涌")
-                    }
-                })
-                GlassSdk.getGlassOfflineCmdService()?.add(zyVoiceAction)
 //                AudioService.start(this)
 //                GlassSdk.getGlassDeviceService()?.switchMicScene(3)
 //                startActivity(Intent(this, IdentificationActivity::class.java))

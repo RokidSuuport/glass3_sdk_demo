@@ -303,9 +303,9 @@ class SendMessageActivity : BaseActivity() {
         mFileOperator?.setFileReceiveListener(p2pFileReceiveListener)
 
         // 注册一条离线语音命令，页面销毁时会解除注册。
-        huoVoiceAction = VoiceAction("火箭人", "huo jian ren", object : IVoiceCallback.Stub() {
+        huoVoiceAction = VoiceAction("发现隐患", "fa xian yin huan", object : IVoiceCallback.Stub() {
             override fun onVoiceTriggered() {
-                Log.e(TAG, "火箭人")
+                Log.e(TAG, "发现隐患")
             }
         })
         GlassSdk.getGlassOfflineCmdService()?.add(huoVoiceAction)
