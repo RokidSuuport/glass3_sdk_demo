@@ -22,7 +22,7 @@ data class CustomMessage(
          * SDK 回调里的 msg 不一定都是项目内部的 CustomMessage JSON：
          * 1. 系统业务消息：{"type":"POWER_UPDATE","message":"..."}
          * 2. SDK 包装消息：{"type":"custom_business_action","extra":"..."}
-         * 3. 普通测试文本：眼睛端发送蓝牙测试消息
+         * 3. 普通测试文本：眼镜端发送蓝牙测试消息
          *
          * 所以这里先判断格式，再决定是否转换成 CustomMessage，避免普通文本被 Gson
          * 当作对象解析时抛出 Expected BEGIN_OBJECT but was STRING。

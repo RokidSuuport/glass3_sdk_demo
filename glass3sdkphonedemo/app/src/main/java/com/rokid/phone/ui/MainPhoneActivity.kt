@@ -459,7 +459,7 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
         GlobalData.btConnectState.collect(lifecycleScope) {
             connectStatus(it, GlobalData.p2pConnectState.value)
             if (it) {
-                //检查眼睛端协议版本
+                //检查眼镜端协议版本
                 lifecycleScope.launch {
                     binding.tvDeviceName.text = DeviceLinkerManager.getDeviceName()
                 }

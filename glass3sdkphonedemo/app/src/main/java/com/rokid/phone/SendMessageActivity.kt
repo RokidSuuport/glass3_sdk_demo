@@ -60,7 +60,7 @@ class SendMessageActivity : ComponentActivity() {
         }
 
         /**
-         * 眼睛端发送文件路径
+         * 眼镜端发送文件路径
          */
         override fun onComplete(filePath: String) {
             // storage/emulated/0/Download/receiver/aaaascene.jpg
@@ -145,7 +145,7 @@ class SendMessageActivity : ComponentActivity() {
                 randomFile = true
                 curFile = fileToSend2
                 log("蓝牙发送---->文件目录: ${fileToSend2.absolutePath}")
-                // /storage/emulated/0/Download/receiver/test1girl.png 眼睛端接收文件目录
+                // /storage/emulated/0/Download/receiver/test1girl.png 眼镜端接收文件目录
                 // 眼镜端文件名的前面增加了一段内容,原本的文件名前面增加了前缀，dir 可以写空字符串 或为 null
                 mBTFileOperator?.sendFile(null, fileToSend2, fileReceiveListener) {}
             }
@@ -278,4 +278,3 @@ class SendMessageActivity : ComponentActivity() {
     }
 
 }
-

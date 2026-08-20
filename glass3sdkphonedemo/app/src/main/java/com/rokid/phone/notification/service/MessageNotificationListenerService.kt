@@ -81,8 +81,11 @@ class MessageNotificationListenerService : NotificationListenerService() {
                 return
             }
 
+            // 精简消息：眼镜端默认通知条展示空间有限，超长截断（标题20字/正文60字）
+            val shortTitle = notificationTitle.toString().let { if (it.length > 20) it.substring(0, 20) + "…" else it }
+            val shortText = notificationText.toString().let { if (it.length > 60) it.substring(0, 60) + "…" else it }
             val messageBean = NotificationMessage(packageName, getAppNameByPackageName(packageName),
-                notificationTitle.toString(), notificationText.toString(), postTime)
+                shortTitle, shortText, postTime)
             PSecuritySDK.getAbsNotificationService()?.sendNotification(messageBean)
 //            PSecuritySDK.getAbsNotificationService()?.se
             //            val args = Caps()

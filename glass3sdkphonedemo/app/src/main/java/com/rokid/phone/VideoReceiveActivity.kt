@@ -7,6 +7,7 @@ import android.media.AudioTrack
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -105,7 +106,7 @@ class VideoReceiveActivity : ComponentActivity() {
         const val FIRST_PACKET_TIMEOUT_MS = 1000L * 8
         const val STREAM_RETRY_DELAY_MS = 300L
         const val VIDEO_STALL_TIMEOUT_MS = 1000L * 5
-        val DEFAULT_RESOLUTION = ResolutionOption(1920, 1080)
+        val DEFAULT_RESOLUTION = ResolutionOption(1920, 1440)
         val SUPPORTED_RESOLUTIONS = listOf(
             ResolutionOption(2400, 1800),
             ResolutionOption(1800, 2400),
@@ -114,8 +115,10 @@ class VideoReceiveActivity : ComponentActivity() {
             ResolutionOption(2048, 1536),
             ResolutionOption(2016, 1512),
             ResolutionOption(1512, 2016),
+            ResolutionOption(1920, 1440),
             ResolutionOption(2340, 1080),
             ResolutionOption(1920, 1080),
+            ResolutionOption(1440, 1080),
             ResolutionOption(1280, 720),
             ResolutionOption(720, 1280),
             ResolutionOption(1024, 768),
@@ -153,9 +156,24 @@ class VideoReceiveActivity : ComponentActivity() {
         ).apply {
             setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown)
         }
-        binding.spinnerResolution.adapter = adapter
+        binding.spinnerResolutionPreset.adapter = adapter
         val defaultIndex = SUPPORTED_RESOLUTIONS.indexOf(DEFAULT_RESOLUTION).takeIf { it >= 0 } ?: 0
-        binding.spinnerResolution.setSelection(defaultIndex)
+        binding.spinnerResolutionPreset.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                SUPPORTED_RESOLUTIONS.getOrNull(position)?.let(::fillResolutionInputs)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        binding.spinnerResolutionPreset.setSelection(defaultIndex)
+        fillResolutionInputs(DEFAULT_RESOLUTION)
+    }
+
+    private fun fillResolutionInputs(resolution: ResolutionOption) {
+        binding.etResolutionWidth.setText(resolution.width.toString())
+        binding.etResolutionHeight.setText(resolution.height.toString())
+        binding.etResolutionWidth.error = null
+        binding.etResolutionHeight.error = null
     }
 
     private fun formatFps(fps: Float): String {
@@ -191,7 +209,7 @@ class VideoReceiveActivity : ComponentActivity() {
 
         val fps = parseFps() ?: return
         val bitrate = parseBitrate() ?: return
-        val resolution = parseResolution()
+        val resolution = parseResolution() ?: return
         val isARMixEnabled = binding.swArMix.isChecked
 
         checkP2pAndStartPreview(fps, bitrate, resolution, isARMixEnabled)
@@ -267,13 +285,27 @@ class VideoReceiveActivity : ComponentActivity() {
         }
     }
 
-    private fun parseResolution(): ResolutionOption {
-        return binding.spinnerResolution.selectedItem as? ResolutionOption ?: DEFAULT_RESOLUTION
+    private fun parseResolution(): ResolutionOption? {
+        val width = binding.etResolutionWidth.text.toString().toIntOrNull()
+        val height = binding.etResolutionHeight.text.toString().toIntOrNull()
+        if (width == null || width !in 16..4096 || width % 2 != 0) {
+            binding.etResolutionWidth.error = "请输入 16~4096 的偶数"
+            toast("分辨率宽度不合法")
+            return null
+        }
+        if (height == null || height !in 16..4096 || height % 2 != 0) {
+            binding.etResolutionHeight.error = "请输入 16~4096 的偶数"
+            toast("分辨率高度不合法")
+            return null
+        }
+        return ResolutionOption(width, height)
     }
 
     private fun clearErrors() {
         binding.etFrameRate.error = null
         binding.etBitrate.error = null
+        binding.etResolutionWidth.error = null
+        binding.etResolutionHeight.error = null
     }
 
     /* ================= 预览控制 ================= */
@@ -631,7 +663,7 @@ class VideoReceiveActivity : ComponentActivity() {
             checkP2pAndStartPreview(
                 parseFps() ?: defaultFps,
                 parseBitrate() ?: defaultBitrate,
-                parseResolution(),
+                currentConfig?.resolution ?: parseResolution() ?: DEFAULT_RESOLUTION,
                 binding.swArMix.isChecked
             )
         }
