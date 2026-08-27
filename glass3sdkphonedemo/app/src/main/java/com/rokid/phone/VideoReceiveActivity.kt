@@ -6,15 +6,23 @@ import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
+import android.view.SurfaceHolder
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.rokid.phone.data.GlobalData
 import com.rokid.phone.databinding.ActivityVideoReceiveBinding
 import com.rokid.phone.utils.TimeUtils
+import com.rokid.phone.video.FrameRateMeter
+import com.rokid.phone.video.FitCenterScaleCalculator
+import com.rokid.phone.video.H264SurfaceDecoder
+import com.rokid.phone.video.DecodedVideoGeometry
+import com.rokid.phone.video.VideoStreamRecoveryPolicy
 import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
 import com.rokid.security.phone.sdk.base.utils.other.mainScope
@@ -24,7 +32,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.ByteBuffer
+import kotlin.coroutines.resume
 
 class VideoReceiveActivity : ComponentActivity() {
 
@@ -59,10 +70,26 @@ class VideoReceiveActivity : ComponentActivity() {
 
     private enum class PageState { CONFIG, PREVIEW }
 
+    /**
+     * 两种模式在网络中传输的都是眼镜端编码后的 H.264 压缩码流，区别在手机端：
+     *
+     * NV21：手机 SDK 内部解码 H.264 并转换成 NV21，再由 Demo 的 GLSurfaceView 渲染。
+     * 适合需要逐帧算法、截图或像素处理的场景，但解码、格式转换和内存复制开销较高。
+     *
+     * H264：Demo 将收到的 H.264 码流交给 MediaCodec 硬解并直接输出到 SurfaceView。
+     * 适合仅做实时预览的场景，延迟和资源占用更低，但不向业务层提供 NV21 像素帧。
+     */
+    private enum class PreviewMode(private val label: String) {
+        NV21("NV21"),
+        H264("H.264");
+
+        override fun toString(): String = label
+    }
+
     private var currentState = PageState.CONFIG
 
-    private val defaultFps = 10
-    private val defaultBitrate = 3_000_000
+    private val defaultFps = 15
+    private val defaultBitrate = 20_000_000
     private var isGetVideo = false
     private var timerJob: Job? = null
     private var startPreviewJob: Job? = null
@@ -71,6 +98,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private var videoRetryJob: Job? = null
     private var audioRetryJob: Job? = null
     private var lastCallTime = 0L
+    private var lastRenderedFrameTime = 0L
     private var lastAudioTime = 0L
     private var tryCount = 0
     private var streamRequestVersion = 0
@@ -78,6 +106,19 @@ class VideoReceiveActivity : ComponentActivity() {
     private var audioRequestCount = 0
     private var isAudioRequestedForCurrentStream = false
     private var isCheckingP2p = false
+    private var hasReportedVideoNoFrames = false
+    private var isCheckingVideoRecovery = false
+    private var remoteVideoRestartCount = 0
+    private var lastRemoteVideoRestartTime = 0L
+    private var localDecoderRestartUsed = false
+    private val videoRecoveryPolicy = VideoStreamRecoveryPolicy(VIDEO_STALL_TIMEOUT_MS)
+    private val h264RenderFpsMeter = FrameRateMeter()
+    private val h264Decoder = H264SurfaceDecoder(
+        onFrameRendered = ::onH264FrameRendered,
+        onOutputFormatChanged = ::onH264OutputFormatChanged,
+    )
+    private var h264DisplayWidth = 0
+    private var h264DisplayHeight = 0
 
     @Volatile
     private var isPreviewStarted = false
@@ -89,14 +130,15 @@ class VideoReceiveActivity : ComponentActivity() {
     private var hasAudioFrame = false
 
     private data class ResolutionOption(val width: Int, val height: Int) {
-        override fun toString(): String = "${width} x ${height}"
+        override fun toString(): String = "${width} × ${height}"
     }
 
     private data class PreviewConfig(
         val fps: Int,
         val bitrate: Int,
         val resolution: ResolutionOption,
-        val isARMixEnabled: Boolean
+        val isARMixEnabled: Boolean,
+        val previewMode: PreviewMode
     )
 
     private var currentConfig: PreviewConfig? = null
@@ -106,46 +148,67 @@ class VideoReceiveActivity : ComponentActivity() {
         const val FIRST_PACKET_TIMEOUT_MS = 1000L * 8
         const val STREAM_RETRY_DELAY_MS = 300L
         const val VIDEO_STALL_TIMEOUT_MS = 1000L * 5
-        val DEFAULT_RESOLUTION = ResolutionOption(1920, 1440)
+        const val STOP_VIDEO_TIMEOUT_MS = 2_000L
+        const val REMOTE_RESTART_COOLDOWN_MS = 5_000L
+        const val RECOVERY_STABLE_TIME_MS = 10_000L
+        val DEFAULT_RESOLUTION = ResolutionOption(2400, 1800)
+        // Glass3 传感器方向为 270°，眼镜端自定义流会交换输出宽高后请求 Camera2。
+        // 这里只展示已实测可用、且交换后的 Camera2 纹理尺寸也由 HAL 支持的横屏尺寸。
         val SUPPORTED_RESOLUTIONS = listOf(
             ResolutionOption(2400, 1800),
-            ResolutionOption(1800, 2400),
-            ResolutionOption(2560, 1440),
-            ResolutionOption(2400, 1350),
-            ResolutionOption(2048, 1536),
-            ResolutionOption(2016, 1512),
-            ResolutionOption(1512, 2016),
-            ResolutionOption(1920, 1440),
-            ResolutionOption(2340, 1080),
             ResolutionOption(1920, 1080),
-            ResolutionOption(1440, 1080),
             ResolutionOption(1280, 720),
-            ResolutionOption(720, 1280),
-            ResolutionOption(1024, 768),
-            ResolutionOption(800, 600),
             ResolutionOption(648, 648),
-            ResolutionOption(854, 480),
-            ResolutionOption(800, 480),
-            ResolutionOption(640, 480),
-            ResolutionOption(480, 640),
-            ResolutionOption(640, 360),
-            ResolutionOption(360, 640),
-            ResolutionOption(352, 288),
-            ResolutionOption(320, 240)
+            ResolutionOption(640, 480)
         )
     }
 
     @SuppressLint("SetTextI18n")
     private fun initView() {
         initResolutionSpinner()
+        initPreviewModeSpinner()
+        initH264Surface()
         binding.btnStartPreview.setOnClickListener {
             validateAndStartPreview()
         }
         binding.glsurfaceview.setFpsListener { fps ->
-            // 格式化两位不足以0不起
-            lifecycleScope.launch(Dispatchers.Main) { binding.tvFps.text = "帧率: ${"%04.1f".format(fps)}" }
+            if (currentConfig?.previewMode == PreviewMode.NV21) {
+                lifecycleScope.launch(Dispatchers.Main) { updateFps(fps) }
+            }
         }
         audioTrack.play()
+    }
+
+    private fun initPreviewModeSpinner() {
+        binding.spinnerPreviewMode.adapter = ArrayAdapter(
+            this,
+            R.layout.item_video_resolution_spinner,
+            PreviewMode.values().toList()
+        ).apply {
+            setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown)
+        }
+    }
+
+    private fun initH264Surface() {
+        binding.h264SurfaceContainer.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+            if (right > left && bottom > top) {
+                applyH264SurfaceFitCenter(h264DisplayWidth, h264DisplayHeight)
+            }
+        }
+        binding.h264SurfaceView.holder.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                val config = currentConfig ?: return
+                if (isPreviewStarted && config.previewMode == PreviewMode.H264) {
+                    h264Decoder.start(holder.surface, config.resolution.width, config.resolution.height)
+                }
+            }
+
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) = Unit
+
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                h264Decoder.stop()
+            }
+        })
     }
 
     private fun initResolutionSpinner() {
@@ -177,11 +240,7 @@ class VideoReceiveActivity : ComponentActivity() {
     }
 
     private fun formatFps(fps: Float): String {
-        return if (fps % 1 == 0f) {
-            "%02d.0".format(fps)
-        } else {
-            "%.1f".format(fps)
-        }
+        return "%.1f".format(fps)
     }
 
     /* ================= 页面切换 ================= */
@@ -192,12 +251,15 @@ class VideoReceiveActivity : ComponentActivity() {
             PageState.CONFIG -> {
                 binding.configContainer.visibility = View.VISIBLE
                 binding.glsurfaceview.visibility = View.GONE
+                binding.h264SurfaceContainer.visibility = View.GONE
                 binding.tvFps.visibility = View.GONE
             }
 
             PageState.PREVIEW -> {
                 binding.configContainer.visibility = View.GONE
-                binding.glsurfaceview.visibility = View.VISIBLE
+                val mode = currentConfig?.previewMode ?: PreviewMode.NV21
+                binding.glsurfaceview.visibility = if (mode == PreviewMode.NV21) View.VISIBLE else View.GONE
+                binding.h264SurfaceContainer.visibility = if (mode == PreviewMode.H264) View.VISIBLE else View.GONE
                 binding.tvFps.visibility = View.VISIBLE
             }
         }
@@ -211,8 +273,9 @@ class VideoReceiveActivity : ComponentActivity() {
         val bitrate = parseBitrate() ?: return
         val resolution = parseResolution() ?: return
         val isARMixEnabled = binding.swArMix.isChecked
+        val previewMode = parsePreviewMode()
 
-        checkP2pAndStartPreview(fps, bitrate, resolution, isARMixEnabled)
+        checkP2pAndStartPreview(fps, bitrate, resolution, isARMixEnabled, previewMode)
     }
 
     /**
@@ -224,7 +287,8 @@ class VideoReceiveActivity : ComponentActivity() {
         fps: Int,
         bitrate: Int,
         resolution: ResolutionOption,
-        isARMixEnabled: Boolean
+        isARMixEnabled: Boolean,
+        previewMode: PreviewMode
     ) {
         if (!GlobalData.btConnectState.value) {
             toast("蓝牙未连接，无法拉取音视频流")
@@ -262,7 +326,7 @@ class VideoReceiveActivity : ComponentActivity() {
                     return@runOnUiThread
                 }
 
-                startPreview(fps, bitrate, resolution, isARMixEnabled)
+                startPreview(fps, bitrate, resolution, isARMixEnabled, previewMode)
             }
         }
     }
@@ -278,8 +342,8 @@ class VideoReceiveActivity : ComponentActivity() {
 
     private fun parseBitrate(): Int? {
         val bitrate = binding.etBitrate.text.toString().toIntOrNull() ?: defaultBitrate
-        return if (bitrate in 500_000..10_000_000) bitrate else {
-            binding.etBitrate.error = "码率范围 500k~10M"
+        return if (bitrate in 500_000..30_000_000) bitrate else {
+            binding.etBitrate.error = "码率范围 500k~30M"
             toast("码率不合法")
             null
         }
@@ -301,6 +365,10 @@ class VideoReceiveActivity : ComponentActivity() {
         return ResolutionOption(width, height)
     }
 
+    private fun parsePreviewMode(): PreviewMode {
+        return binding.spinnerPreviewMode.selectedItem as? PreviewMode ?: PreviewMode.NV21
+    }
+
     private fun clearErrors() {
         binding.etFrameRate.error = null
         binding.etBitrate.error = null
@@ -314,7 +382,8 @@ class VideoReceiveActivity : ComponentActivity() {
         fps: Int,
         bitrate: Int,
         resolution: ResolutionOption,
-        isARMixEnabled: Boolean
+        isARMixEnabled: Boolean,
+        previewMode: PreviewMode
     ) {
         if (!GlobalData.btConnectState.value) {
             toast("蓝牙未连接，无法拉取音视频流")
@@ -328,18 +397,32 @@ class VideoReceiveActivity : ComponentActivity() {
             Log.d(TAG, "startPreview ignored: waiting first video frame")
             return
         }
+        currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled, previewMode)
+        PSecuritySDK.getWifiP2PClientService()?.setAutoDecodeH264ToNv21(previewMode == PreviewMode.NV21)
+        resetFps()
+        updateStreamState("等待首帧")
         switchPage(PageState.PREVIEW)
         Log.d(TAG, "---------startPreview()---${currentState}")
-
-        currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled)
         startTime = System.currentTimeMillis()
         lastCallTime = startTime
+        lastRenderedFrameTime = startTime
         lastAudioTime = startTime
         isGetVideo = false
         hasVideoFrame = false
         hasAudioFrame = false
+        hasReportedVideoNoFrames = false
+        isCheckingVideoRecovery = false
+        remoteVideoRestartCount = 0
+        lastRemoteVideoRestartTime = 0L
+        localDecoderRestartUsed = false
         tryCount = 0
         isPreviewStarted = true
+        if (previewMode == PreviewMode.H264 && binding.h264SurfaceView.holder.surface.isValid) {
+            h264DisplayWidth = resolution.width
+            h264DisplayHeight = resolution.height
+            applyH264SurfaceFitCenter(resolution.width, resolution.height)
+            h264Decoder.start(binding.h264SurfaceView.holder.surface, resolution.width, resolution.height)
+        }
         if (audioTrack.playState != AudioTrack.PLAYSTATE_PLAYING) {
             audioTrack.play()
         }
@@ -379,18 +462,22 @@ class VideoReceiveActivity : ComponentActivity() {
             while (isActive) {
                 delay(1000)
                 val duration = System.currentTimeMillis() - startTime
-                if (System.currentTimeMillis() - lastCallTime > VIDEO_STALL_TIMEOUT_MS && isGetVideo) {
+                val now = System.currentTimeMillis()
+                if (now - lastCallTime > VIDEO_STALL_TIMEOUT_MS && isGetVideo) {
                     tryCount++
                     binding.tvDuration.text = "视频流中断:${TimeUtils.formatDuration(duration)}"
                     if (tryCount >= 3) {
                         tryCount = 0
-                        hasVideoFrame = false
                         isGetVideo = false
-                        Log.d(TAG,"-------tryCount=${tryCount}")
-                        currentConfig?.let {
-                            retryVideoStream(streamRequestVersion, it, "video stream stalled")
-                        }
+                        handleVideoNoFrames("video stream stalled")
                     }
+                } else if (
+                    currentConfig?.previewMode == PreviewMode.H264 &&
+                    hasVideoFrame &&
+                    now - lastRenderedFrameTime > VIDEO_STALL_TIMEOUT_MS
+                ) {
+                    binding.tvDuration.text = "视频解码无画面:${TimeUtils.formatDuration(duration)}"
+                    handleVideoNoFrames("h264 packets received but decoder not rendering")
                 } else {
                     binding.tvDuration.text = "时长:${TimeUtils.formatDuration(duration)}"
                 }
@@ -416,10 +503,10 @@ class VideoReceiveActivity : ComponentActivity() {
                 return@callback
             }
             if (!isSuccess) {
-                retryVideoStream(requestVersion, config, "video request callback false")
+                handleVideoNoFrames("video request callback false")
             }
         }
-        startVideoWatchdog(requestVersion, config)
+        startVideoWatchdog(requestVersion)
     }
 
     private fun requestAudioStream(requestVersion: Int, reason: String) {
@@ -454,14 +541,113 @@ class VideoReceiveActivity : ComponentActivity() {
         }
     }
 
-    private fun startVideoWatchdog(requestVersion: Int, config: PreviewConfig) {
+    private fun startVideoWatchdog(requestVersion: Int) {
         videoWatchdogJob?.cancel()
         videoWatchdogJob = lifecycleScope.launch {
             delay(FIRST_PACKET_TIMEOUT_MS)
             if (isActiveRequest(requestVersion) && !hasVideoFrame) {
-                retryVideoStream(requestVersion, config, "no first video frame")
+                handleVideoNoFrames("no first video frame")
             }
         }
+    }
+
+    /** 无画面时先定位故障层级，再执行最小恢复动作，避免反复 stop/start 冲击控制链路。 */
+    private fun handleVideoNoFrames(reason: String) {
+        if (!isPreviewStarted || isCheckingVideoRecovery || videoRetryJob?.isActive == true) return
+        Log.w(TAG, "handleVideoNoFrames: reason=$reason")
+        isCheckingVideoRecovery = true
+        PSecuritySDK.getWifiP2PClientService()?.isConnect { p2pConnected ->
+            runOnUiThread {
+                isCheckingVideoRecovery = false
+                if (!isPreviewStarted) return@runOnUiThread
+                GlobalData.setP2pConnectState(p2pConnected)
+                val now = System.currentTimeMillis()
+                val action = videoRecoveryPolicy.decide(
+                    bluetoothConnected = GlobalData.btConnectState.value,
+                    p2pConnected = p2pConnected,
+                    isH264Mode = currentConfig?.previewMode == PreviewMode.H264,
+                    hasReceivedPacket = hasVideoFrame,
+                    lastPacketAgeMs = now - lastCallTime,
+                    lastRenderedFrameAgeMs = now - lastRenderedFrameTime,
+                    remoteRestartAvailable = remoteVideoRestartCount < 1 &&
+                        now - lastRemoteVideoRestartTime >= REMOTE_RESTART_COOLDOWN_MS,
+                    localDecoderRestartAvailable = !localDecoderRestartUsed,
+                )
+                Log.w(TAG, "video recovery decision: reason=$reason, action=$action")
+                when (action) {
+                    VideoStreamRecoveryPolicy.Action.REPORT_BLUETOOTH_DISCONNECTED ->
+                        reportVideoNoData("视频流无数据，蓝牙已断开")
+                    VideoStreamRecoveryPolicy.Action.REPORT_P2P_DISCONNECTED ->
+                        reportVideoNoData("视频流无数据，Wi-Fi P2P 已断开")
+                    VideoStreamRecoveryPolicy.Action.RESTART_LOCAL_DECODER -> restartLocalH264Decoder()
+                    VideoStreamRecoveryPolicy.Action.RESTART_REMOTE_STREAM ->
+                        restartRemoteVideoStreamOnce(reason)
+                    VideoStreamRecoveryPolicy.Action.REPORT_NO_DATA ->
+                        reportVideoNoData("视频流无数据，请返回后重新进入预览")
+                    VideoStreamRecoveryPolicy.Action.NONE -> Unit
+                }
+            }
+        } ?: runOnUiThread {
+            isCheckingVideoRecovery = false
+            GlobalData.setP2pConnectState(false)
+            reportVideoNoData("视频流无数据，Wi-Fi P2P 已断开")
+        }
+    }
+
+    private fun reportVideoNoData(message: String) {
+        updateStreamState("无数据")
+        binding.tvDuration.text = message
+        if (!hasReportedVideoNoFrames) {
+            hasReportedVideoNoFrames = true
+            toast(message)
+        }
+    }
+
+    private fun restartLocalH264Decoder() {
+        val config = currentConfig ?: return
+        val surface = binding.h264SurfaceView.holder.surface
+        if (config.previewMode != PreviewMode.H264 || !surface.isValid) {
+            reportVideoNoData("视频解码无画面，请返回后重新进入预览")
+            return
+        }
+        localDecoderRestartUsed = true
+        lastRenderedFrameTime = System.currentTimeMillis()
+        Log.w(TAG, "restart local H264 decoder; keep remote stream running")
+        h264Decoder.start(surface, config.resolution.width, config.resolution.height)
+        updateStreamState("重启本地解码器")
+    }
+
+    private fun restartRemoteVideoStreamOnce(reason: String) {
+        val config = currentConfig ?: return
+        val requestVersion = streamRequestVersion
+        if (!isActiveRequest(requestVersion) || videoRetryJob?.isActive == true) return
+        remoteVideoRestartCount++
+        lastRemoteVideoRestartTime = System.currentTimeMillis()
+        videoRetryJob = lifecycleScope.launch {
+            Log.w(TAG, "restart remote video stream once: reason=$reason")
+            updateStreamState("正在恢复")
+            val stopCompleted = stopRemoteVideoStreamAndAwait()
+            Log.d(TAG, "stopVideoStream before controlled restart: completed=$stopCompleted")
+            delay(STREAM_RETRY_DELAY_MS)
+            if (isActiveRequest(requestVersion)) {
+                hasVideoFrame = false
+                isGetVideo = false
+                lastCallTime = System.currentTimeMillis()
+                lastRenderedFrameTime = lastCallTime
+                requestVideoStream(requestVersion, config, "controlled recovery: $reason")
+            }
+        }
+    }
+
+    private suspend fun stopRemoteVideoStreamAndAwait(): Boolean {
+        val service = PSecuritySDK.getAbsDeviceInfoService() ?: return false
+        return withTimeoutOrNull(STOP_VIDEO_TIMEOUT_MS) {
+            suspendCancellableCoroutine { continuation ->
+                service.stopVideoStream(VIDEO_TAG) { success ->
+                    if (continuation.isActive) continuation.resume(success)
+                }
+            }
+        } ?: false
     }
 
     private fun startAudioWatchdog(requestVersion: Int) {
@@ -470,24 +656,6 @@ class VideoReceiveActivity : ComponentActivity() {
             delay(FIRST_PACKET_TIMEOUT_MS)
             if (isActiveRequest(requestVersion) && !hasAudioFrame) {
                 retryAudioStream(requestVersion, "no first audio packet")
-            }
-        }
-    }
-
-    private fun retryVideoStream(requestVersion: Int, config: PreviewConfig, reason: String) {
-        if (!isActiveRequest(requestVersion) || hasVideoFrame || videoRetryJob?.isActive == true) {
-            return
-        }
-        if (videoRequestCount >= MAX_STREAM_RETRY_COUNT) {
-            handleStreamFailed(requestVersion, "视频流启动失败，请返回后重新进入预览")
-            return
-        }
-        videoRetryJob = lifecycleScope.launch {
-            Log.w(TAG, "retryVideoStream: reason=$reason, nextAttempt=${videoRequestCount + 1}")
-            PSecuritySDK.getAbsDeviceInfoService()?.stopVideoStream(VIDEO_TAG) {}
-            delay(STREAM_RETRY_DELAY_MS)
-            if (isActiveRequest(requestVersion) && !hasVideoFrame) {
-                requestVideoStream(requestVersion, config, reason)
             }
         }
     }
@@ -551,11 +719,18 @@ class VideoReceiveActivity : ComponentActivity() {
         isGetVideo = false
         hasVideoFrame = false
         hasAudioFrame = false
+        isCheckingVideoRecovery = false
+        remoteVideoRestartCount = 0
+        lastRemoteVideoRestartTime = 0L
+        localDecoderRestartUsed = false
         tryCount = 0
         timerJob?.cancel()
         timerJob = null
         audioTrack.pause()
         audioTrack.flush()
+        h264Decoder.stop()
+        PSecuritySDK.getWifiP2PClientService()?.setAutoDecodeH264ToNv21(true)
+        h264RenderFpsMeter.reset()
         val duration = System.currentTimeMillis() - startTime
         binding.tvDuration.text = "结束时长:${TimeUtils.formatDuration(duration)}"
         Log.d(TAG, "---------stopPreview=${currentState}")
@@ -564,27 +739,22 @@ class VideoReceiveActivity : ComponentActivity() {
     /* ================= NV21 → GLSurfaceView ================= */
     private val nv21Listener = object : IMessageListener {
         override fun onNv21Data(data: ByteArray, width: Int, height: Int) {
-            tryCount = 0
-            lastCallTime = System.currentTimeMillis()
             if (currentState != PageState.PREVIEW || !isPreviewStarted) return
-//            Log.d(TAG, "-----onNv21Data: width=${width},height=${height}")
-            isGetVideo = true
-            if (!hasVideoFrame) {
-                Log.d(TAG, "onNv21Data: first video frame, width=$width, height=$height")
-                hasVideoFrame = true
-                videoRequestCount = 0
-                videoWatchdogJob?.cancel()
-                requestAudioStreamAfterFirstVideoFrame()
-            }
+            if (currentConfig?.previewMode != PreviewMode.NV21) return
+            onVideoFrameReceived("NV21", width, height)
             mainScope.launch {
                 binding.glsurfaceview.setPreviewData(data, width, height)
             }
         }
 
         override fun onVideoH264Stream(buffer: ByteBuffer) {
-            super.onVideoH264Stream(buffer)
-            // buffer 获取长度
-//            Log.d(TAG, "-----video buffer size: ${buffer.remaining()}")
+            if (currentState != PageState.PREVIEW || !isPreviewStarted) return
+            if (currentConfig?.previewMode != PreviewMode.H264) return
+            val config = currentConfig ?: return
+            if (buffer.hasRemaining()) {
+                onVideoFrameReceived("H264", config.resolution.width, config.resolution.height)
+            }
+            h264Decoder.queueAccessUnit(buffer.duplicate())
         }
 
         override fun onAudioStream(buffer: ByteBuffer) {
@@ -619,6 +789,88 @@ class VideoReceiveActivity : ComponentActivity() {
         }
     }
 
+    private fun onVideoFrameReceived(source: String, width: Int, height: Int) {
+        val now = System.currentTimeMillis()
+        tryCount = 0
+        lastCallTime = now
+        isGetVideo = true
+        hasReportedVideoNoFrames = false
+        if (lastRemoteVideoRestartTime > 0L && now - lastRemoteVideoRestartTime >= RECOVERY_STABLE_TIME_MS) {
+            remoteVideoRestartCount = 0
+        }
+        updateStreamState("接收中")
+        if (!hasVideoFrame) {
+            Log.d(TAG, "$source first video frame, width=$width, height=$height")
+            hasVideoFrame = true
+            videoRequestCount = 0
+            videoWatchdogJob?.cancel()
+            requestAudioStreamAfterFirstVideoFrame()
+        }
+    }
+
+    private fun onH264FrameRendered() {
+        lastRenderedFrameTime = System.currentTimeMillis()
+        localDecoderRestartUsed = false
+        h264RenderFpsMeter.recordFrame()?.let(::updateFps)
+    }
+
+    private fun onH264OutputFormatChanged(geometry: DecodedVideoGeometry) {
+        runOnUiThread {
+            if (currentConfig?.previewMode != PreviewMode.H264) return@runOnUiThread
+            applyH264SurfaceFitCenter(geometry.displayWidth, geometry.displayHeight)
+        }
+    }
+
+    private fun applyH264SurfaceFitCenter(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        h264DisplayWidth = width
+        h264DisplayHeight = height
+        val containerWidth = binding.h264SurfaceContainer.width
+        val containerHeight = binding.h264SurfaceContainer.height
+        if (containerWidth <= 0 || containerHeight <= 0) return
+        val fitted = FitCenterScaleCalculator.calculateSize(
+            frameWidth = width,
+            frameHeight = height,
+            containerWidth = containerWidth,
+            containerHeight = containerHeight,
+        )
+        val params = binding.h264SurfaceView.layoutParams as FrameLayout.LayoutParams
+        if (params.width == fitted.width && params.height == fitted.height && params.gravity == Gravity.CENTER) {
+            return
+        }
+        params.width = fitted.width
+        params.height = fitted.height
+        params.gravity = Gravity.CENTER
+        binding.h264SurfaceView.layoutParams = params
+        binding.h264SurfaceView.requestLayout()
+        Log.i(
+            TAG,
+            "H264 FIT_CENTER source=${width}x$height, " +
+                "container=${containerWidth}x$containerHeight, " +
+                "surface=${fitted.width}x${fitted.height}",
+        )
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun resetFps() {
+        h264RenderFpsMeter.reset()
+        binding.tvFps.text = "帧率：-- fps"
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateFps(fps: Float) {
+        runOnUiThread { binding.tvFps.text = "帧率：${formatFps(fps)} fps" }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun updateStreamState(videoState: String) {
+        val bluetooth = if (GlobalData.btConnectState.value) "已连接" else "已断开"
+        val p2p = if (GlobalData.p2pConnectState.value) "已连接" else "已断开"
+        runOnUiThread {
+            binding.tvStreamState.text = "蓝牙：$bluetooth  P2P：$p2p  视频：$videoState"
+        }
+    }
+
     private fun requestAudioStreamAfterFirstVideoFrame() {
         val requestVersion = streamRequestVersion
         if (!isActiveRequest(requestVersion) || isAudioRequestedForCurrentStream) {
@@ -650,6 +902,8 @@ class VideoReceiveActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        PSecuritySDK.getWifiP2PClientService()?.setAutoDecodeH264ToNv21(true)
+        h264Decoder.stop()
         audioTrack.stop()
         audioTrack.release()
         PSecuritySDK.getMessageService()?.removeMessageListener(nv21Listener)
@@ -664,7 +918,8 @@ class VideoReceiveActivity : ComponentActivity() {
                 parseFps() ?: defaultFps,
                 parseBitrate() ?: defaultBitrate,
                 currentConfig?.resolution ?: parseResolution() ?: DEFAULT_RESOLUTION,
-                binding.swArMix.isChecked
+                binding.swArMix.isChecked,
+                parsePreviewMode()
             )
         }
     }

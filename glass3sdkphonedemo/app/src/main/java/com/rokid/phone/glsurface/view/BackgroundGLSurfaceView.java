@@ -8,6 +8,7 @@ import android.util.Log;
 
 import com.rokid.phone.glsurface.opengl.GLShaderUtil;
 import com.rokid.phone.glsurface.opengl.GlUtil;
+import com.rokid.phone.video.FitCenterScaleCalculator;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -40,6 +41,14 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
     private int mTextureBufferId;
 
     private int[] mTextureID = new int[2];
+    private volatile int mSurfaceWidth;
+    private volatile int mSurfaceHeight;
+    private volatile int mFrameWidth;
+    private volatile int mFrameHeight;
+    private int mAppliedSurfaceWidth;
+    private int mAppliedSurfaceHeight;
+    private int mAppliedFrameWidth;
+    private int mAppliedFrameHeight;
 
     private float vertexData[] = {
             -1f, -1f,// 左下角
@@ -122,7 +131,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
         private int height;
         private long lastTime = 0;
         private int frameCount = 0;
-        private int fps = 0;
+        private float fps = 0;
         @Override
         public void onDrawFrame(GL10 gl) {
             if(mTextureID[0] == 0 || mTextureID[1] == 0) {
@@ -143,8 +152,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             }
             long delta = currentTime - lastTime;
             if (delta >= 1000) { // 每秒统计一次
-//                fps = (int) (frameCount * 1000.0f / delta);
-                fps = frameCount;
+                fps = frameCount * 1000.0f / delta;
                 frameCount = 0;
                 lastTime = currentTime;
 
@@ -156,6 +164,8 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             }
             //Logger.d( "BackgroundGLSurfaceView: onDrawFrame() mProgram="+mProgram+", width="+width+", height="+height+", mTextureID[0]="+mTextureID[0]+", mTextureID[1]="+mTextureID[1]);
             GLES20.glUseProgram(mProgram);
+
+            updateFitCenterVertexBufferIfNeeded();
 
             // 绑定顶点和纹理坐标
             GLES20.glEnableVertexAttribArray(av_Position);
@@ -193,6 +203,8 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             //当surface的尺寸发生改变时，该方法被调用，。往往在这里设置ViewPort。或者Camara等。
 //            Logger.d( "BackgroundGLSurfaceView: onSurfaceChanged() w="+w+", h="+h);
             gl.glViewport(0, 0, w, h);
+            mSurfaceWidth = w;
+            mSurfaceHeight = h;
         }
 
         @Override
@@ -236,6 +248,8 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             }
             this.width = width;
             this.height = height;
+            mFrameWidth = width;
+            mFrameHeight = height;
             //Logger.d( "BackgroundGLSurfaceView: data.length="+data.length+", width="+width+", height="+height);
             yFloatBuffer.clear();
             yFloatBuffer.put(data, 0, ySize);
@@ -245,7 +259,6 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
             uvFloatBuffer.put(data, ySize, uvSize);
             uvFloatBuffer.flip();
         }
-
 
         public synchronized void releaseBuf(){
             if (yFloatBuffer != null){
@@ -273,7 +286,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
         mVertexBufferId = vbo[0];
         // ARRAY_BUFFER 将使用 Float*Array 而 ELEMENT_ARRAY_BUFFER 必须使用 Uint*Array
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES20.GL_STATIC_DRAW);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES20.GL_DYNAMIC_DRAW);
 
         mTextureBuffer = ByteBuffer.allocateDirect(textureData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -285,6 +298,46 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, textureData.length * 4, mTextureBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER,0);
+    }
+
+    /**
+     * 完整显示帧并保持真实宽高比。比例不一致时显示黑边，不裁剪、不拉伸。
+     */
+    private void updateFitCenterVertexBufferIfNeeded() {
+        if (mVertexBuffer == null || mVertexBufferId == 0 ||
+                mSurfaceWidth <= 0 || mSurfaceHeight <= 0 ||
+                mFrameWidth <= 0 || mFrameHeight <= 0) {
+            return;
+        }
+        if (mAppliedSurfaceWidth == mSurfaceWidth && mAppliedSurfaceHeight == mSurfaceHeight &&
+                mAppliedFrameWidth == mFrameWidth && mAppliedFrameHeight == mFrameHeight) {
+            return;
+        }
+
+        FitCenterScaleCalculator.Scale scale = FitCenterScaleCalculator.INSTANCE.calculate(
+                mFrameWidth, mFrameHeight, mSurfaceWidth, mSurfaceHeight);
+        float[] fittedVertexData = {
+                -scale.getX(), -scale.getY(),
+                scale.getX(), -scale.getY(),
+                -scale.getX(), scale.getY(),
+                scale.getX(), scale.getY(),
+        };
+
+        mVertexBuffer.clear();
+        mVertexBuffer.put(fittedVertexData);
+        mVertexBuffer.position(0);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
+        GLES20.glBufferSubData(
+                GLES20.GL_ARRAY_BUFFER, 0, fittedVertexData.length * 4, mVertexBuffer);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+
+        mAppliedSurfaceWidth = mSurfaceWidth;
+        mAppliedSurfaceHeight = mSurfaceHeight;
+        mAppliedFrameWidth = mFrameWidth;
+        mAppliedFrameHeight = mFrameHeight;
+        Log.d(TAG, "FIT_CENTER frame=" + mFrameWidth + "x" + mFrameHeight +
+                ", surface=" + mSurfaceWidth + "x" + mSurfaceHeight +
+                ", scale=" + scale);
     }
 
 

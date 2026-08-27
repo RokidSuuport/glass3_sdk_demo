@@ -18,6 +18,24 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <FrameLayout
+        android:id="@+id/h264_surface_container"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#000000"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <SurfaceView
+            android:id="@+id/h264_surface_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
     <!-- ================= 设置态 ================= -->
 
     <ScrollView
@@ -79,7 +97,7 @@
                             android:layout_width="80dp"
                             android:layout_height="40dp"
                             android:gravity="center"
-                            android:hint="10"
+                            android:hint="15"
                             android:inputType="number"
                             android:textColor="#FFFFFF"
                             android:textColorHint="#66FFFFFF" />
@@ -90,6 +108,34 @@
                             android:layout_marginStart="8dp"
                             android:text="fps"
                             android:textColor="#AAAAAA" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="6dp"
+                        android:background="#33FFFFFF" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="预览方式"
+                            android:textColor="#FFFFFF"
+                            android:textSize="16sp" />
+
+                        <Spinner
+                            android:id="@+id/spinner_preview_mode"
+                            android:layout_width="120dp"
+                            android:layout_height="40dp"
+                            android:backgroundTint="#66FFFFFF"
+                            android:popupBackground="#FFFFFFFF" />
                     </LinearLayout>
 
                     <View
@@ -118,7 +164,7 @@
                             android:layout_width="120dp"
                             android:layout_height="40dp"
                             android:gravity="center"
-                            android:hint="3000000"
+                            android:hint="20000000"
                             android:inputType="number"
                             android:textColor="#FFFFFF"
                             android:textColorHint="#66FFFFFF" />
@@ -158,7 +204,7 @@
                             android:layout_width="72dp"
                             android:layout_height="40dp"
                             android:gravity="center"
-                            android:hint="1920"
+                            android:hint="2400"
                             android:inputType="number"
                             android:maxLength="4"
                             android:singleLine="true"
@@ -178,7 +224,7 @@
                             android:layout_width="72dp"
                             android:layout_height="40dp"
                             android:gravity="center"
-                            android:hint="1440"
+                            android:hint="1800"
                             android:inputType="number"
                             android:maxLength="4"
                             android:singleLine="true"
@@ -277,15 +323,29 @@
         android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/tvFps" />
+        app:layout_constraintEnd_toStartOf="@id/tv_fps" />
 
     <TextView
-        android:id="@+id/tvFps"
+        android:id="@+id/tv_stream_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginBottom="16dp"
+        android:background="#99000000"
+        android:padding="8dp"
+        android:text="蓝牙：--  P2P：--  视频：--"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_fps"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="50dp"
         android:layout_marginBottom="50dp"
-        android:text="帧率："
+        android:text="帧率：-- fps"
         android:textColor="@color/red"
         android:textSize="16sp"
         android:textStyle="bold"
