@@ -6,14 +6,10 @@ import android.os.Looper
 import com.rokid.glass.utils.ToastUtil
 
 
-/**
- * Description:
- * Author:Lc
- * Date:2025/5/25
- */
+/** 眼镜端 Demo 的应用入口。 */
 class MyApplication : Application() {
     companion object {
-        // 全局 Context 变量
+        // 仅保存 Application Context，避免持有 Activity 引用。
         @Volatile
         var mContext: MyApplication? = null
 
@@ -31,7 +27,6 @@ class MyApplication : Application() {
         var gMainHandler: Handler? = null
         var curIsCameraActivity = false
 
-        // 获取全局 Context 的方法
 //        var sendVideoStatus = false
         var sendAudioStatus = false
         fun getContext(): MyApplication {

@@ -247,7 +247,7 @@
                     android:orientation="horizontal"
                     app:layout_constraintGuide_begin="198dp" />
 
-                <!-- 新增：音量控制 (顶部左侧) -->
+                <!-- 音量控制 -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/volume_control"
                     android:layout_width="0dp"
@@ -259,7 +259,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/volumeicon"
                         android:layout_width="24dp"
@@ -285,7 +284,7 @@
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <!-- 新增：亮度控制 (顶部右侧) -->
+                <!-- 亮度控制 -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:id="@+id/brightness_control"
                     android:layout_width="0dp"
@@ -297,7 +296,6 @@
                     app:layout_constraintStart_toStartOf="@id/guideline_vertical"
                     app:layout_constraintTop_toTopOf="parent">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/lighticon"
                         android:layout_width="24dp"
@@ -338,7 +336,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/volume_control">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_translate"
                         android:layout_width="50dp"
@@ -393,7 +390,6 @@
                     app:layout_constraintStart_toStartOf="@id/guideline_vertical"
                     app:layout_constraintTop_toBottomOf="@id/brightness_control">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_notification"
                         android:layout_width="50dp"
@@ -447,7 +443,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/bt_translate">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_tutorial"
                         android:layout_width="50dp"
@@ -501,7 +496,6 @@
                     app:layout_constraintStart_toStartOf="@id/guideline_vertical"
                     app:layout_constraintTop_toBottomOf="@id/bt_notification">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_guide"
                         android:layout_width="50dp"
@@ -556,7 +550,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/bt_message_receive">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_album"
                         android:layout_width="50dp"
@@ -608,7 +601,6 @@
                     app:layout_constraintStart_toStartOf="@id/guideline_vertical"
                     app:layout_constraintTop_toBottomOf="@id/bt_message_send">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_ai_assistant"
                         android:layout_width="50dp"
@@ -664,7 +656,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/bt_album">
 
-                    <!-- 内部控件保持不变 -->
                     <ImageView
                         android:id="@+id/iv_app_install"
                         android:layout_width="50dp"

@@ -13,12 +13,12 @@ class GlassesButtonReceiver : BroadcastReceiver() {
         when (intent.action) {
             ORDER_ACTION_BUTTON_CLICK -> {
                 Log.d("GlassesButton", "收到单击事件")
-                // TODO: 业务逻辑
+                // 在此处理镜腿单击事件。
                 abortBroadcast() // 拦截广播，阻止系统默认处理
             }
             ORDER_ACTION_BUTTON_DOUBLE_CLICK -> {
                 Log.d("GlassesButton", "收到双击事件")
-                // TODO: 业务逻辑
+                // 在此处理镜腿双击事件。
                 abortBroadcast()
             }
         }

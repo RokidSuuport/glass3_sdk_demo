@@ -14,24 +14,14 @@ import java.io.FileReader
 import java.io.IOException
 import java.util.Date
 
-/**
- * 设备信息 工具类
- *
- * @author : liuweiming
- * @date : 2021/7/7
- */
+/** 读取设备与系统信息的工具。 */
 object DeviceUtil {
     val TAG: String = DeviceUtil::class.java.getSimpleName()
 
     @get:Throws(Exception::class)
     val version: Array<String?>
-        /*系统信息
-              * [0] 内核版本
-              * [1] 系统版本
-              * [2] 手机型号
-              * [3] 固件版本
-              * [4] 品牌
-              * */ get() {
+        /* 返回值依次为：内核版本、系统版本、设备型号、固件版本和品牌。 */
+        get() {
             val version = arrayOf<String?>("null", "null", "null", "null", "null")
             val str1 = "/proc/version"
             val str2: String

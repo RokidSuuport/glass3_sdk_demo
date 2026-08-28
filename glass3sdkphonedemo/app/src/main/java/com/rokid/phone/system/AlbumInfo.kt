@@ -1,9 +1,5 @@
 package com.rokid.phone.system
 
-/**
- * Author: zhangshengwei
- * Date: 2025/7/16
- */
 class AlbumInfo {
 
     var filePath = ""

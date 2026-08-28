@@ -57,10 +57,7 @@ import pub.devrel.easypermissions.EasyPermissions
 import pub.devrel.easypermissions.PermissionRequest
 import kotlin.math.roundToInt
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/23
- */
+/** 手机端 Demo 首页，负责 SDK 初始化与设备连接入口。 */
 class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermissions.PermissionCallbacks {
 
     private lateinit var activity: Activity
@@ -102,12 +99,12 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
             list.add(Manifest.permission.ACCESS_FINE_LOCATION)
             list.add(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
-        // 如果是安卓12,需要蓝牙扫描和连接的运行时权限,否则,无法使用蓝牙功能
+        // Android 12 及以上版本需要动态申请蓝牙扫描和连接权限。
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             list.add(Manifest.permission.BLUETOOTH_SCAN)
             list.add(Manifest.permission.BLUETOOTH_CONNECT)
         } else {
-            // 如果版本低于Android 12,蓝牙扫描需要获取位置信息,添加旧版蓝牙权限和定位权限
+            // Android 12 以下版本使用旧版蓝牙权限；扫描结果还受定位权限约束。
             list.add(Manifest.permission.BLUETOOTH)
             list.add(Manifest.permission.BLUETOOTH_ADMIN)
         }
@@ -117,19 +114,19 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
     private lateinit var deviceManager: CompanionDeviceManager
     private fun initSDK() {
         lifecycleScope.launch {
-            // SecurityPhone: 系统分配的ID；GlassSample: 自定义ID，手机端与眼镜端需保持一致。
+            // 客户端 ID 用于区分通信双方；自定义 ID 必须与眼镜端配置保持一致。
             val clientIds = arrayListOf("SecurityPhone", "GlassSample")
 
-            // TODO: 在线语音转文本和文本转语音秘钥，appId填写accessKey，secret填写secretKey简称AKSK,找商务申请。
+            // 在线 ASR/TTS 需要有效的 AK/SK。请从授权渠道获取凭证，并避免将真实密钥提交到代码仓库。
             val userAuthInfo = UserAuthInfo("", "")
 
-            // 不初始化翻译服务 ，初始化语音转文本和文本转语
+            // 示例仅启用语音识别和语音合成，因此跳过翻译服务初始化。
             val banServiceList: List<NetServiceType> = arrayListOf(NetServiceType.TranslateService)
 
-            // ALL表示 所有服务都不初始化
+            // 如需禁用全部网络服务，可将禁用列表改为 NetServiceType.ALL。
 //             val banServiceList: List<NetServiceType> = arrayListOf(NetServiceType.ALL)
 
-            // PUBLIC表示 公网环境
+            // PUBLIC 表示使用公开服务环境。
             val param = EngineParam(
                 clientIds = clientIds,
                 userAuthInfo = userAuthInfo,

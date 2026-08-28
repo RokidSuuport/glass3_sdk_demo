@@ -4,10 +4,7 @@ import com.rokid.phone.base.viewmodel.interfaces.UiEvent
 import com.rokid.phone.base.viewmodel.interfaces.UiIntent
 import com.rokid.phone.base.viewmodel.interfaces.UiState
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
+/** 经典蓝牙页面的状态、用户意图和一次性事件。 */
 data class TestState(
     val log: String = "",
     val connect: Boolean = false,

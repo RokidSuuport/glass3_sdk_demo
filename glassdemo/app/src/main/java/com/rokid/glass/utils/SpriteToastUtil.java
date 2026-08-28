@@ -14,12 +14,7 @@ import com.rokid.glass.MyApplication;
 import com.rokid.glesse.R;
 
 
-/**
- * @author : liuweiming
- * @date : 2024/10/23
- * @description :
- * @parameter :
- */
+/** 在眼镜端展示带图标的自定义提示。 */
 public class SpriteToastUtil {
 
 

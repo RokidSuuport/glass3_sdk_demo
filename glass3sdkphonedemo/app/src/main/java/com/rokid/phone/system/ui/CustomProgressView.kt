@@ -8,10 +8,6 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/16
- */
 class CustomProgressView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,

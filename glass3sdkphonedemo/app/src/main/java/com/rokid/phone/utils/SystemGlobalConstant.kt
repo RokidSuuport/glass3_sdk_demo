@@ -1,10 +1,6 @@
 package com.rokid.phone.utils
 
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/18
- */
 object SystemGlobalConstant {
 
     var version = ""

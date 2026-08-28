@@ -215,9 +215,9 @@ class HomeActivity : BaseActivity() {
 //              //                startActivity(Intent(this, OfflineCmdTestActivity::class.java))
 //                startActivity(Intent(this, QRCodeActivity::class.java))
 //                startActivity(Intent(this, QRCameraActivity::class.java))
-                // 设置眼睛端系统时间 timeStr: 2026-02-02 14:44:44,1770014682490
+                // setSystemTime 接收 Unix 时间戳（毫秒）。
 //                 GlassSdk.getGlassDeviceService()?.setSystemTime(1770014682490)
-                //  TODO 关闭眼镜灯,ture开启眼镜灯,false关闭眼睛灯,代码要眼镜系统重启生效
+                // 配置相机指示灯：true 开启，false 关闭；修改后需重启眼镜生效。
                 GlassSdk.getGlassDeviceService()?.setCameraLedEnable(false)
                 Log.e(DeviceUtil.TAG, "----是否带上眼镜： $isGlassTackOn")
                 Log.e(DeviceUtil.TAG, "----是否折叠眼镜腿： $isGlassLegFold")
@@ -520,28 +520,28 @@ class HomeActivity : BaseActivity() {
                 MyApplication.ACTION_BUTTON_CLICK -> {
                     Log.d(TAG, "-----眼镜腿单击")
                     Toast.makeText(this@HomeActivity, "眼镜腿单击", Toast.LENGTH_SHORT).show()
-                    // 在这里添加单击按键的处理逻辑,终止系统广播
+                    // 消费单击事件，避免系统继续分发该广播。
                     abortBroadcast()
                 }
                 // 双击眼镜腿物理按键
                 MyApplication.ACTION_BUTTON_DOUBLE_CLICK -> {
                     Toast.makeText(this@HomeActivity, "眼镜腿双击", Toast.LENGTH_SHORT).show()
                     Log.d(TAG, "-----眼镜腿双击")
-                    // 在这里添加双击按键的处理逻辑,终止系统广播
+                    // 消费双击事件，避免系统继续分发该广播。
                     abortBroadcast()
                 }
                 // 非折叠状态，长按镜腿物理按键1秒
-                // TODO 示例代码会收到两种长按事件，如果不需要延迟3秒后收到长按事件，请把代码注释掉
+                // 系统可直接发送长按事件。
                 MyApplication.ACTION_LONG_PRESS -> {
                     Toast.makeText(this@HomeActivity, "眼镜腿长按", Toast.LENGTH_SHORT).show()
                     Log.d(TAG, "-----眼镜腿长按")
                 }
-                // TODO 手指按下事件,延时3秒后执行长按逻辑,如果不需要延迟3秒后收到长按事件，请把代码注释掉
+                // 同时演示通过按下/抬起事件自行识别 3 秒长按；业务接入时可任选一种方案。
                 MyApplication.ACTION_BUTTON_DOWN -> {
                     mHandler.postDelayed(mRunnable, 3000)
                     Log.d(TAG, "ACTION_BUTTON_DOWN received")
                 }
-                // 手指抬起事件,取消长按逻辑
+                // 抬起时取消尚未触发的长按任务。
                 MyApplication.ACTION_BUTTON_UP -> {
                     mHandler.removeCallbacks(mRunnable)
                     Log.d(TAG, "ACTION_BUTTON_UP received")

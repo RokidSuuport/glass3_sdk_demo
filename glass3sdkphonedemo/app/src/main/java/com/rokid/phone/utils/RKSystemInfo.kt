@@ -1,9 +1,5 @@
 package com.rokid.phone.utils
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/16
- */
 class RKSystemInfo {
 
     var version = "1.0.0"

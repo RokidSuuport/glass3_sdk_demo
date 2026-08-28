@@ -5,10 +5,6 @@ import android.animation.ObjectAnimator
 import android.view.View
 import android.widget.ImageView
 
-/**
- * Author: zhangshengwei
- * Date: 2025/7/18
- */
 object AnimationUtil {
 
 

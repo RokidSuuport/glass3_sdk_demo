@@ -21,26 +21,12 @@ android {
     }
 
     buildTypes {
-//        debug {
-//            // 普通调试包保持不混淆，便于日常调试和断点排查。
-//            minifyEnabled false
-//        }
-
-        // 混淆测试包：用于在本地安装验证 R8 混淆后的运行效果。
-        // applicationIdSuffix 可避免覆盖普通 debug 包。
         debug {
-            // R8 对 debuggable 构建会关闭优化/混淆，因此这里设为 false。
-//            debuggable false
-//            // 测试包开启 R8 优化。
-//            minifyEnabled true
-//            // 测试包先不压缩资源，降低定位资源相关问题的干扰。
-//            shrinkResources false
-//            // 混淆规则文件。
-//            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // 保留默认调试配置，便于安装和断点调试。
         }
 
         release {
-            // 正式包开启代码混淆和资源压缩。
+            // Demo 默认关闭代码压缩；集成到正式应用时可按需启用 R8。
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

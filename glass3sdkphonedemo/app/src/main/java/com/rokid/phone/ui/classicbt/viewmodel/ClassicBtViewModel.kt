@@ -11,10 +11,7 @@ import com.rokid.phone.ui.classicbt.model.TestState
 import com.rokid.phone.ui.classicbt.repository.ClassicBtRepository
 import kotlinx.coroutines.launch
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
+/** 协调经典蓝牙连接操作与界面状态。 */
 class ClassicBtViewModel(
     private val repository: ClassicBtRepository
 ) : MviViewModel<TestState, TestIntent, TestEvent>() {

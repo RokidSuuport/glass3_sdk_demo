@@ -10,10 +10,6 @@ import com.rokid.security.phone.sdk.api.msg.listener.FileReceiveListener
 import com.rokid.security.phone.sdk.base.utils.log.L
 import java.io.File
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
 class SystemRepository(
 ) {
 

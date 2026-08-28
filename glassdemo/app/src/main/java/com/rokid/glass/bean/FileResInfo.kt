@@ -1,9 +1,5 @@
 package com.rokid.glass.bean
 
-/**
- * Author: zhangshengwei
- * Date: 2025/7/10
- */
 class FileResInfo {
 
     companion object{
@@ -60,6 +56,5 @@ object FileType{
     val ALBUM = "ALBUM"
 
 }
-
 
 

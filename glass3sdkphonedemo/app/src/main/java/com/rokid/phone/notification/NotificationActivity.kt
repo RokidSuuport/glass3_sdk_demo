@@ -36,10 +36,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.text.contains
 
-/**
- * Author: zhangshengwei
- * Date: 2025/8/4
- */
 class NotificationActivity : FragmentActivity() {
     private val mHandler = Handler(Looper.getMainLooper())
     private var appssList = mutableListOf<String>()

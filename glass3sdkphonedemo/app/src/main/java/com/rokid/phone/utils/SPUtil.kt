@@ -6,10 +6,6 @@ import androidx.core.content.edit
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/24
- */
 class SPUtil private constructor(context: Context) {
     companion object {
         private const val SP_NAME = "app_shared_prefs"

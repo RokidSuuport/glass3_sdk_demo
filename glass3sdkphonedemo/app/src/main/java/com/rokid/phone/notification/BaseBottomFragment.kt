@@ -13,11 +13,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.rokid.phone.R
 
 
-/**
- *
- * @Author: sunchao
- * @CreateDate: 2024/10/10 14:32
- */
 abstract class BaseBottomFragment<VB : ViewBinding> : BottomSheetDialogFragment() {
 
     protected val TAG: String = this.javaClass.simpleName

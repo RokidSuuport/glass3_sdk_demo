@@ -39,10 +39,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/24
- */
 object DeviceLinkerManager {
 
     const val TAG = "DeviceLinkerManager"

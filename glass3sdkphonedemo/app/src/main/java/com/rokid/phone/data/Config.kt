@@ -1,8 +1,8 @@
 package com.rokid.phone.data
 
 /**
- * 注意，这个配置是与Launcher同步的 com.rokid.os.sprite.launcher.data.Config
- * 读取assets中的配置，下发到眼镜，ipc到Launcher
+ * 描述需要同步到眼镜端启动器的应用配置。
+ * 手机端从 assets 读取配置后，通过 SDK 下发到眼镜端。
  */
 data class Config(
     val configVersion: Int = 0,//当前版本

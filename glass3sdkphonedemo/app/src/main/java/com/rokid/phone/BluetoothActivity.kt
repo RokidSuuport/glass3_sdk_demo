@@ -118,7 +118,6 @@ class BluetoothActivity : ComponentActivity() {
             }
 
             override fun onConnectionRejected(reason: String, code: Int) {
-//                TODO("Not yet implemented")
             }
         })
 //        mWifiP2PClientService?.addWifiP2PClientListener(mIWifiP2PClientListener)

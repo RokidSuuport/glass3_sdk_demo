@@ -13,10 +13,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Author: zhangshengwei
- * Date: 2025/8/3
- */
 class FrameAnimationUtil internal constructor(
     private val imageView: ImageView,
     private val isOneShot: Boolean = false

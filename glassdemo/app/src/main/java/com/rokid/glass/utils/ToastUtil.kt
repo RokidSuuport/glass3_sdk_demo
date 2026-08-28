@@ -9,10 +9,6 @@ import android.widget.Toast
 import com.rokid.glesse.R
 
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/28
- */
 @SuppressLint("StaticFieldLeak")
 object ToastUtil {
     private var currentToast: Toast? = null

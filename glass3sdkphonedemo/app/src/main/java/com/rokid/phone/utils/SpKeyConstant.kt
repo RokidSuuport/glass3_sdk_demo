@@ -1,9 +1,5 @@
 package com.rokid.phone.utils
 
-/**
- * Author: zhangshengwei
- * Date: 2025/7/11
- */
 object SpKeyConstant {
 
 

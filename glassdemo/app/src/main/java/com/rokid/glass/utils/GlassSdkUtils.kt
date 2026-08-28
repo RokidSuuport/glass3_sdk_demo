@@ -29,9 +29,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArraySet
 
-/**
- * Created by wjm on 2025/9/3
- */
 object GlassSdkUtils {
     private const val TAG = "GlassSdkUtils"
     var mBTService: IBTService? = null

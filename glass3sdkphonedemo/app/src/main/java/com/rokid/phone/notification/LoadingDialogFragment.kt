@@ -10,11 +10,6 @@ import com.rokid.phone.R
 import com.rokid.phone.databinding.DialogLoadingBinding
 
 
-/**
- *
- * @Author: sunchao
- * @CreateDate: 2024/10/21 18:01
- */
 
 
 class LoadingDialogFragment : DialogFragment() {

@@ -6,9 +6,7 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.telephony.TelephonyManager
 import android.util.Log
 
-/**
- * Created by wjm on 2025/5/9
- */
+/** 将设备连接状态转换为便于展示的文本。 */
 object DeviceUtils {
 
     fun getP2PDeviceStatus(deviceStatus: Int): String {

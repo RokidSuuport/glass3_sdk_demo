@@ -7,10 +7,6 @@ import java.lang.ref.WeakReference
 import kotlin.let
 
 /**
- * Author: zhangshengwei
- * Date: 2025/6/24
- */
-/**
  * 全局加载动画管理类（Kotlin单例实现）
  */
 object LoadingManager {

@@ -177,7 +177,7 @@ fun getAppMetaData(ctx: Context?, key: String?): String? {
     }
     try {
         val packageManager = ctx.packageManager ?: return null
-        //注意此处为ApplicationInfo，因为友盟设置的meta-data是在application标签中
+        // 元数据声明在 application 节点，因此从 ApplicationInfo 中读取。
         val applicationInfo =
             packageManager.getApplicationInfo(ctx.packageName, PackageManager.GET_META_DATA)
                 ?: return null

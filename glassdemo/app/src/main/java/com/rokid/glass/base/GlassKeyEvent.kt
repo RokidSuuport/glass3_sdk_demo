@@ -11,10 +11,6 @@ import com.rokid.glass.base.GlassKeyEvent.Companion.KEYCODE_DOUBLE_FRONT
 import com.rokid.glass.base.GlassKeyEvent.Companion.KEYCODE_DPAD_DOWN
 import com.rokid.glass.base.GlassKeyEvent.Companion.KEYCODE_FRONT
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/13
- */
 
 
 @Retention(AnnotationRetention.SOURCE)

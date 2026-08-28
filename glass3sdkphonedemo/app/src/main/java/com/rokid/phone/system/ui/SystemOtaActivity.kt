@@ -65,7 +65,7 @@ class SystemOtaActivity :
 
     private val btSystemFirstText = "检测新版本"
 
-    // 2025.12.3: 改为单例模式，关闭页面后不影响 ViewModule 生命周期
+    // 使用单例 ViewModel，使 OTA 状态不受页面重建影响。
     override val viewModel: SystemViewModel by lazy {
         SystemViewModel.getInstance()
     }
@@ -81,8 +81,7 @@ class SystemOtaActivity :
 
         initListener()
 
-        // 2025.12.4: onInit 会执行两次，BaseActivity、MviActivity，
-        //      如果把 MviActivity 里面的去掉，则按钮不起作用，先保持原样，不做更改
+        // 多层基类可能重复触发初始化，通过标记确保 OTA 管理器只启动一次。
         if (isFirst) {
             isFirst = false
             OtaManager.start()
@@ -127,7 +126,7 @@ class SystemOtaActivity :
                 return@setOnClickListener
             }
 
-            // 2025.11.12: 由于官方没有统一的热点检测方法，极少数机型上可能会检测出错，所以改成底部文字提示
+            // 热点状态在不同厂商设备上的检测结果不一致，因此仅通过界面提示用户确认网络状态。
 //            if (HotspotDetector.isHotspotEnabled(this)) {
 //                showApTips()
 //                return@setOnClickListener
@@ -180,10 +179,6 @@ class SystemOtaActivity :
             }
         }
 
-        // 2025.12.2: 测试代码
-//        Handler().postDelayed({
-//            viewModel.startSystemUpdate()
-//        }, 12000)
     }
 
     override fun onBackPressed() {
@@ -389,7 +384,7 @@ class SystemOtaActivity :
                     Toast.makeText(this, "OTA文件迁移至升级路径失败", Toast.LENGTH_SHORT).show()
                     isDownOrSend = false
                 } else if (status == OTA_UPDATE_STATUS.OTA_CORE_SYSTEM_START) {
-                    // 2025.12.2: 如果此阶段中app页面关闭再进来，就不能正常看到进度，所以每次隐藏下按钮布局
+                    // 恢复页面时隐藏操作按钮，确保升级进度视图可见。
                     binding.btSystem.visibility = View.GONE
                     binding.clProcess.visibility = View.VISIBLE
                     binding.progressBar.visibility = View.VISIBLE
@@ -398,7 +393,7 @@ class SystemOtaActivity :
                     binding.tvProcessTips.text = "${OtaManager.STATE_3} " + mSystemOtaStatus.process + " %"
                     binding.progressBar.progress = mSystemOtaStatus.process.toFloat()
 
-                    // 2025.12.2: 避免交替显示两个下载进度的现象
+                    // 只展示当前阶段的进度，避免多个进度视图交替出现。
                     if (isDownOrSend) {
                         isDownOrSend = false
                         viewModel.sendIntent(SystemIntent.cancelDownload())

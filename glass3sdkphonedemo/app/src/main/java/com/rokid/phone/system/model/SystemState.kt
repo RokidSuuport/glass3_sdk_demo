@@ -8,10 +8,6 @@ import com.rokid.phone.utils.OTA_UPDATE_STATUS
 import com.rokid.phone.utils.RKSystemInfo
 
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
 data class SystemState(
     val updateStatus: String = UpdateStatus.UPDATE_UN,
     val process: Float = 0F,

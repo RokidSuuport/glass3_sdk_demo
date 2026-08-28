@@ -220,9 +220,8 @@ class GlassFaceTrackActivity : BaseActivity() {
                 return
             }
 
-            // 1. 关键修改：获取系统公共 Pictures 目录（替代原私有目录）
+            // 将抓拍图片保存到系统公共 Pictures 目录。
 //            val baseDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-//            // 2. 保持原有逻辑：创建 album 子目录（路径：/Pictures/album）
 //            val albumDir = File(baseDir, "album")
 //            if (!albumDir.exists()) {
 //                albumDir.mkdirs() // 自动创建多级目录（DCIM 已存在，仅创建 album）

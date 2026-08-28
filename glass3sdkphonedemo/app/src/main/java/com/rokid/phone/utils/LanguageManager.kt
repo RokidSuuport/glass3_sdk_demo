@@ -8,12 +8,7 @@ import android.os.LocaleList
 import android.util.Log
 import java.util.Locale
 
-/**
- *
- * @Author: sunchao
- * @CreateDate: 2025/4/12 16:08
- * 我的页面的语言控制
- */
+/** 管理应用内语言选择与持久化。 */
 object LanguageManager {
     private const val TAG = "LanguageManager"
     private const val PREF_NAME = "language_pref"

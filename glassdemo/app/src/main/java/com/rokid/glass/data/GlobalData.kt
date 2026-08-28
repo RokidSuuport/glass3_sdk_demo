@@ -4,9 +4,6 @@ package com.rokid.glass.data
 import com.rokid.glass.utils.call
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * Created by wjm on 2025/9/3
- */
 object GlobalData {
 
     val h264ConnectState = MutableStateFlow(false)

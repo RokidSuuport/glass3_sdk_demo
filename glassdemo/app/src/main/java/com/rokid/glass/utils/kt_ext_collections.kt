@@ -1,10 +1,6 @@
 package com.rokid.glass.utils
 
-/**
- * author: kai.yin
- * email : kai.yin@rokid.com
- * since : 2023/3/20 14:29
- */
+/** 集合类型的通用扩展函数。 */
 
 fun <T> List<T>?.values(func: (List<T>) -> Unit) {
     if (!isNullOrEmpty()) {

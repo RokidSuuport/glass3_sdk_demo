@@ -6,9 +6,6 @@ import com.rokid.security.sdk.base.common.ProtocolInfo
 import com.rokid.security.sdk.base.common.ProtocolVersion
 import kotlin.text.toFloat
 
-/**
- * Created by wjm on 2025/9/10
- */
 object ProtocolVersionUtils {
     private const val TAG = "ProtocolVersionUtils"
     private val msDeviceInfoService by lazy {

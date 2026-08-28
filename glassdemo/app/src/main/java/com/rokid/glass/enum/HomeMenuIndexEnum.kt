@@ -4,11 +4,7 @@ import com.rokid.glesse.R
 
 
 
-/**
- * Description:
- * Author:Lc
- * Date:2025/5/25
- */
+/** 眼镜端首页菜单项及其显示顺序。 */
 enum class HomeMenuIndexEnum(val code: Int, val chineseName: String) {
     FACE_RECOG(0,
         R.string.item_face_recog.toString()),

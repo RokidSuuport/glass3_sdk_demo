@@ -21,24 +21,23 @@ import java.util.Locale
 object FileUtils {
     private const val TAG = "FileUtils"
 
-    // 1. 关键修改：获取系统公共 Pictures 目录（替代原私有目录）
+    // 图片统一保存到系统公共 Pictures 目录。
     private val baseDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
 
-    // 2. 保持原有逻辑：创建 album 子目录（路径：/Pictures/album）
+    // Demo 图片存放在 Pictures/album 子目录。
     private val albumDir = File(baseDir, "album")
 
     fun saveBitmap(bitmap: Bitmap) {
         workScope.launch {
             if (!albumDir.exists()) {
-                albumDir.mkdirs() // 自动创建多级目录（DCIM 已存在，仅创建 album）
+                albumDir.mkdirs()
             }
-            // 3. 保持原有逻辑：生成时间戳文件名
+            // 使用时间戳避免覆盖已有图片。
             val timeStamp = SimpleDateFormat("MMdd_HHmmss", Locale.getDefault()).format(Date())
             val outputFile = File(albumDir, "IMG_$timeStamp.jpg")
             FileOutputStream(outputFile).use { fos ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
             }
-            // 这里可以对获取到的位图进行处理
             Log.d(TAG, "图片宽度: ${bitmap.width} ,图片高度: ${bitmap.height}  ${Thread.currentThread().name}")
         }
     }
@@ -62,52 +61,45 @@ object FileUtils {
     }
 
     /**
-     * 处理纹理视图中的位图数据
-     * 使用协程创建定时任务，每隔50毫秒获取一次当前预览帧
+     * 定期读取 TextureView 当前帧并保存为图片。
      */
     fun handlerBitmap(textureView: TextureView) {
-        // 在IO调度器中启动协程
         workScope.launch {
-            // 创建无限循环的Flow，每1000毫秒发射一次数据
+            // 每秒读取一次预览帧。
             infiniteIntervalFlow(1000).collect { value ->
-                // 检查纹理视图是否可用
                 if (!textureView.isAvailable) {
                     return@collect
                 }
-                // 获取当前纹理视图的位图
                 val bitmap: Bitmap? = textureView.bitmap
                 if (bitmap == null) {
                     return@collect
                 }
-                // 1. 关键修改：获取系统公共 DCIM 目录（替代原私有目录）
+                // 与 saveBitmap 使用相同的公共图片目录。
                 val baseDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-                // 2. 保持原有逻辑：创建 album 子目录（路径：/Pictures/album）
                 val albumDir = File(baseDir, "album")
                 if (!albumDir.exists()) {
-                    albumDir.mkdirs() // 自动创建多级目录（DCIM 已存在，仅创建 album）
+                    albumDir.mkdirs()
                 }
-                // 3. 保持原有逻辑：生成时间戳文件名
                 val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val outputFile = File(albumDir, "IMG_$timeStamp.jpg")
                 FileOutputStream(outputFile).use { fos ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
                 }
-                // 这里可以对获取到的位图进行处理
                 Log.d(TAG, "图片宽度: ${bitmap.width} ,图片高度: ${bitmap.height}  ${Thread.currentThread().name}")
             }
         }
     }
 
     /**
-     * 创建一个无限循环的 Flow，每指定毫秒发送一个递增的数据
-     * @param intervalMillis 间隔时间，默认为 100 毫秒
+     * 按指定间隔持续发出递增序号。
+     * @param intervalMillis 发送间隔，单位为毫秒
      */
     fun infiniteIntervalFlow(intervalMillis: Long = 100): Flow<Long> = flow {
         var counter = 0L
         while (true) {
-            emit(counter)  // 发送当前计数值
+            emit(counter)
             counter++
-            delay(intervalMillis)  // 延迟指定毫秒数
+            delay(intervalMillis)
         }
     }
 

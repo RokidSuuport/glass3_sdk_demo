@@ -27,9 +27,6 @@ import com.rokid.security.phone.sdk.base.utils.log.L
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * @author yuy
- * @time   2025/12/3 19:50
- *
  * OTA 通知管理器（与前台服务完全分离）
  *
  * 关键设计：

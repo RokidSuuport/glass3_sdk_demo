@@ -6,10 +6,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 
-/**
- * Author: zhangshengwei
- * Date: 2025/7/30
- */
 object NetworkUtil {
 
     /**

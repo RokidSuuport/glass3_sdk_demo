@@ -29,10 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
 class SystemViewModel constructor(
     private val repository: SystemRepository
 ) : MviViewModel<SystemState, SystemIntent, SystemEvent>() {
@@ -262,7 +258,7 @@ class SystemViewModel constructor(
     }
 
     private fun saveNewOtaFileMd5(md5: String) {
-        // 2025.11.12: 保存 md5 值，与下一次做比对，用于判断是否进行断点续传
+        // 保存文件 MD5，供下一次下载判断是否可以断点续传。
         SPUtil.getInstance(MyApplication.instance).putString(
             "${SystemGlobalConstant.deviceId}_${SpKeyConstant.OTA_FILE_MD5}",
             md5
@@ -314,7 +310,7 @@ class SystemViewModel constructor(
         if (glassFilePath.isNotEmpty()) {
             L.d(TAG, "sendGlassUpdateFile serverFileMd5: $serverFileMd5, glassFilePath: $glassFilePath")
 
-            // 2025.11.12: 再次判断文件 md5 与服务端是否一致
+            // 续传前再次校验本地记录与服务端文件 MD5 是否一致。
             val file = File(glassFilePath)
             if (file.exists()) {
                 val md5 = FileUtil.getFileMD5(file)
@@ -395,23 +391,6 @@ class SystemViewModel constructor(
         }
 
     }
-
-    // 测试代码
-//    var count = 0
-//    fun startSystemUpdate() {
-//        workScope.launch {
-//            while (isActive) {
-//                var  mSystemOtaStatus = SystemOtaStatus()
-//                mSystemOtaStatus.status = OTA_UPDATE_STATUS.OTA_CORE_SYSTEM_START
-//                mSystemOtaStatus.process = count
-////                mSystemOtaStatus.state = 3
-//                sendEvent(SystemEvent.UpdateState(mGson.toJson(mSystemOtaStatus).toString()))
-//
-//                count++
-//                delay(1000)
-//            }
-//        }
-//    }
 
 
     private val fileReceiveListener = object : FileReceiveListener {

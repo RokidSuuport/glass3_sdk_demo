@@ -11,10 +11,6 @@ import android.view.animation.RotateAnimation
 import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
 
-/**
- * Author: zhangshengwei
- * Date: 2025/8/16
- */
 object AnimationUtils {
 
     /**

@@ -2,10 +2,6 @@ package com.rokid.phone.data
 
 import androidx.annotation.StringDef
 
-/**
- * Author: suchenglong
- * Date: 2025/08/07
- */
 class GB28181Extra  {
     var methodName = ""
     var message = ""

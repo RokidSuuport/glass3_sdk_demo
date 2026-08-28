@@ -3,11 +3,7 @@ import android.content.res.Resources
 import android.os.Build
 import android.util.Log
 import java.util.Locale
-/**
- *
- * @Author: sunchao
- * @CreateDate: 2024/12/18 17:02
- */
+/** 提供系统语言与地区信息的查询方法。 */
 object LanguageUtils {
 
     /**

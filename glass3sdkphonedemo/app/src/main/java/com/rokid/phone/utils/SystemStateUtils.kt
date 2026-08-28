@@ -9,9 +9,6 @@ import android.provider.Settings
 import android.os.Build
 import android.util.Log
 
-/**
- * Created by wjm on 2025/6/23
- */
 object SystemStateUtils {
 
     /**

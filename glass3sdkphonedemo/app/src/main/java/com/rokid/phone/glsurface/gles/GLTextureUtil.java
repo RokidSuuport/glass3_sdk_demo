@@ -5,21 +5,13 @@ package com.rokid.phone.glsurface.gles;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 
-/**
- * 绾圭悊宸ュ叿绫�
- *
- * @author xiaxl1
- */
+/** OpenGL ES 纹理工具。 */
 public class GLTextureUtil {
 
     private static final String TAG = GLTextureUtil.class.getSimpleName();
 
 
-    /**
-     * 鍒涘缓OES绾圭悊id
-     *
-     * @return
-     */
+    /** 创建并初始化一个 OES 外部纹理。 */
     public static int createOESTextureID() {
         final int[] tex = new int[1];
         GLES20.glGenTextures(1, tex, 0);

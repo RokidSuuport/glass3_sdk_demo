@@ -4,9 +4,6 @@ package com.rokid.phone.data
 import com.rokid.security.phone.sdk.base.utils.other.ktx.call
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * Created by wjm on 2025/8/7
- */
 object GlobalData {
     /**
      * p2p连接状态

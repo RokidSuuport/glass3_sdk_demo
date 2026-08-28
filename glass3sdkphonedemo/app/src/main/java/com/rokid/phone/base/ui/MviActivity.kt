@@ -12,10 +12,6 @@ import com.rokid.phone.base.viewmodel.interfaces.UiIntent
 import com.rokid.phone.base.viewmodel.interfaces.UiState
 import kotlinx.coroutines.launch
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
 abstract class MviActivity<VB : ViewBinding, State : UiState, Intent : UiIntent, Event : UiEvent, VM : MviViewModel<State, Intent, Event>> : BaseActivity<VB>() {
 
     protected abstract val viewModel: VM

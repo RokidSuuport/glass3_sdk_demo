@@ -7,12 +7,9 @@ import java.io.File
 import java.io.IOException
 
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/3
- */
+/** 统一创建和访问 Demo 使用的文件目录。 */
 object FolderUtils {
-    private const val APP_NAME = "PhoneSdk" // 替换为你的应用名称
+    private const val APP_NAME = "PhoneSdk" // 应用文件根目录名称
     private const val DIR_VIDEO = "Videos"
     private const val DIR_IMAGE = "Images"
     private const val DIR_AUDIO = "Audios"

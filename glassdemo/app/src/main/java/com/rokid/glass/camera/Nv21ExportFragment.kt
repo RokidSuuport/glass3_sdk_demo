@@ -410,7 +410,7 @@ class Nv21ExportFragment : Fragment(), CameraShareGestureHandler {
             }
 
             override fun onNv21Frame(nv21: ByteArray, width: Int, height: Int, timestamp: Long) {
-                // 调试：打印帧间隔
+                // 记录帧间隔，便于观察采集帧率。
                 val now = System.currentTimeMillis()
                 if (lastFrameTimestamp > 0) {
                     val interval = now - lastFrameTimestamp

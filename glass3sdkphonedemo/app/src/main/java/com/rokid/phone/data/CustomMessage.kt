@@ -6,10 +6,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.rokid.security.phone.sdk.base.utils.log.L
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/16
- */
 data class CustomMessage(
     var type: String = "", var message: String = ""
 ) {

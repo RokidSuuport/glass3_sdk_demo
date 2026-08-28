@@ -11,10 +11,6 @@ import com.rokid.phone.utils.SystemGlobalConstant
 import com.rokid.phone.ui.DeviceLinerActivity
 
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/23
- */
 class SettingActivity : BaseActivity<ActivitySettingBinding>() {
 
     override fun onInit(savedInstanceState: Bundle?) {

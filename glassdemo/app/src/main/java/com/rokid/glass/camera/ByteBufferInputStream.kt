@@ -3,10 +3,6 @@ package com.rokid.glass.camera
 import java.io.InputStream
 import java.nio.ByteBuffer
 
-/**
- * Author: zhangshengwei
- * Date: 2025/8/5
- */
 class ByteBufferInputStream(private val buffer: ByteBuffer) : InputStream() {
 
     /**

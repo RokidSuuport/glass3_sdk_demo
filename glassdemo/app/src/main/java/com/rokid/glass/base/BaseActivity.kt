@@ -17,10 +17,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/13
- */
 open class BaseActivity : AppCompatActivity() {
 
     private lateinit var rootView: View

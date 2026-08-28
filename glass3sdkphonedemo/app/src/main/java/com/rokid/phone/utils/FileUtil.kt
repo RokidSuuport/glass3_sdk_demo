@@ -14,10 +14,6 @@ import kotlin.collections.joinToString
 import kotlin.text.format
 import kotlin.text.replace
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/30
- */
 object FileUtil {
 
 

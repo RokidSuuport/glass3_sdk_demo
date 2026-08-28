@@ -20,10 +20,6 @@ import com.rokid.glass.recycleview.BaseViewHolder
 import com.rokid.glesse.R
 
 
-/**
- * Author: zhangshengwei
- * Date: 2021/1/23
- */
 class HomeAdapter(private val mContext: Context) : RecyclerView.Adapter<HomeAdapter.ViewHolder>() {
     private val iconInfoList: MutableList<MenuItem> = ArrayList()
     private var lastFocusPosition = 0

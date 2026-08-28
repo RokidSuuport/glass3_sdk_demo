@@ -16,10 +16,6 @@ import com.rokid.phone.base.viewmodel.interfaces.UiIntent
 import com.rokid.phone.base.viewmodel.interfaces.UiState
 import kotlinx.coroutines.launch
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/27
- */
 abstract class MviDialogFragment<VB : ViewBinding, State : UiState, Intent : UiIntent, Event : UiEvent, VM : MviViewModel<State, Intent, Event>> :
     DialogFragment() { // 关键点 1：继承 DialogFragment
 

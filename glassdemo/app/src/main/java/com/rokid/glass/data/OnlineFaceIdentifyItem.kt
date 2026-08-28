@@ -4,9 +4,6 @@ import android.graphics.Bitmap
 import com.rokid.security.glass3.sdk.base.data.recog.offline.bean.FaceModel
 import com.rokid.security.sdk.base.common.outside.RecognizePersonInfo
 
-/**
- * Created by wjm on 2025/7/28
- */
 data class OnlineFaceIdentifyItem(
     var isSelected: Boolean = false,
     var faceModel: FaceModel,

@@ -23,10 +23,7 @@ import com.rokid.phone.utils.ProjectBusinessType.Companion.SYSTEM_OTA_UPDATE_PRO
 import com.rokid.phone.utils.ProjectBusinessType.Companion.SYSTEM_OTA_UPDATE_STATUS
 import com.rokid.phone.utils.ProjectBusinessType.Companion.USER_INFO
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/16
- */
+/** 限定手机端与眼镜端之间支持的业务消息类型。 */
 @Retention(AnnotationRetention.SOURCE)
 @StringDef(
     SYSTEM_OTA_UPDATE,
@@ -114,7 +111,6 @@ annotation class OTA_UPDATE_STATUS {
         const val OTA_CHECK_FAILED = "OTA_CHECK_FAILED"
     }
 }
-
 
 
 

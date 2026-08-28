@@ -8,10 +8,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import android.util.Base64
 
-/**
- * Author: zhangshengwei
- * Date: 2026/1/26
- */
 object Base64FileUtil {
 
     // ==================== 文件转 Base64 ====================

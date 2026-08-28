@@ -6,10 +6,6 @@ import com.rokid.security.phone.sdk.base.utils.other.defaultScope
 import kotlinx.coroutines.launch
 
 
-/**
- * Author: zhangshengwei
- * Date: 2025/6/6
- */
 class MyApplication : Application() {
 
     var isBtConnect = false

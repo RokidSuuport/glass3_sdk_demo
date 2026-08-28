@@ -10,10 +10,7 @@ import com.rokid.security.phone.sdk.api.bluetooth.classic.listener.IClassicBTCli
 import com.rokid.phone.ui.classicbt.model.BluetoothDeviceInfo
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-/**
- * Author: zhangshengwei
- * Date: 2025/5/26
- */
+/** 封装经典蓝牙扫描、连接和消息发送操作。 */
 class ClassicBtRepository(private val pSecuritySDK: PSecuritySDK) {
 
     private val TAG = "ClassicBtRepository"
@@ -65,7 +62,7 @@ class ClassicBtRepository(private val pSecuritySDK: PSecuritySDK) {
         if (deviceName.isNullOrEmpty() || "null".equals(deviceName.lowercase())) {
             return false
         }
-        ///TODO: 调试时可以增加白名单
+        // 如需限制可发现设备，可在此处按设备名称实现过滤规则。
 //        if(deviceName.contains("Rokid")
 //            || deviceName.contains("P30")
 //            || deviceName.contains("HUAWEI")

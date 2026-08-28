@@ -211,7 +211,7 @@ class SendMessageActivity : BaseActivity() {
         }
 
         /**
-         * 眼睛端发送文件路径
+         * 眼镜端待发送文件的路径
          */
         override fun onComplete(filePath: String) {
             //手机端接收文件的路径 /storage/emulated/0/Android/data/com.rokid.phone/files/receiver/gonglu.png
@@ -253,7 +253,7 @@ class SendMessageActivity : BaseActivity() {
         }
 
         /**
-         * 眼睛端发送文件路径
+         * 眼镜端待发送文件的路径
          */
         override fun onComplete(filePath: String) {
             //手机端接收文件的路径 /storage/emulated/0/Android/data/com.rokid.phone/files/receiver/gonglu.png
@@ -438,7 +438,7 @@ class SendMessageActivity : BaseActivity() {
             }
 
             R.id.btQRCode -> {
-                // cameraZoomLevel 新增相机缩放参数默认值1，最大值10,参数越大越容易识别到二维码
+                // cameraZoomLevel 取值范围为 1～10；适当放大可提升远距离二维码的识别效果。
                 GlassScanner.launch(
                     this,
                     config = GlassScanConfig(enableAutoClose = true, scanType = ScanType.QR_CODE_ONLY, cameraZoomLevel = 5),
