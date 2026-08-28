@@ -119,6 +119,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
     public synchronized void releasePreview(){
         if (mRenderer != null){
             mRenderer.releaseBuf();
+            this.requestRender();
 //            mRenderer = null;
         }
     }

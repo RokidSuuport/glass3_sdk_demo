@@ -47,6 +47,21 @@ class VideoReceiveDualModeContractTest {
     }
 
     @Test
+    fun `a new preview waits for the previous remote stream to stop before accepting frames`() {
+        val activity = File("src/main/java/com/rokid/phone/VideoReceiveActivity.kt").readText()
+
+        assertTrue(activity.contains("pendingStreamStopJob"))
+        assertTrue(activity.contains("awaitPreviousStreamStopAndDrain()"))
+        assertTrue(activity.contains("scheduleCurrentStreamStop()"))
+        val startRequest = activity.substringAfter("private suspend fun startStreamRequest")
+            .substringBefore("private fun startDurationTimer")
+        assertTrue(
+            startRequest.indexOf("awaitPreviousStreamStopAndDrain()") <
+                startRequest.indexOf("resumeVideoAfterDrain(config)")
+        )
+    }
+
+    @Test
     fun `preview page displays bluetooth p2p and video states separately`() {
         val activity = File("src/main/java/com/rokid/phone/VideoReceiveActivity.kt").readText()
         val layout = File("src/main/res/layout/activity_video_receive.xml").readText()

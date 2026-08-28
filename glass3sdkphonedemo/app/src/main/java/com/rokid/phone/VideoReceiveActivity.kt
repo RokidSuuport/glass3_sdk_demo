@@ -20,15 +20,21 @@ import com.rokid.phone.databinding.ActivityVideoReceiveBinding
 import com.rokid.phone.utils.TimeUtils
 import com.rokid.phone.video.FrameRateMeter
 import com.rokid.phone.video.FitCenterScaleCalculator
+import com.rokid.phone.video.H264NalUnitInspector
 import com.rokid.phone.video.H264SurfaceDecoder
 import com.rokid.phone.video.DecodedVideoGeometry
+import com.rokid.phone.video.VideoFrameRecoveryGate
 import com.rokid.phone.video.VideoStreamRecoveryPolicy
 import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
 import com.rokid.security.phone.sdk.base.utils.other.mainScope
 import com.rokid.security.sdk.base.common.GlassVideoStreamParam
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -97,6 +103,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private var audioWatchdogJob: Job? = null
     private var videoRetryJob: Job? = null
     private var audioRetryJob: Job? = null
+    private var pendingStreamStopJob: Job? = null
     private var lastCallTime = 0L
     private var lastRenderedFrameTime = 0L
     private var lastAudioTime = 0L
@@ -111,6 +118,9 @@ class VideoReceiveActivity : ComponentActivity() {
     private var remoteVideoRestartCount = 0
     private var lastRemoteVideoRestartTime = 0L
     private var localDecoderRestartUsed = false
+    @Volatile
+    private var videoFrameEpoch = 0
+    private val videoFrameRecoveryGate = VideoFrameRecoveryGate()
     private val videoRecoveryPolicy = VideoStreamRecoveryPolicy(VIDEO_STALL_TIMEOUT_MS)
     private val h264RenderFpsMeter = FrameRateMeter()
     private val h264Decoder = H264SurfaceDecoder(
@@ -415,14 +425,12 @@ class VideoReceiveActivity : ComponentActivity() {
         remoteVideoRestartCount = 0
         lastRemoteVideoRestartTime = 0L
         localDecoderRestartUsed = false
+        videoFrameEpoch++
+        videoFrameRecoveryGate.beginDrain()
         tryCount = 0
         isPreviewStarted = true
-        if (previewMode == PreviewMode.H264 && binding.h264SurfaceView.holder.surface.isValid) {
-            h264DisplayWidth = resolution.width
-            h264DisplayHeight = resolution.height
-            applyH264SurfaceFitCenter(resolution.width, resolution.height)
-            h264Decoder.start(binding.h264SurfaceView.holder.surface, resolution.width, resolution.height)
-        }
+        binding.glsurfaceview.releasePreview()
+        binding.h264SurfaceView.alpha = if (previewMode == PreviewMode.H264) 0f else 1f
         if (audioTrack.playState != AudioTrack.PLAYSTATE_PLAYING) {
             audioTrack.play()
         }
@@ -447,11 +455,12 @@ class VideoReceiveActivity : ComponentActivity() {
         Log.d(TAG, "startStreamRequest: reason=$reason, version=$requestVersion, config=$config")
         binding.tvDuration.text = "正在请求音视频流..."
 
-
+        awaitPreviousStreamStopAndDrain()
         delay(STREAM_RETRY_DELAY_MS)
         if (!isActiveRequest(requestVersion)) {
             return
         }
+        resumeVideoAfterDrain(config)
         requestVideoStream(requestVersion, config, reason)
         Log.d(TAG, "startStreamRequest: wait first video frame before requesting audio")
     }
@@ -611,9 +620,13 @@ class VideoReceiveActivity : ComponentActivity() {
             return
         }
         localDecoderRestartUsed = true
+        videoFrameEpoch++
+        videoFrameRecoveryGate.beginDrain()
+        binding.h264SurfaceView.alpha = 0f
         lastRenderedFrameTime = System.currentTimeMillis()
         Log.w(TAG, "restart local H264 decoder; keep remote stream running")
         h264Decoder.start(surface, config.resolution.width, config.resolution.height)
+        videoFrameRecoveryGate.resume(VideoFrameRecoveryGate.Mode.H264)
         updateStreamState("重启本地解码器")
     }
 
@@ -623,6 +636,7 @@ class VideoReceiveActivity : ComponentActivity() {
         if (!isActiveRequest(requestVersion) || videoRetryJob?.isActive == true) return
         remoteVideoRestartCount++
         lastRemoteVideoRestartTime = System.currentTimeMillis()
+        beginRemoteVideoDrain()
         videoRetryJob = lifecycleScope.launch {
             Log.w(TAG, "restart remote video stream once: reason=$reason")
             updateStreamState("正在恢复")
@@ -634,7 +648,40 @@ class VideoReceiveActivity : ComponentActivity() {
                 isGetVideo = false
                 lastCallTime = System.currentTimeMillis()
                 lastRenderedFrameTime = lastCallTime
+                resumeVideoAfterDrain(config)
                 requestVideoStream(requestVersion, config, "controlled recovery: $reason")
+            }
+        }
+    }
+
+    /** 停止旧流后关闭帧入口并清空本地渲染状态，排空期间的残留回调会被直接丢弃。 */
+    private fun beginRemoteVideoDrain() {
+        videoFrameEpoch++
+        videoFrameRecoveryGate.beginDrain()
+        videoWatchdogJob?.cancel()
+        hasVideoFrame = false
+        isGetVideo = false
+        when (currentConfig?.previewMode) {
+            PreviewMode.H264 -> {
+                h264Decoder.stop()
+                binding.h264SurfaceView.alpha = 0f
+            }
+
+            PreviewMode.NV21 -> binding.glsurfaceview.releasePreview()
+            null -> Unit
+        }
+    }
+
+    /** 为新请求创建干净的解码状态；H.264 仍会由门控等待新流 IDR 后才显示。 */
+    private fun resumeVideoAfterDrain(config: PreviewConfig) {
+        videoFrameRecoveryGate.resume(config.previewMode.toRecoveryGateMode())
+        if (config.previewMode == PreviewMode.H264) {
+            h264DisplayWidth = config.resolution.width
+            h264DisplayHeight = config.resolution.height
+            applyH264SurfaceFitCenter(config.resolution.width, config.resolution.height)
+            val surface = binding.h264SurfaceView.holder.surface
+            if (surface.isValid) {
+                h264Decoder.start(surface, config.resolution.width, config.resolution.height)
             }
         }
     }
@@ -695,13 +742,40 @@ class VideoReceiveActivity : ComponentActivity() {
         return isPreviewStarted && currentState == PageState.PREVIEW && streamRequestVersion == requestVersion
     }
 
-    private fun stopCurrentStream() {
-        PSecuritySDK.getAbsDeviceInfoService()?.stopVideoStream(VIDEO_TAG) { isSuccess ->
-            Log.d(TAG, "stopVideoStream before request: $isSuccess")
+    /**
+     * 立即发起远端停止，并保留可等待任务。使用 UNDISPATCHED 确保退出方法返回前，
+     * stopVideoStream/stopAudioStream 已经真正调用到 SDK。
+     */
+    private fun scheduleCurrentStreamStop() {
+        val previousStop = pendingStreamStopJob
+        pendingStreamStopJob = lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            previousStop?.join()
+            val results = coroutineScope {
+                listOf(
+                    async { stopRemoteVideoStreamAndAwait() },
+                    async { stopRemoteAudioStreamAndAwait() },
+                ).awaitAll()
+            }
+            Log.d(TAG, "remote stream stop completed: video=${results[0]}, audio=${results[1]}")
         }
-        PSecuritySDK.getAbsDeviceInfoService()?.stopAudioStream(AUDIO_TAG) { isSuccess ->
-            Log.d(TAG, "stopAudioStream before request: $isSuccess")
-        }
+    }
+
+    /** 新预览必须等旧流停止回调结束；随后仍保持帧入口关闭，由调用方完成排空延迟。 */
+    private suspend fun awaitPreviousStreamStopAndDrain() {
+        val pendingStop = pendingStreamStopJob
+        pendingStop?.join()
+        if (pendingStreamStopJob === pendingStop) pendingStreamStopJob = null
+    }
+
+    private suspend fun stopRemoteAudioStreamAndAwait(): Boolean {
+        val service = PSecuritySDK.getAbsDeviceInfoService() ?: return false
+        return withTimeoutOrNull(STOP_VIDEO_TIMEOUT_MS) {
+            suspendCancellableCoroutine { continuation ->
+                service.stopAudioStream(AUDIO_TAG) { success ->
+                    if (continuation.isActive) continuation.resume(success)
+                }
+            }
+        } ?: false
     }
 
     @SuppressLint("SetTextI18n")
@@ -713,7 +787,7 @@ class VideoReceiveActivity : ComponentActivity() {
         audioWatchdogJob?.cancel()
         videoRetryJob?.cancel()
         audioRetryJob?.cancel()
-        stopCurrentStream()
+        scheduleCurrentStreamStop()
         videoRequestCount = 0
         audioRequestCount = 0
         isGetVideo = false
@@ -728,6 +802,10 @@ class VideoReceiveActivity : ComponentActivity() {
         timerJob = null
         audioTrack.pause()
         audioTrack.flush()
+        videoFrameEpoch++
+        videoFrameRecoveryGate.beginDrain()
+        binding.glsurfaceview.releasePreview()
+        binding.h264SurfaceView.alpha = 0f
         h264Decoder.stop()
         PSecuritySDK.getWifiP2PClientService()?.setAutoDecodeH264ToNv21(true)
         h264RenderFpsMeter.reset()
@@ -741,9 +819,19 @@ class VideoReceiveActivity : ComponentActivity() {
         override fun onNv21Data(data: ByteArray, width: Int, height: Int) {
             if (currentState != PageState.PREVIEW || !isPreviewStarted) return
             if (currentConfig?.previewMode != PreviewMode.NV21) return
+            if (!videoFrameRecoveryGate.shouldAcceptNv21()) return
+            val callbackEpoch = videoFrameEpoch
+            val ownedFrame = data.copyOf()
             onVideoFrameReceived("NV21", width, height)
             mainScope.launch {
-                binding.glsurfaceview.setPreviewData(data, width, height)
+                if (
+                    callbackEpoch == videoFrameEpoch &&
+                    videoFrameRecoveryGate.shouldAcceptNv21() &&
+                    currentState == PageState.PREVIEW &&
+                    isPreviewStarted
+                ) {
+                    binding.glsurfaceview.setPreviewData(ownedFrame, width, height)
+                }
             }
         }
 
@@ -751,7 +839,8 @@ class VideoReceiveActivity : ComponentActivity() {
             if (currentState != PageState.PREVIEW || !isPreviewStarted) return
             if (currentConfig?.previewMode != PreviewMode.H264) return
             val config = currentConfig ?: return
-            if (buffer.hasRemaining()) {
+            if (!videoFrameRecoveryGate.shouldAcceptH264(buffer.duplicate())) return
+            if (H264NalUnitInspector.containsFrame(buffer.duplicate())) {
                 onVideoFrameReceived("H264", config.resolution.width, config.resolution.height)
             }
             h264Decoder.queueAccessUnit(buffer.duplicate())
@@ -811,8 +900,14 @@ class VideoReceiveActivity : ComponentActivity() {
     private fun onH264FrameRendered() {
         lastRenderedFrameTime = System.currentTimeMillis()
         localDecoderRestartUsed = false
+        runOnUiThread {
+            if (binding.h264SurfaceView.alpha != 1f) binding.h264SurfaceView.alpha = 1f
+        }
         h264RenderFpsMeter.recordFrame()?.let(::updateFps)
     }
+
+    private fun PreviewMode.toRecoveryGateMode(): VideoFrameRecoveryGate.Mode =
+        if (this == PreviewMode.H264) VideoFrameRecoveryGate.Mode.H264 else VideoFrameRecoveryGate.Mode.NV21
 
     private fun onH264OutputFormatChanged(geometry: DecodedVideoGeometry) {
         runOnUiThread {
