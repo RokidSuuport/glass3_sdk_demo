@@ -117,8 +117,11 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>(), EasyPermission
             // 客户端 ID 用于区分通信双方；自定义 ID 必须与眼镜端配置保持一致。
             val clientIds = arrayListOf("SecurityPhone", "GlassSample")
 
-            // 在线 ASR/TTS 需要有效的 AK/SK。请从授权渠道获取凭证，并避免将真实密钥提交到代码仓库。
-            val userAuthInfo = UserAuthInfo("", "")
+            // AK/SK 由销售或商务提供；没有在线语音凭证时可暂时保留为空。
+            val userAuthInfo = UserAuthInfo(
+                appId = "", // 填写 AK
+                secret = "" // 填写 SK
+            )
 
             // 示例仅启用语音识别和语音合成，因此跳过翻译服务初始化。
             val banServiceList: List<NetServiceType> = arrayListOf(NetServiceType.TranslateService)
