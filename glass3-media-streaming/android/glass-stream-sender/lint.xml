@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!--
+      Rokid Glass SDK 间接依赖 utilcodex。该通用库包含 NotificationUtils，
+      但本应用没有调用通知功能，因此不应为了未使用的代码向客户请求通知权限。
+      只忽略该依赖类触发的这一条检查，其他 NotificationPermission 问题仍会报错。
+    -->
+    <issue id="NotificationPermission">
+        <ignore regexp="usage from com\.blankj\.utilcode\.util\.NotificationUtils" />
+    </issue>
+</lint>

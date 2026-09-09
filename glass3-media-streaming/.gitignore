@@ -1,0 +1,23 @@
+.worktrees/
+.DS_Store
+.idea/
+*.iml
+
+# Android / Gradle
+.gradle/
+.kotlin/
+**/build/
+local.properties
+captures/
+
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Runtime diagnostics
+*.log
+*.hprof
+*.trace
+
+# Generated customer delivery
+dist/

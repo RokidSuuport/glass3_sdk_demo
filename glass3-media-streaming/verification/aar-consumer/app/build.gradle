@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.rokid.glass.mediastream.verification'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.rokid.glass.mediastream.verification'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main.java.srcDirs += [
+            '../../../docs/code/kotlin',
+            '../../../docs/code/java',
+        ]
+    }
+}
+
+dependencies {
+    // 只声明一键推流顶层坐标；GlassMediaCapture 必须由它的 POM 以 api 依赖传递进来。
+    implementation 'com.rokid.glass:glass3-media-streaming:1.0.0'
+}

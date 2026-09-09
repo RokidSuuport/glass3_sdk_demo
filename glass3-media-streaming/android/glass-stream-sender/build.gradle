@@ -1,0 +1,76 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.rokid.glass.mediastream.sender'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.rokid.glass.mediastream.sender'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+        jniLibs {
+            pickFirsts += ['lib/arm64-v8a/liblkjingle_peerconnection_so.so']
+        }
+    }
+}
+
+dependencies {
+    // 本仓库已经包含下面两个源码模块，所以这里直接使用 project(...)，
+    // 不需要先生成或导入 AAR。
+    // 如果把 Activity 复制到客户自己的另一个 Android 工程，不要照抄
+    // project(...)；请先按 docs 中“外部工程集成”章节接入发布的 Maven/AAR 产物。
+    implementation project(':glass3-media-capture')
+    implementation project(':glass3-media-streaming')
+
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+}

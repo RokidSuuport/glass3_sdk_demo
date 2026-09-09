@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Glass3 Media Streaming</string>
+    <string name="home_title">Glass3 媒体能力</string>
+    <string name="home_description">选择完整传输或直接验证眼镜原始音视频数据</string>
+    <string name="streaming_entry">音视频传输</string>
+    <string name="capture_entry">原始媒体采集</string>
+    <string name="streaming_title">音视频传输</string>
+    <string name="capture_title">原始媒体采集</string>
+    <string name="signaling_url_hint">ws://&lt;PC-IP&gt;:8080/ws</string>
+    <string name="video_enabled">发送 NV21 视频</string>
+    <string name="audio_enabled">发送麦克风音频</string>
+    <string name="start_stream">连接并传输</string>
+    <string name="retry_stream">重试</string>
+    <string name="stop_stream">停止</string>
+    <string name="capture_video_enabled">采集 NV21 视频</string>
+    <string name="capture_audio_enabled">采集 PCM 音频</string>
+    <string name="start_capture">开始采集</string>
+    <string name="stop_capture">停止采集</string>
+    <string name="save_current_frame">保存当前画面</string>
+    <string name="start_recording">开始录音</string>
+    <string name="stop_recording">停止录音</string>
+    <string name="play_recording">播放录音</string>
+    <string name="stop_playback">停止播放</string>
+</resources>

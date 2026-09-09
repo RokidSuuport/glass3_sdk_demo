@@ -1,0 +1,27 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        def customerRepository = providers.gradleProperty('customerRepo').orNull
+        if (customerRepository != null) {
+            maven { url = uri(customerRepository) }
+        }
+        google()
+        mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+    }
+}
+
+rootProject.name = 'glass3-media-aar-consumer-verification'
+include ':app'

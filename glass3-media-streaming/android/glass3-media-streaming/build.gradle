@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
+}
+
+apply from: rootProject.file('customer-publishing.gradle')
+
+android {
+    namespace 'com.rokid.glass.mediastream.streaming'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 29
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    api project(':glass3-media-capture')
+    implementation project(':webrtc-transport')
+    testImplementation 'junit:junit:4.13.2'
+}

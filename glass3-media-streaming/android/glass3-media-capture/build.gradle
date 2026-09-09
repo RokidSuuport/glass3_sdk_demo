@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
+}
+
+apply from: rootProject.file('customer-publishing.gradle')
+
+android {
+    namespace 'com.rokid.glass.mediastream.capture'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 29
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'com.rokid.security:glass3.open.sdk:2.2.0-E'
+    testImplementation 'junit:junit:4.13.2'
+}

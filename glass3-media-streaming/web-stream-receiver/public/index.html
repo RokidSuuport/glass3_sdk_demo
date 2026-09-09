@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glass3 Media Receiver</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Glass3 · MEDIA STREAMING</p>
+          <h1>Glass3 音视频接收端</h1>
+          <p class="subtitle">媒体点对点传输，当前页面只接收，不采集 PC 摄像头或麦克风。</p>
+        </div>
+        <span id="statusBadge" class="status" data-phase="idle">未启动</span>
+      </header>
+
+      <section class="toolbar" aria-label="接收控制">
+        <button id="startButton" class="primary" type="button">开始接收</button>
+        <button id="audioButton" type="button" disabled>开启声音</button>
+        <button id="fullscreenButton" type="button" disabled>全屏</button>
+        <button id="disconnectButton" type="button" disabled>断开</button>
+      </section>
+
+      <section class="connection-card" aria-label="连接信息">
+        <div class="connection-row">
+          <span>当前接收页面</span>
+          <code id="pageAddress"></code>
+        </div>
+        <div class="connection-row">
+          <span>眼镜端填写的信令地址</span>
+          <code id="signalingAddress"></code>
+        </div>
+        <p>点击“开始接收”，再在眼镜端输入上面的信令地址。当前支持同一房间一台眼镜和一个浏览器。</p>
+      </section>
+
+      <section class="viewer-card">
+        <div class="video-stage">
+          <video id="remoteVideo" autoplay playsinline muted></video>
+          <div id="videoPlaceholder" class="placeholder">
+            <strong>等待眼镜连接</strong>
+            <span>先点击“开始接收”，再在眼镜端填写本机局域网地址。</span>
+          </div>
+        </div>
+        <p id="errorMessage" class="error" hidden></p>
+      </section>
+
+      <section class="metrics" aria-label="实时传输统计">
+        <article><span>分辨率</span><strong id="resolutionMetric">—</strong></article>
+        <article><span>视频帧率</span><strong id="fpsMetric">—</strong></article>
+        <article><span>视频码率</span><strong id="videoBitrateMetric">—</strong></article>
+        <article><span>音频码率</span><strong id="audioBitrateMetric">—</strong></article>
+        <article><span>丢包数</span><strong id="packetLossMetric">—</strong></article>
+        <article><span>往返延迟</span><strong id="rttMetric">—</strong></article>
+      </section>
+
+      <section class="events-card">
+        <div class="section-heading">
+          <h2>连接记录</h2>
+          <button id="clearLogButton" class="text-button" type="button">清空</button>
+        </div>
+        <ol id="eventLog" aria-live="polite"></ol>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

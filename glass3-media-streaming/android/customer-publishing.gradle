@@ -1,0 +1,27 @@
+// 三个客户组件共用同一组正式发布坐标和本地交付仓库。
+// `from components.release` 会把当前模块的 release AAR 及其依赖关系一起写入 POM，
+// 客户只需声明顶层坐标，无需猜测本工程内部的 project(...) 结构。
+android {
+    publishing {
+        singleVariant('release')
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.rokid.glass'
+                artifactId = project.name
+                version = '1.0.0'
+            }
+        }
+        repositories {
+            maven {
+                name = 'customer'
+                url = rootProject.layout.buildDirectory.dir('customer-repository')
+            }
+        }
+    }
+}
