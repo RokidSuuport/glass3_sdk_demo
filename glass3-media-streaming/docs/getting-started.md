@@ -89,9 +89,9 @@ adb install -r android/glass-stream-sender/build/outputs/apk/debug/glass-stream-
 ## 7. 开始浏览器推流
 
 1. PC 页面点击“开始接收”。
-2. 眼镜打开 Glass3 音视频传输应用，首次使用允许相机和录音权限。
+2. 眼镜打开 Glass3 音视频传输应用。
 3. 输入 `ws://<PC-IP>:8080/ws`，保留默认房间 `default`。
-4. 点击“连接并推流”。眼镜状态应依次经过等待接收端、协商中、推流中。
+4. 点击“连接并传输”。眼镜状态应依次经过等待接收端、协商中、传输中。
 5. 浏览器收到音频轨道后点击“开启声音”。浏览器的自动播放策略要求这个人工操作。
 
 预期结果：浏览器出现眼镜画面并能听到声音，统计区域持续更新分辨率、FPS、码率、丢包和延迟。
@@ -100,7 +100,7 @@ adb install -r android/glass-stream-sender/build/outputs/apk/debug/glass-stream-
 
 ## 8. 只验证原始媒体采集
 
-眼镜应用进入“原始媒体采集”页面，授予权限后点击开始。该页面不需要 PC 服务，也不使用 WebRTC。
+眼镜应用进入“原始媒体采集”页面后点击开始。该页面不需要 PC 服务，也不使用 WebRTC。
 
 预期结果：页面持续显示 NV21 分辨率和帧大小、PCM 采样率和帧大小，并可保存 JPEG 与 WAV 验证文件。
 

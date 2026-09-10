@@ -1,5 +1,6 @@
 package com.rokid.glass.mediastream.transport.webrtc
 
+import livekit.org.webrtc.PeerConnection
 import livekit.org.webrtc.RtpTransceiver.RtpTransceiverDirection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -26,5 +27,17 @@ class MediaDirectionPolicyTest {
         assertThrows(IllegalStateException::class.java) {
             MediaDirectionPolicy.rejectRemoteTrack(LocalMediaKind.VIDEO)
         }
+    }
+
+    @Test
+    fun connected_ice_states_confirm_that_media_transport_is_ready() {
+        assertEquals(
+            PublisherConnectionState.CONNECTED,
+            publisherStateForIceConnection(PeerConnection.IceConnectionState.CONNECTED),
+        )
+        assertEquals(
+            PublisherConnectionState.CONNECTED,
+            publisherStateForIceConnection(PeerConnection.IceConnectionState.COMPLETED),
+        )
     }
 }

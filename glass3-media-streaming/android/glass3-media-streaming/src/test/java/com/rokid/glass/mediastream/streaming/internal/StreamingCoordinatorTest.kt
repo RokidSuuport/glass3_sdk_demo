@@ -354,6 +354,33 @@ class StreamingCoordinatorTest {
     }
 
     @Test
+    fun negotiation_timeout_cleans_up_the_stalled_peer_and_retries() {
+        val fixture = Fixture(signalingCount = 2)
+        fixture.startUntilCaptureReady()
+
+        assertEquals(listOf(15_000L), fixture.scheduler.activeDelays())
+        fixture.scheduler.runNext(15_000L)
+
+        assertEquals(StreamingState.ERROR, fixture.status().state)
+        assertEquals(MediaErrorCode.WEBRTC_NEGOTIATION_FAILED, fixture.status().failure?.code)
+        assertEquals(1, fixture.publisher().closeCount)
+        assertEquals(1, fixture.signaling().closeCount)
+        assertEquals(1, fixture.capture.stopCount)
+        assertEquals(listOf(1_000L), fixture.scheduler.activeDelays())
+    }
+
+    @Test
+    fun successful_connection_cancels_the_negotiation_timeout() {
+        val fixture = Fixture()
+        fixture.startUntilCaptureReady()
+
+        fixture.publisher().connected()
+
+        assertEquals(StreamingState.STREAMING, fixture.status().state)
+        assertTrue(fixture.scheduler.activeDelays().isEmpty())
+    }
+
+    @Test
     fun stop_cancels_wait_and_retry_tasks_and_ignores_obsolete_callbacks() {
         val fixture = Fixture(signalingCount = 4)
         fixture.coordinator.start(fixture.options, fixture.listener)

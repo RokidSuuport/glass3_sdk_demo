@@ -122,8 +122,11 @@ export function createServer({ host = '0.0.0.0', port = 8080, publicDir }) {
           return;
         }
         try {
-          const { peer } = registry.join(message.roomId, message.role, socket);
+          const { peer, replaced } = registry.join(message.roomId, message.role, socket);
           joined = true;
+          if (replaced) {
+            replaced.close(1000, `replaced by newer ${message.role}`);
+          }
           if (peer) {
             const ready = { type: 'peer-ready', roomId: message.roomId };
             safeSend(peer, ready);

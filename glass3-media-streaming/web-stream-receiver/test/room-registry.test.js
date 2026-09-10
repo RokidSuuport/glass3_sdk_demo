@@ -37,7 +37,7 @@ test('a reloaded receiver can rejoin while the sender remains connected', () => 
   assert.equal(registry.peerOf(sender), reloadedReceiver);
 });
 
-test('a second sender is rejected without replacing the first sender', () => {
+test('a newer sender replaces the stale sender and becomes the receiver peer', () => {
   const registry = new RoomRegistry();
   const first = {};
   const second = {};
@@ -45,11 +45,15 @@ test('a second sender is rejected without replacing the first sender', () => {
   registry.join('default', 'sender', first);
   registry.join('default', 'receiver', receiver);
 
-  assert.throws(() => registry.join('default', 'sender', second), /sender already joined/);
-  assert.equal(registry.peerOf(receiver), first);
+  assert.deepEqual(
+    registry.join('default', 'sender', second),
+    { peer: receiver, replaced: first },
+  );
+  assert.equal(registry.peerOf(first), null);
+  assert.equal(registry.peerOf(receiver), second);
 });
 
-test('a second receiver is rejected without replacing the first receiver', () => {
+test('a newer receiver replaces the stale receiver and becomes the sender peer', () => {
   const registry = new RoomRegistry();
   const sender = {};
   const first = {};
@@ -57,8 +61,12 @@ test('a second receiver is rejected without replacing the first receiver', () =>
   registry.join('default', 'sender', sender);
   registry.join('default', 'receiver', first);
 
-  assert.throws(() => registry.join('default', 'receiver', second), /receiver already joined/);
-  assert.equal(registry.peerOf(sender), first);
+  assert.deepEqual(
+    registry.join('default', 'receiver', second),
+    { peer: sender, replaced: first },
+  );
+  assert.equal(registry.peerOf(first), null);
+  assert.equal(registry.peerOf(sender), second);
 });
 
 test('leaving returns the peer and removes membership', () => {

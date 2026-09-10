@@ -327,18 +327,7 @@ private class NativePublisherSession private constructor(
                 override fun onIceGatheringChange(state: PeerConnection.IceGatheringState) = Unit
 
                 override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
-                    when (state) {
-                        PeerConnection.IceConnectionState.DISCONNECTED ->
-                            eventGate.onConnectionStateChanged(PublisherConnectionState.DISCONNECTED)
-
-                        PeerConnection.IceConnectionState.FAILED ->
-                            eventGate.onConnectionStateChanged(PublisherConnectionState.FAILED)
-
-                        PeerConnection.IceConnectionState.CLOSED ->
-                            eventGate.onConnectionStateChanged(PublisherConnectionState.CLOSED)
-
-                        else -> Unit
-                    }
+                    publisherStateForIceConnection(state)?.let(eventGate::onConnectionStateChanged)
                 }
 
                 override fun onIceCandidate(candidate: IceCandidate) {
@@ -401,6 +390,19 @@ private class NativePublisherSession private constructor(
         private const val VIDEO_TRACK_ID = "glass-video"
         private const val AUDIO_TRACK_ID = "glass-audio"
     }
+}
+
+internal fun publisherStateForIceConnection(
+    state: PeerConnection.IceConnectionState,
+): PublisherConnectionState? = when (state) {
+    PeerConnection.IceConnectionState.CONNECTED,
+    PeerConnection.IceConnectionState.COMPLETED,
+    -> PublisherConnectionState.CONNECTED
+
+    PeerConnection.IceConnectionState.DISCONNECTED -> PublisherConnectionState.DISCONNECTED
+    PeerConnection.IceConnectionState.FAILED -> PublisherConnectionState.FAILED
+    PeerConnection.IceConnectionState.CLOSED -> PublisherConnectionState.CLOSED
+    else -> null
 }
 
 internal class NativeVideoSourceLifecycle(

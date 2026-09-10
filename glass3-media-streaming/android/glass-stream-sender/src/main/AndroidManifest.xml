@@ -23,20 +23,17 @@
         <activity
             android:name="com.rokid.glass.mediastream.sender.capture.MediaCaptureActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi" />
 
         <activity
             android:name="com.rokid.glass.mediastream.sender.streaming.StreamingActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
             android:windowSoftInputMode="stateAlwaysHidden"
             tools:ignore="DiscouragedApi" />
 
         <activity
             android:name="com.rokid.glass.mediastream.sender.HomeActivity"
             android:exported="true"
-            android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

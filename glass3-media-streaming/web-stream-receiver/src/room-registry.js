@@ -11,14 +11,16 @@ export class RoomRegistry {
     }
 
     const room = this.rooms.get(roomId) ?? { sender: null, receiver: null };
-    if (room[role] && room[role] !== socket) {
-      throw new Error(`${role} already joined`);
+    const replaced = room[role] && room[role] !== socket ? room[role] : null;
+    if (replaced) {
+      this.memberships.delete(replaced);
     }
 
     room[role] = socket;
     this.rooms.set(roomId, room);
     this.memberships.set(socket, { roomId, role });
-    return { peer: role === 'sender' ? room.receiver : room.sender };
+    const result = { peer: role === 'sender' ? room.receiver : room.sender };
+    return replaced ? { ...result, replaced } : result;
   }
 
   peerOf(socket) {

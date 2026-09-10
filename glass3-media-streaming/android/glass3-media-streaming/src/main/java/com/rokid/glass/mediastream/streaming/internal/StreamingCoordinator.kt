@@ -64,6 +64,7 @@ internal class StreamingCoordinator(
     private var offerCreated = false
     private var hasStreamed = false
     private var receiverTimeout: Cancellable? = null
+    private var negotiationTimeout: Cancellable? = null
     private var retryHandle: Cancellable? = null
     private var releaseRequested = false
 
@@ -77,6 +78,8 @@ internal class StreamingCoordinator(
             val validated = StreamingOptionsValidator.validate(options)
             receiverTimeout?.cancel()
             receiverTimeout = null
+            negotiationTimeout?.cancel()
+            negotiationTimeout = null
             retryHandle?.cancel()
             retryHandle = null
 
@@ -124,6 +127,8 @@ internal class StreamingCoordinator(
             peerGeneration += 1
             receiverTimeout?.cancel()
             receiverTimeout = null
+            negotiationTimeout?.cancel()
+            negotiationTimeout = null
             retryHandle?.cancel()
             retryHandle = null
             stateMachine.moveTo(StreamingState.STOPPING)
@@ -177,6 +182,8 @@ internal class StreamingCoordinator(
             peerGeneration += 1
             receiverTimeout?.cancel()
             receiverTimeout = null
+            negotiationTimeout?.cancel()
+            negotiationTimeout = null
             retryHandle?.cancel()
             retryHandle = null
             val token = deliveryGeneration
@@ -504,6 +511,7 @@ internal class StreamingCoordinator(
                 }
                 dispatch(notification)
                 if (!isPeerActive(runGeneration, attempt, peerToken, activePublisher)) return
+                scheduleNegotiationTimeout(runGeneration, attempt, peerToken, activePublisher)
                 try {
                     activePublisher.createOffer()
                 } catch (error: Throwable) {
@@ -534,6 +542,36 @@ internal class StreamingCoordinator(
             CaptureState.STOPPING,
             -> Unit
         }
+    }
+
+    private fun scheduleNegotiationTimeout(
+        runGeneration: Long,
+        attempt: Long,
+        peerToken: Long,
+        activePublisher: MediaPublisher,
+    ) {
+        val handle = scheduler.schedule(NEGOTIATION_TIMEOUT_MS) {
+            failPublisher(
+                runGeneration,
+                attempt,
+                peerToken,
+                "WebRTC negotiation timed out after ${NEGOTIATION_TIMEOUT_MS}ms",
+                null,
+            )
+        }
+        val accepted = synchronized(lock) {
+            if (
+                isPeerActiveLocked(runGeneration, attempt, peerToken, activePublisher) &&
+                stateMachine.current() == StreamingState.NEGOTIATING
+            ) {
+                negotiationTimeout?.cancel()
+                negotiationTimeout = handle
+                true
+            } else {
+                false
+            }
+        }
+        if (!accepted) handle.cancel()
     }
 
     private fun publisherListener(
@@ -576,6 +614,8 @@ internal class StreamingCoordinator(
             val notification = synchronized(lock) {
                 if (!isPeerActiveLocked(runGeneration, attempt, peerToken, activePublisher)) return
                 if (stateMachine.current() != StreamingState.NEGOTIATING) return
+                negotiationTimeout?.cancel()
+                negotiationTimeout = null
                 stateMachine.moveTo(StreamingState.STREAMING)
                 hasStreamed = true
                 status = status.copy(
@@ -687,6 +727,8 @@ internal class StreamingCoordinator(
             if (publisher == null && !captureStarted && !peerPending) return
             receiverTimeout?.cancel()
             receiverTimeout = null
+            negotiationTimeout?.cancel()
+            negotiationTimeout = null
             peerGeneration += 1
             val closingPublisher = publisher
             publisher = null
@@ -924,6 +966,8 @@ internal class StreamingCoordinator(
     }
 
     private fun detachAttemptLocked(stopCapture: Boolean): AttemptCleanup {
+        negotiationTimeout?.cancel()
+        negotiationTimeout = null
         val detached = AttemptCleanup(
             publisher = publisher,
             signaling = signaling,
@@ -1039,6 +1083,7 @@ internal class StreamingCoordinator(
 
     private companion object {
         const val RECEIVER_TIMEOUT_MS = 30_000L
+        const val NEGOTIATION_TIMEOUT_MS = 15_000L
         const val MAX_RETRY_COUNT = 3
         val RETRY_DELAYS_MS = longArrayOf(1_000L, 2_000L, 4_000L)
         val ACTIVE_STATES = setOf(

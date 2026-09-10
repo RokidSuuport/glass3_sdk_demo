@@ -28,6 +28,20 @@ function nextJson(socket) {
   });
 }
 
+function waitForClose(socket) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timed out waiting for WebSocket close')), 2_000);
+    socket.once('close', (code, reason) => {
+      clearTimeout(timer);
+      resolve({ code, reason: reason.toString() });
+    });
+    socket.once('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
 test('server exposes health, static content, and returns 404 for an unknown path', async (t) => {
   const publicDir = await mkdtemp(path.join(tmpdir(), 'glass-webrtc-public-'));
   await writeFile(path.join(publicDir, 'index.html'), '<h1>receiver</h1>', 'utf8');
@@ -120,6 +134,37 @@ test('sender and receiver become ready and signaling is relayed only to the peer
   const receiverMessage = nextJson(receiver);
   sender.send(JSON.stringify({ type: 'offer', roomId: 'default', sdp: 'v=0\r\n' }));
   assert.deepEqual(await receiverMessage, { type: 'offer', roomId: 'default', sdp: 'v=0\r\n' });
+});
+
+test('a newer receiver takes over the room and the stale receiver is closed', async (t) => {
+  const publicDir = await mkdtemp(path.join(tmpdir(), 'glass-webrtc-public-'));
+  await writeFile(path.join(publicDir, 'index.html'), 'receiver', 'utf8');
+  const server = createServer({ host: '127.0.0.1', port: 0, publicDir });
+  const address = await server.start();
+  const sender = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+  const staleReceiver = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+  const newerReceiver = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+  t.after(async () => {
+    sender.close();
+    staleReceiver.close();
+    newerReceiver.close();
+    await server.stop();
+    await rm(publicDir, { recursive: true, force: true });
+  });
+
+  await Promise.all([waitForOpen(sender), waitForOpen(staleReceiver), waitForOpen(newerReceiver)]);
+  sender.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'sender' }));
+  staleReceiver.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'receiver' }));
+  await Promise.all([nextJson(sender), nextJson(staleReceiver)]);
+
+  const staleClosed = waitForClose(staleReceiver);
+  const senderReady = nextJson(sender);
+  const receiverReady = nextJson(newerReceiver);
+  newerReceiver.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'receiver' }));
+
+  assert.deepEqual(await staleClosed, { code: 1000, reason: 'replaced by newer receiver' });
+  assert.deepEqual(await senderReady, { type: 'peer-ready', roomId: 'default' });
+  assert.deepEqual(await receiverReady, { type: 'peer-ready', roomId: 'default' });
 });
 
 test('first WebSocket message must be join', async (t) => {

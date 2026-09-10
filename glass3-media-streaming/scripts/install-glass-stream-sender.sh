@@ -30,4 +30,4 @@ adb install -r "$apk"
 adb shell am start -n \
   com.rokid.glass.mediastream.sender/com.rokid.glass.mediastream.sender.HomeActivity
 
-echo "Glass3 Media Streaming 已安装并启动。首次运行请在眼镜上授予相机和录音权限。"
+echo "Glass3 Media Streaming 已安装并启动。"
