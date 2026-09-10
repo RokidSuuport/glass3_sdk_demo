@@ -2,39 +2,21 @@
 
 `GlassMediaCapture` 只负责从 Glass3 获取 NV21 视频帧和 PCM 音频帧，不包含浏览器、信令和 WebRTC。适用于算法输入、录像、识别、私有编码器或客户已有的传输链路。
 
-## 先判断代码放在哪里
+## 在现有源码工程中启用组件
 
-### 与本项目处于同一个 Gradle 工程
-
-直接依赖源码模块，不需要 AAR：
+眼镜应用模块通过下面的源码模块获取原始数据：
 
 ```groovy
 implementation project(':glass3-media-capture')
 ```
 
-如果同一个应用还需要完整 WebRTC 推流，也可以同时写：
+如果同一个应用还需要完整 WebRTC 推流，再加入：
 
 ```groovy
 implementation project(':glass3-media-streaming')
 ```
 
-### 放入客户自己的另一个 Android 工程
-
-外部工程不能复制 `implementation project(模块名)`，因为客户工程没有本仓库的模块。配置交付的 Maven 目录后使用坐标：
-
-```groovy
-repositories {
-    google()
-    mavenCentral()
-    maven { url uri('<MAVEN_REPOSITORY_PATH>') }
-}
-
-dependencies {
-    implementation 'com.rokid.glass:glass3-media-capture:1.0.0'
-}
-```
-
-只获取原始帧时不需要引入 `glass3-media-streaming` 和 WebRTC。完整 Maven 目录会同时保留 POM 和依赖信息，比单独复制 AAR 更不容易漏项。
+上述模块已经包含在项目的 `android` 目录中。建议从完整源码工程开始，在自己的业务页面调用 `GlassMediaCapture`；这样可以直接运行示例、查看实现并按业务调整。只获取原始帧时只使用 `glass3-media-capture`，需要浏览器传输时再使用 `glass3-media-streaming`。
 
 ## 权限与环境
 

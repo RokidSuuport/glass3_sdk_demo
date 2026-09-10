@@ -19,7 +19,7 @@ import com.rokid.glass.mediastream.streaming.StreamingStatusListener
  * 使用 [GlassMediaStreamer] 的完整可运行页面。
  *
  * 客户在同一仓库中可以直接参考本类；复制到另一个 Android 工程时，需要先按文档引入
- * `glass3-media-streaming` AAR/Maven 依赖，而不是复制本仓库的 `project(...)` 配置。
+ * `glass3-media-streaming` 源码组件，并参考本模块的生命周期处理。
  */
 class StreamingActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStreamingBinding

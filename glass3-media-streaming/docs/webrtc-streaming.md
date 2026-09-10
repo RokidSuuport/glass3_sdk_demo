@@ -2,36 +2,16 @@
 
 `GlassMediaStreamer` 是给业务应用的一键入口。它负责 Glass SDK 连接、NV21/PCM 采集、WebSocket 信令、WebRTC 协商、有限重连、状态统计和资源释放。
 
-## 先判断代码放在哪里
+## 在现有源码工程中启用组件
 
-### 与本项目处于同一个 Gradle 工程
-
-直接依赖源码模块，不需要 AAR：
+眼镜应用模块使用以下源码组件：
 
 ```groovy
 implementation project(':glass3-media-capture')
 implementation project(':glass3-media-streaming')
 ```
 
-`glass3-media-streaming` 已通过 `api` 依赖采集与传输组件。上面同时列出采集模块，是为了让模块关系一眼可见；业务页面只需使用 `GlassMediaStreamer`。
-
-### 放入客户自己的另一个 Android 工程
-
-外部工程不能复制 `implementation project(模块名)`，因为客户工程里不存在这些 Gradle 子模块。应先把本项目发布出的 Maven 目录放到可访问位置，再配置仓库和坐标：
-
-```groovy
-repositories {
-    google()
-    mavenCentral()
-    maven { url uri('<MAVEN_REPOSITORY_PATH>') }
-}
-
-dependencies {
-    implementation 'com.rokid.glass:glass3-media-streaming:1.0.0'
-}
-```
-
-顶层坐标会传递引入 `glass3-media-capture` 和 `webrtc-transport`，不要重复复制内部源码。若客户只拿到单个 AAR，还必须同时拿到它的传递依赖；建议始终交付完整 Maven 目录。
+这些模块已经包含在项目的 `android` 目录中。`glass3-media-streaming` 统一调用采集与传输组件，业务页面只需要使用 `GlassMediaStreamer`。建议先运行随项目提供的眼镜应用，再参考完整页面把调用接入自己的业务流程。
 
 ## Android 配置
 
@@ -87,4 +67,4 @@ override fun onDestroy() {
 
 ## 混淆与发布
 
-组件随 AAR 提供 consumer rules，通常不需要业务工程额外添加规则。若业务工程启用更激进的全模式优化，应以 release 构建和真机推流作为最终验证，不要只验证 debug 包。
+业务工程启用代码压缩或全模式优化后，应使用 release 构建在 Glass3 真机上验证完整推流，不要只验证 debug 包。

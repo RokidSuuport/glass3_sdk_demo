@@ -7,7 +7,7 @@
 - [ ] 在项目根目录执行 `./scripts/verify-all.sh`，退出码为 0。
 - [ ] Android 四个模块单元测试、lint、debug/release 构建全部成功。
 - [ ] 浏览器接收端 28 项测试全部通过。
-- [ ] 独立外部工程仅用 Maven 坐标编译成功，四个 Kotlin/Java 文档 Activity 均被编译。
+- [ ] `glass-stream-sender` 使用源码组件编译成功，四个 Kotlin/Java 文档 Activity 均通过完整性检查。
 - [ ] `git diff --check` 无空白错误。
 
 ## 二、安装与首次权限
@@ -48,7 +48,7 @@
 ## 六、客户交付包
 
 - [ ] 执行 `./scripts/build-customer-release.sh` 成功。
-- [ ] `dist/glass3-media-streaming-1.0.0/` 包含 debug APK、未签名 release APK、三个 AAR/POM 坐标、接收端、脚本、文档和 `SHA256SUMS`。
+- [ ] `dist/glass3-media-streaming-1.0.0/` 包含 debug APK、未签名 release APK、接收端、脚本、文档和 `SHA256SUMS`。
 - [ ] 包内没有 `node_modules`、Gradle 缓存、构建中间目录、签名文件、密钥、口令和固定客户内网地址。
 - [ ] 在交付目录执行 `shasum -a 256 -c SHA256SUMS` 全部通过。
 - [ ] 未签名 release APK 已明确由客户使用自己的签名流程签名。

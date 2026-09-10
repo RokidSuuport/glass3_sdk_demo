@@ -2,23 +2,14 @@
 
 本页集中列出构建、采集和传输参数。首次体验使用默认值即可，确认链路稳定后再按业务修改。
 
-## 依赖方式
-
-同一仓库源码工程：
+## 源码组件关系
 
 ```groovy
 implementation project(':glass3-media-capture')
 implementation project(':glass3-media-streaming')
 ```
 
-客户外部工程配置 Maven 目录后，按需要选一个坐标：
-
-```groovy
-implementation 'com.rokid.glass:glass3-media-capture:1.0.0'
-implementation 'com.rokid.glass:glass3-media-streaming:1.0.0'
-```
-
-完整推流只声明 `glass3-media-streaming` 即可，它会传递引入采集和 WebRTC 传输依赖。发布目录由 `./scripts/publish-android-components.sh` 生成，外部工程验证由 `./scripts/verify-aar-consumer.sh` 完成。
+只读取 NV21/PCM 时使用采集组件；需要传输到浏览器时使用推流组件。完整示例已经在 `glass-stream-sender` 模块中接好这两层能力，可以直接运行并作为业务页面的实现参考。
 
 ## Android 构建要求
 
@@ -84,6 +75,6 @@ StreamingOptions(
 
 ## 混淆、签名和存储
 
-- AAR 内置 consumer rules，普通 R8/ProGuard 构建无需追加规则。
+- 启用 R8/ProGuard 后，需要使用 release 构建在 Glass3 真机上验证采集和推流链路。
 - 应用签名由客户自己的发布流程管理，本项目不携带签名口令或私钥。
 - 直接推流不落盘。原始媒体页面生成的 JPEG/WAV 仅用于人工验收，应由应用控制保存位置和清理策略。

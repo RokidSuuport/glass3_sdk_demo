@@ -1,7 +1,7 @@
 /*
- * 用途：客户自己的外部 Android 工程通过 AAR/Maven 坐标只获取 Glass3 NV21/PCM；本仓库内可参考。
+ * 用途：在完整源码工程中只获取 Glass3 NV21/PCM；可直接复制页面代码到眼镜业务模块。
  * 放置位置：app/src/main/java/com/rokid/glass/mediastream/guide/java/MediaCaptureActivity.java。
- * 依赖：com.rokid.glass:glass3-media-capture:1.0.0。
+ * 依赖：implementation project(":glass3-media-capture")。
  * Manifest：CAMERA、RECORD_AUDIO；只启用一种媒体时可以只申请对应运行时权限。
  * 服务参数：原始采集不使用信令 URL 和 roomId；需要传浏览器时改用 GlassMediaStreamer。
  * 预期结果：页面持续显示真实 NV21 宽高/帧大小和 PCM 格式/帧大小。

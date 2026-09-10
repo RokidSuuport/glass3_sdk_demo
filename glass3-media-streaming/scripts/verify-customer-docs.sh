@@ -26,13 +26,12 @@ done
 
 for guide in "$docs_dir/webrtc-streaming.md" "$docs_dir/media-capture-integration.md"; do
   rg -q "implementation project\(':glass3-media-capture'\)" "$guide"
-  rg -q '另一个 Android 工程.*不能复制|外部工程.*不能复制' "$guide"
 done
 
-rg -q "com.rokid.glass:glass3-media-streaming:1.0.0" \
-  "$docs_dir/webrtc-streaming.md" "$docs_dir/configuration.md"
-rg -q "com.rokid.glass:glass3-media-capture:1.0.0" \
-  "$docs_dir/media-capture-integration.md" "$docs_dir/configuration.md"
+if rg -n -i 'maven|aar|[.]pom([^a-z]|$)|MAVEN_REPOSITORY_PATH' $customer_files; then
+  echo 'Customer-facing guidance must describe direct use and source components only.' >&2
+  exit 1
+fi
 
 for code in \
   PERMISSION_REQUIRED SDK_NOT_READY SDK_DISCONNECTED CAMERA_IN_USE \

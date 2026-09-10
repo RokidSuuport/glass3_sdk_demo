@@ -1,7 +1,7 @@
 /*
- * 用途：客户自己的外部 Android 工程通过 AAR/Maven 坐标接入完整推流；本仓库内也可作为页面参考。
+ * 用途：在完整源码工程中接入浏览器推流；可直接复制页面代码到眼镜业务模块。
  * 放置位置：app/src/main/java/com/rokid/glass/mediastream/guide/java/StreamingActivity.java。
- * 依赖：com.rokid.glass:glass3-media-streaming:1.0.0。
+ * 依赖：implementation project(":glass3-media-streaming")。
  * Manifest：INTERNET、ACCESS_NETWORK_STATE、CAMERA、RECORD_AUDIO、MODIFY_AUDIO_SETTINGS；
  * 使用 ws 地址时 application 还需 android:usesCleartextTraffic="true"。
  * 必改参数：把 SERVER_URL_HINT 替换为 PC 页面显示的信令地址；按业务修改 ROOM_ID。

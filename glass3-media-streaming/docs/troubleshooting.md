@@ -16,9 +16,9 @@
 | 已连信令但一直等待 | 浏览器未点击开始、房间不一致或已有接收端 | 先启动浏览器接收，核对双方 roomId | `RECEIVER_NOT_READY` | `waiting receiver`、`room`、`receiver` | 双方 roomId、浏览器控制台、信令日志 |
 | 浏览器不出画面且协商失败 | SDP、ICE 或 WebRTC PeerConnection 异常 | 重启双方会话，确认同网可直连 | `WEBRTC_NEGOTIATION_FAILED` | `offer`、`answer`、`ICE`、`PeerConnection` | 双方 SDP、ICE 状态、浏览器 WebRTC 内部页 |
 | 推流后又断开 | Wi-Fi 切换、网络丢失或 WebSocket 关闭 | 恢复网络并等待有限重连，必要时手动重启 | `NETWORK_DISCONNECTED` | `network lost`、`WebSocket closed`、`ICE disconnected` | 网络切换时间、重连次数、两端日志 |
-| 编译提示 `Unresolved reference: GlassMediaStreamer` | 未声明顶层推流坐标或仓库未生效 | 外部工程加入 Maven 仓库和 `glass3-media-streaming` 坐标后刷新依赖 | 构建错误 | `Could not find`、`Unresolved reference` | 模块构建文件、依赖树、仓库目录结构 |
-| 编译提示 `Project with path could not be found` | 把本仓库的 `project(模块名)` 写进了外部工程 | 外部工程改用 `com.rokid.glass` Maven 坐标 | 构建错误 | `Project with path` | settings 文件、模块列表、依赖声明 |
-| 编译提示 Rokid SDK class not found | Glass3 开放 SDK 仓库/依赖未配置或交付不完整 | 检查 Maven 目录和上游 SDK 访问权限，确认传递依赖可解析 | 构建错误 | `ClassNotFoundException`、`Could not resolve com.rokid` | 完整依赖树、Gradle 错误、交付目录清单 |
+| 编译提示 `Unresolved reference: GlassMediaStreamer` | 业务模块未引用 `glass3-media-streaming` 源码组件 | 对照 `glass-stream-sender` 的模块依赖和导入路径补齐配置后重新同步工程 | 构建错误 | `Could not find`、`Unresolved reference` | 模块构建文件、依赖树、导入路径 |
+| 编译提示 `Project with path could not be found` | 源码组件目录缺失，或没有在 settings 文件中注册 | 从完整项目恢复对应模块，并对照项目自带 settings 文件检查模块路径 | 构建错误 | `Project with path` | settings 文件、模块列表、项目目录结构 |
+| 编译提示 Rokid SDK class not found | Glass3 开放 SDK 依赖未解析或当前账号没有访问权限 | 检查项目配置的依赖源、网络和 SDK 访问权限后重新同步 | 构建错误 | `ClassNotFoundException`、`Could not resolve com.rokid` | 完整依赖树、Gradle 错误、SDK 访问权限 |
 
 ## 浏览器有画面但没有声音
 

@@ -1,6 +1,6 @@
 # Glass3 音视频采集与浏览器传输方案
 
-本项目把 Glass3 的摄像头 NV21 原始帧和麦克风 PCM 原始帧交付给 Android 应用，也可以通过 WebRTC 单向传输到 PC 浏览器。它既是可直接运行的完整产品样例，也是可接入客户工程的组件源码和 AAR 交付工程。
+本项目把 Glass3 的摄像头 NV21 原始帧和麦克风 PCM 原始帧交付给 Android 应用，也可以通过 WebRTC 单向传输到 PC 浏览器。客户可以直接运行完整方案，也可以在现有源码工程中复用采集与推流组件。
 
 ## 按你的目标选择入口
 
@@ -30,7 +30,6 @@ android/webrtc-transport          WebRTC 发送与信令组件
 android/glass3-media-streaming    一键推流门面组件
 android/glass-stream-sender       可直接安装的眼镜应用
 web-stream-receiver               PC 信令服务和浏览器接收页面
-verification/aar-consumer         外部工程依赖验证项目
 docs/code                         Kotlin/Java 完整 Activity
 scripts                           启动、构建、验收脚本
 ```
@@ -41,7 +40,7 @@ scripts                           启动、构建、验收脚本
 - JDK 17、Android SDK、ADB；Android 最低版本 29，目标版本 34。
 - Node.js 18 或更高版本。
 - 直接体验时，眼镜和 PC 位于可互访的局域网，PC TCP 8080 端口可访问。
-- 依赖下载和首次构建需要访问已配置的 Maven 与 npm 仓库。
+- 首次构建需要能够访问工程已经配置的 Android 依赖源和 npm 软件源。
 
 ## 文档索引
 
@@ -55,4 +54,4 @@ scripts                           启动、构建、验收脚本
 
 ## 当前交付边界
 
-本项目提供完整源码、可安装应用、浏览器接收端、同仓库模块依赖方式、外部 Maven/AAR 接入方式以及可编译的 Kotlin/Java 示例。它不包含公网 TURN 服务、用户账号体系、多人房间 SFU 和云端媒体存储；这些是生产系统的业务部署能力，不是原始媒体采集的前置条件。
+本项目提供完整源码、可安装应用、浏览器接收端、源码组件以及可编译的 Kotlin/Java 示例。它不包含公网 TURN 服务、用户账号体系、多人房间 SFU 和云端媒体存储；这些是生产系统的业务部署能力，不是原始媒体采集的前置条件。
