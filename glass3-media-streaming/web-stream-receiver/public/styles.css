@@ -87,6 +87,79 @@ h2 { margin: 0; font-size: 17px; }
 .text-button { min-height: 32px; padding: 0 10px; border: 0; background: transparent; color: #7aa8ed; }
 #eventLog { max-height: 180px; overflow: auto; margin: 14px 0 0; padding-left: 24px; color: #8f9db1; font: 13px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; }
 
+@media (min-width: 1000px) and (min-height: 600px) {
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(380px, 0.9fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "hero hero"
+      "viewer toolbar"
+      "viewer connection"
+      "viewer metrics"
+      "viewer events";
+    gap: 10px 14px;
+    width: min(1240px, calc(100% - 32px));
+    height: 100vh;
+    padding: 16px 0;
+  }
+
+  .hero {
+    grid-area: hero;
+    align-items: center;
+    margin: 0;
+  }
+  .eyebrow { margin-bottom: 4px; font-size: 10px; }
+  h1 { font-size: clamp(26px, 3vw, 34px); }
+  .subtitle { margin-top: 4px; font-size: 13px; }
+  .status { margin-top: 0; padding: 6px 11px; font-size: 12px; }
+
+  .toolbar {
+    grid-area: toolbar;
+    gap: 6px;
+    margin: 0;
+    padding: 9px;
+    border-radius: 14px;
+  }
+  .toolbar button { min-height: 34px; padding: 0 12px; border-radius: 9px; font-size: 13px; }
+
+  .connection-card {
+    grid-area: connection;
+    gap: 6px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+  .connection-row { grid-template-columns: 132px minmax(0, 1fr); gap: 8px; }
+  .connection-row span { font-size: 11px; }
+  .connection-row code { font-size: 12px; }
+  .connection-card p { margin: 0; font-size: 11px; line-height: 1.45; }
+
+  .viewer-card { grid-area: viewer; align-self: start; border-radius: 16px; }
+  .video-stage { min-height: 0; }
+
+  .metrics {
+    grid-area: metrics;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin: 0;
+  }
+  .metrics article { min-height: 61px; padding: 9px 10px; border-radius: 12px; }
+  .metrics span { margin-bottom: 4px; font-size: 11px; }
+  .metrics strong { font-size: 16px; }
+
+  .events-card {
+    grid-area: events;
+    min-height: 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  h2 { font-size: 14px; }
+  .text-button { min-height: 26px; font-size: 12px; }
+  #eventLog { max-height: 72px; margin-top: 5px; padding-left: 18px; font-size: 11px; line-height: 1.45; }
+}
+
 @media (max-width: 900px) {
   .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .connection-row { grid-template-columns: 1fr; gap: 4px; }
