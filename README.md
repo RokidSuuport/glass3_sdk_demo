@@ -21,19 +21,83 @@
 
 ### SDK 方法与源码入口
 
-使用眼镜 SDK `com.rokid.security:glass3.open.sdk`；在线 ASR/TTS 示例另外使用 `com.rokid.security.sdk:online-speech`。下表列出本仓库实际调用的方法，便于按功能查找用例。
+使用眼镜 SDK `com.rokid.security:glass3.open.sdk`；在线 ASR/TTS 示例另外使用 `com.rokid.security.sdk:online-speech`。以下按功能列出本仓库实际调用的方法，源码链接放在各用例下方。
 
-| 功能 | SDK 入口及关键方法 | 示例源码 |
-| --- | --- | --- |
-| 绑定服务、注册客户端 | `GlassSdk.isReady()`、`bindSecurityService(...)`、`registerClient(...)`、`release()` | [GlassSdkUtils.kt](glassdemo/app/src/main/java/com/rokid/glass/utils/GlassSdkUtils.kt) |
-| 拍照、录像、录音 | `GlassSdk.getGlassMediaService()` → `addPhotoCallback(...)`、`takePhoto(...)`、`startRecord(...)`、`stopRecord()`、`startAudioRecord(...)`、`stopAudioRecord(...)` | [SdkMediaActivity.kt](glassdemo/app/src/main/java/com/rokid/glass/SdkMediaActivity.kt) |
-| 共享相机 NV21 帧 | `CameraShareHelper.getSupportedPreviewSizes()`、`initNv21ExportWithConfig(...)`、`Nv21Callback.onNv21Frame(...)`、`releaseNv21Export()` | [Nv21ExportFragment.kt](glassdemo/app/src/main/java/com/rokid/glass/camera/Nv21ExportFragment.kt) |
-| 共享相机 Surface | `CameraShareHelper.initSurfaceWithConfig(...)`、`releaseSurface()` | [SurfaceShareFragment.kt](glassdemo/app/src/main/java/com/rokid/glass/camera/SurfaceShareFragment.kt) |
-| 蓝牙/P2P 消息与文件 | `GlassSdk.getGlassMessageService()` → `sendTextMessageByClassicBT(...)`、`sendTextMessageByP2P(...)`、`setMessageListener(...)`；文件操作器的 `sendFile(...)` | [发送示例](glassdemo/app/src/main/java/com/rokid/glass/SendMessageActivity.kt)、[接收示例](glassdemo/app/src/main/java/com/rokid/glass/MessageReceiveActivity.kt) |
-| 离线语音指令、设备状态 | `GlassSdk.getGlassOfflineCmdService()?.add(VoiceAction(...))`；`getGlassDeviceService()` 的 `serialNumber`、`deviceStatusInfo` | [HomeActivity.kt](glassdemo/app/src/main/java/com/rokid/glass/HomeActivity.kt) |
-| 在线 ASR/TTS | `OnlineSpeechSdk(OnlineSpeechSdkConfig(...))` → `createAsrClient().attachAudioSource(...)` / `createTtsClient().attachStreamPlayer(...)`；连接后使用 `startAsrWithMic()`、`stopAsrWithMic()`、`speak(...)`，结束时 `stop()` / `close()` | [PrivateSpeechActivity.kt](glassdemo/app/src/main/java/com/rokid/glass/speech/private/PrivateSpeechActivity.kt) |
+#### 绑定服务、注册客户端
 
-眼镜端的基本顺序是：`bindSecurityService` → `onServiceConnected` → `registerClient` → `IClientCallback.onReady` → 使用 SDK 功能。绑定调用返回不代表客户端已经就绪；对应监听注册和释放方式请参考上述源码。在线语音的 AK/SK 属于语音服务配置，不要与客户端名称混淆。
+- `GlassSdk.isReady()`
+- `bindSecurityService(...)`
+- `registerClient(...)`
+- `release()`
+
+源码：[GlassSdkUtils.kt](glassdemo/app/src/main/java/com/rokid/glass/utils/GlassSdkUtils.kt)
+
+#### 拍照、录像、录音
+
+- `GlassSdk.getGlassMediaService()` →<br>  `addPhotoCallback(...)`
+- `takePhoto(...)`
+- `startRecord(...)`
+- `stopRecord()`
+- `startAudioRecord(...)`
+- `stopAudioRecord(...)`
+
+源码：[SdkMediaActivity.kt](glassdemo/app/src/main/java/com/rokid/glass/SdkMediaActivity.kt)
+
+#### 共享相机 NV21 帧
+
+- `CameraShareHelper.getSupportedPreviewSizes()`
+- `initNv21ExportWithConfig(...)`
+- `Nv21Callback.onNv21Frame(...)`
+- `releaseNv21Export()`
+
+源码：[Nv21ExportFragment.kt](glassdemo/app/src/main/java/com/rokid/glass/camera/Nv21ExportFragment.kt)
+
+#### 共享相机 Surface
+
+- `CameraShareHelper.initSurfaceWithConfig(...)`
+- `releaseSurface()`
+
+源码：[SurfaceShareFragment.kt](glassdemo/app/src/main/java/com/rokid/glass/camera/SurfaceShareFragment.kt)
+
+#### 蓝牙/P2P 消息与文件
+
+- `GlassSdk.getGlassMessageService()` →<br>  `sendTextMessageByClassicBT(...)`
+- `sendTextMessageByP2P(...)`
+- `setMessageListener(...)`
+- 文件操作器的 `sendFile(...)`
+
+源码：[发送示例](glassdemo/app/src/main/java/com/rokid/glass/SendMessageActivity.kt)、[接收示例](glassdemo/app/src/main/java/com/rokid/glass/MessageReceiveActivity.kt)
+
+#### 离线语音指令、设备状态
+
+- `GlassSdk.getGlassOfflineCmdService()` →<br>  `add(VoiceAction(...))`
+- `getGlassDeviceService()`：读取 `serialNumber`、`deviceStatusInfo`
+
+源码：[HomeActivity.kt](glassdemo/app/src/main/java/com/rokid/glass/HomeActivity.kt)
+
+#### 在线 ASR/TTS
+
+- `OnlineSpeechSdk(OnlineSpeechSdkConfig(...))` →<br>  `createAsrClient()` →<br>  `attachAudioSource(...)`
+- `createTtsClient()` →<br>  `attachStreamPlayer(...)`
+- 连接后使用 `startAsrWithMic()`
+- `stopAsrWithMic()`
+- `speak(...)`，结束时 `stop()` / `close()`
+
+源码：[PrivateSpeechActivity.kt](glassdemo/app/src/main/java/com/rokid/glass/speech/private/PrivateSpeechActivity.kt)
+
+眼镜端的基本顺序：
+
+```text
+bindSecurityService
+  → onServiceConnected
+  → registerClient
+  → IClientCallback.onReady
+  → 使用 SDK 功能
+```
+
+绑定调用返回不代表客户端已经就绪；对应监听注册和释放方式请参考上述源码。
+
+在线语音的 AK/SK 属于语音服务配置，不要与客户端名称混淆。
 
 ## 手机端 Demo · glass3sdkphonedemo
 
@@ -50,18 +114,75 @@
 
 使用手机 SDK `com.rokid.security:phone.sdk`，通过 `PSecuritySDK` 获取各项服务。
 
-| 功能 | SDK 入口及关键方法 | 示例源码 |
-| --- | --- | --- |
-| 初始化手机 SDK | `PSecuritySDK.getMobileEngineService().initSDK(EngineParam(...), ...)` | [MainPhoneActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/ui/MainPhoneActivity.kt) |
-| 蓝牙连接 | `getClassicBlueToothClientService()` → `addClientListener(...)`、`connectToServer(...)`、`removeClientListener(...)` | [DeviceLinkerManager.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/DeviceLinkerManager.kt) |
-| Wi-Fi P2P 连接 | `getWifiP2PClientService()` → `initialize(...)`、`startDiscoverPeers(...)`、`connectDevice(...)`、`stopPeerDiscovery()` | [DeviceLinkerManager.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/DeviceLinkerManager.kt) |
-| 文本消息 | `getMessageService()` → `sendTextMessageByClassicBT(...)`、`sendTextMessageByP2P(...)`、`addMessageListener(...)`、`removeMessageListener(...)` | [发送示例](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/SendMessageActivity.kt)、[接收示例](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/MessageReceiveActivity.kt) |
-| 文件传输与相册接收 | `getMessageService().getFileOperater()` / `getBtFileOperater()` → `sendFile(...)`、`addFileReceiveV2Listener(...)`、`removeFileReceiveV2Listener(...)` | [SendMessageActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/SendMessageActivity.kt)、[GalleryActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/GalleryActivity.kt) |
-| 实时音视频接收 | `getAbsDeviceInfoService()` → `requestVideoStream(...)`、`requestAudioStream(...)`、`stopVideoStream(...)`、`stopAudioStream(...)`；`IMessageListener` 回调 `onNv21Data(...)`、`onVideoH264Stream(...)`、`onAudioStream(...)` | [VideoReceiveActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/VideoReceiveActivity.kt) |
-| 视频解码模式切换 | `getWifiP2PClientService()?.setAutoDecodeH264ToNv21(...)`：选择 SDK 自动输出 NV21，或由 Demo 处理 H.264 预览 | [VideoReceiveActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/VideoReceiveActivity.kt) |
-| 手机通知发送到眼镜 | `getAbsNotificationService()?.sendNotification(...)` | [MessageNotificationListenerService.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/notification/service/MessageNotificationListenerService.kt) |
+#### 初始化手机 SDK
 
-接入时先完成手机 SDK 初始化和所需连接，再发送消息或请求媒体流。消息目标客户端 ID 需要与眼镜端注册名称对应：原眼镜 Demo 注册的是 `GlassSample`，手机发送示例也使用该名称。停止预览时结束音视频流，并移除已注册的监听。
+- `PSecuritySDK.getMobileEngineService()` →<br>  `initSDK(EngineParam(...), ...)`
+
+源码：[MainPhoneActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/ui/MainPhoneActivity.kt)
+
+#### 蓝牙连接
+
+- `getClassicBlueToothClientService()` →<br>  `addClientListener(...)`
+- `connectToServer(...)`
+- `removeClientListener(...)`
+
+源码：[DeviceLinkerManager.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/DeviceLinkerManager.kt)
+
+#### Wi-Fi P2P 连接
+
+- `getWifiP2PClientService()` →<br>  `initialize(...)`
+- `startDiscoverPeers(...)`
+- `connectDevice(...)`
+- `stopPeerDiscovery()`
+
+源码：[DeviceLinkerManager.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/DeviceLinkerManager.kt)
+
+#### 文本消息
+
+- `getMessageService()` →<br>  `sendTextMessageByClassicBT(...)`
+- `sendTextMessageByP2P(...)`
+- `addMessageListener(...)`
+- `removeMessageListener(...)`
+
+源码：[发送示例](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/SendMessageActivity.kt)、[接收示例](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/MessageReceiveActivity.kt)
+
+#### 文件传输与相册接收
+
+- `getMessageService()` →<br>  `getFileOperater()` / `getBtFileOperater()` →<br>  `sendFile(...)`
+- `addFileReceiveV2Listener(...)`
+- `removeFileReceiveV2Listener(...)`
+
+源码：[文件发送](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/SendMessageActivity.kt)、[相册接收](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/GalleryActivity.kt)
+
+#### 实时音视频接收
+
+- `getAbsDeviceInfoService()` →<br>  `requestVideoStream(...)`
+- `requestAudioStream(...)`
+- `stopVideoStream(...)`
+- `stopAudioStream(...)`
+- `IMessageListener` 回调：<br>  `onNv21Data(...)`<br>  `onVideoH264Stream(...)`<br>  `onAudioStream(...)`
+
+源码：[VideoReceiveActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/VideoReceiveActivity.kt)
+
+#### 视频解码模式切换
+
+- `getWifiP2PClientService()` →<br>  `setAutoDecodeH264ToNv21(...)`
+
+选择 SDK 自动输出 NV21，或由 Demo 处理 H.264 预览。
+
+源码：[VideoReceiveActivity.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/VideoReceiveActivity.kt)
+
+#### 手机通知发送到眼镜
+
+- `getAbsNotificationService()` →<br>  `sendNotification(...)`
+
+源码：[MessageNotificationListenerService.kt](glass3sdkphonedemo/app/src/main/java/com/rokid/phone/notification/service/MessageNotificationListenerService.kt)
+
+接入时先完成手机 SDK 初始化和所需连接，再发送消息或请求媒体流。
+
+消息目标客户端 ID 需要与眼镜端注册名称对应：原眼镜 Demo 注册的是 `GlassSample`，手机发送示例也使用该名称。
+
+停止预览时结束音视频流，并移除已注册的监听。
 
 ## 行业场景 Demo · 隐患识别
 
@@ -85,21 +206,68 @@
 
 本工程只使用眼镜 SDK 的服务连接、客户端注册和共享相机 NV21 能力。完整入口见 [InspectionActivity.kt](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/InspectionActivity.kt)。
 
-| 调用阶段 | SDK 方法或回调 | 本 Demo 的用法 |
-| --- | --- | --- |
-| 判断 SDK 是否就绪 | `GlassSdk.isReady()` | 已就绪时进入客户端注册；否则先绑定服务。 |
-| 绑定眼镜系统服务 | `GlassSdk.bindSecurityService(applicationContext, callback)` | 在 `IServiceConnectionCallback.onServiceConnected()` 中继续初始化。 |
-| 注册业务客户端 | `GlassSdk.registerClient("HazardRecognition", callback)` | 收到 `IClientCallback.onReady()` 后才启动取帧；字符串是客户端名称，不是 AK/SK。 |
-| 查询可用预览尺寸 | `CameraShareHelper().getSupportedPreviewSizes()` | 选择不超过 1280×720 的可用纯 NV21 尺寸。 |
-| 启动 NV21 输出 | `initNv21ExportWithConfig(false, CameraShareConfig(...), callback)` | `false` 使用纯相机画面；请求 15 FPS，由应用另行筛选待分析帧。 |
-| 接收画面和状态 | `Nv21Callback.onNv21Frame(...)`、`onCameraOpened(...)`、`onCameraClosed()`、`onError(...)` | 每帧先复制缓冲区，再交给预览及后续编码；关闭和错误通过状态提示处理。 |
-| 停止取帧、释放 SDK | `CameraShareHelper.releaseNv21Export()`、`GlassSdk.release()` | 退出前台停止 NV21 输出，页面销毁时释放 SDK，并处理迟到的连接回调。 |
+#### 1. 判断 SDK 是否就绪
 
-**SDK 与业务代码的分工：** SDK 提供现场画面；[FrameQueue](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/FrameQueue.kt) 和 [HazardLedger](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/HazardLedger.kt) 负责本地去重，[InspectionClient](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/InspectionClient.kt) 使用 OkHttp 请求视觉模型，[RegulationCatalog](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/RegulationCatalog.kt) 提供法规映射，[HazardTableView](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/HazardTableView.kt) 负责结果展示。这些业务能力均由 Demo 实现。
+`GlassSdk.isReady()`
 
-本例通过眼镜系统服务接收共享帧，应用不声明或申请相机权限，也未调用 ASR/TTS。DeepSeek API Key 仅用于视觉模型请求。需要复制接入流程时，见[隐患识别 SDK 接入用例](industry/hazard-recognition/README.md#sdk-接入用例)。
+已就绪时进入客户端注册；否则先绑定服务。
 
-客户接入自有视觉模型或网关，可参考[大模型接入与客户配置](industry/hazard-recognition/README.md#大模型接入与客户配置)，其中提供通用接口与 DeepSeek 的配置示例、密钥交付说明。正式业务建议由客户在服务端完成去重，见[去重接入建议](industry/hazard-recognition/README.md#客户接入建议在服务端去重)。
+#### 2. 绑定眼镜系统服务
+
+`GlassSdk.bindSecurityService(...)`
+
+在 `IServiceConnectionCallback.onServiceConnected()` 中继续初始化。
+
+#### 3. 注册业务客户端
+
+`GlassSdk.registerClient("HazardRecognition", ...)`
+
+收到 `IClientCallback.onReady()` 后才启动取帧；字符串是客户端名称，不是 AK/SK。
+
+#### 4. 查询可用预览尺寸
+
+`CameraShareHelper().getSupportedPreviewSizes()`
+
+选择不超过 1280×720 的可用纯 NV21 尺寸。
+
+#### 5. 启动 NV21 输出
+
+`initNv21ExportWithConfig(false, config, callback)`
+
+`false` 使用纯相机画面；请求 15 FPS，由应用另行筛选待分析帧。
+
+#### 6. 接收画面和状态
+
+`Nv21Callback.onNv21Frame(...)`<br>
+`onCameraOpened(...)`<br>
+`onCameraClosed()`<br>
+`onError(...)`
+
+每帧先复制缓冲区，再交给预览及后续编码；关闭和错误通过状态提示处理。
+
+#### 7. 停止取帧、释放 SDK
+
+`CameraShareHelper.releaseNv21Export()`<br>
+`GlassSdk.release()`
+
+退出前台停止 NV21 输出，页面销毁时释放 SDK，并处理迟到的连接回调。
+
+**SDK 与业务代码的分工**
+
+SDK 提供现场画面，以下业务能力均由 Demo 实现：
+
+- [FrameQueue](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/FrameQueue.kt) 和 [HazardLedger](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/HazardLedger.kt) 负责本地去重。
+- [InspectionClient](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/InspectionClient.kt) 使用 OkHttp 请求视觉模型。
+- [RegulationCatalog](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/RegulationCatalog.kt) 提供法规映射。
+- [HazardTableView](industry/hazard-recognition/app/src/main/java/com/rokid/industry/hazardrecognition/HazardTableView.kt) 负责结果展示。
+
+本例通过眼镜系统服务接收共享帧，应用不声明或申请相机权限，也未调用 ASR/TTS。DeepSeek API Key 仅用于视觉模型请求。
+
+需要复制接入流程时，见[隐患识别 SDK 接入用例](industry/hazard-recognition/README.md#sdk-接入用例)。
+
+客户接入自有视觉模型或网关，可参考[大模型接入与客户配置](industry/hazard-recognition/README.md#大模型接入与客户配置)，其中提供通用接口与 DeepSeek 的配置示例、密钥交付说明。
+
+正式业务建议由客户在服务端完成去重，见[去重接入建议](industry/hazard-recognition/README.md#客户接入建议在服务端去重)。
 
 ## SDK 文档
 
