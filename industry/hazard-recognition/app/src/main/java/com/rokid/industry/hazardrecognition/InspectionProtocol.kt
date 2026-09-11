@@ -8,7 +8,7 @@ import org.json.JSONObject
 data class ModelConfig(val endpoint: String, val model: String, val apiKey: String) {
     val isDeepSeek: Boolean get() = endpoint.toHttpUrlOrNull()?.host == "api.deepseek.com"
 
-    // 发送前调用 error()；返回 null 表示本地格式检查通过，不表示远端授权或模型能力已验证。
+    // 发送前调用 error()；返回 null 只表示填写格式正确；账号是否可用、模型能否看图还要通过实际请求确认。
     fun error(): String? {
         if (endpoint.isBlank() || model.isBlank() || apiKey.isBlank()) return "请配置模型地址、模型名和 API Key"
         val url = endpoint.toHttpUrlOrNull() ?: return "模型地址无效"
@@ -24,7 +24,7 @@ enum class Risk(val label: String) {
     HAZARD("发现疑似隐患"), CLEAR("本帧未发现明显隐患"), UNKNOWN("无法判断，请复核")
 }
 
-/** frameIndex 从 0 开始，指向本批图片；existingId 是模型建议匹配的旧记录 ID，仍需本地复核。 */
+/** frameIndex 从 0 开始，表示隐患在哪张图中；existingId 是模型建议对应的旧记录编号，本地还会检查是否重复。 */
 data class Hazard(
     val category: String, val target: String, val content: String, val advice: String,
     val frameIndex: Int, val existingId: Int? = null,
@@ -85,7 +85,7 @@ object InspectionProtocol {
                 .put(JSONObject().put("role", "user").put("content", content))).toString()
     }
 
-    /** 用例：传入完整 HTTP 响应和实际图片数。截断、拒绝、矛盾或越界结果均抛错，不展示为成功。 */
+    /** 用例：传入完整 HTTP 响应和实际图片数。回答未完成、模型拒绝回答、状态与隐患列表不一致或图片编号不存在时，按失败处理。 */
     fun parse(body: String, frameCount: Int = 1): InspectionResult {
         try {
             val choice = JSONObject(body).getJSONArray("choices").getJSONObject(0)

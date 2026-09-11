@@ -11,7 +11,7 @@ import javax.microedition.khronos.opengles.GL10
 
 /**
  * 用例：XML 放置本控件，相机回调调用 submit(已复制的帧)，停止相机时调用 submit(null)。
- * 宿主 Activity 需转发 onResume/onPause。预览始终取最新帧，不积压历史帧。
+ * Activity 进入、离开前台时分别调用本控件的 onResume()/onPause()；预览只显示最新帧。
  */
 class Nv21PreviewView(context: Context, attrs: AttributeSet? = null) : GLSurfaceView(context, attrs) {
     @Volatile private var frame: Nv21Frame? = null
@@ -23,7 +23,7 @@ class Nv21PreviewView(context: Context, attrs: AttributeSet? = null) : GLSurface
         renderMode = RENDERMODE_WHEN_DIRTY // 新帧到达才请求绘制，避免静止时持续空转。
     }
 
-    // 可从相机回调线程提交；只交换帧引用，所有 OpenGL 操作仍在 GL 渲染线程执行。
+    // 可从相机回调线程提交；只交换帧引用，真正的 OpenGL 绘制在控件自己的绘图线程执行。
     fun submit(value: Nv21Frame?) {
         frame = value
         requestRender()
@@ -40,7 +40,7 @@ class Nv21PreviewView(context: Context, attrs: AttributeSet? = null) : GLSurface
             .apply { put(floatArrayOf(0f, 1f, 1f, 1f, 0f, 0f, 1f, 0f)); position(0) }
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            // 用例：GL 上下文丢失后会重新进入这里，着色器和纹理 ID 必须重新创建。
+            // 用例：页面恢复后可能重新进入这里，需要重新创建绘图程序和存放图像的纹理。
             val vertex = shader(GL_VERTEX_SHADER, """
                 attribute vec2 position; attribute vec2 coordinate;
                 varying vec2 uv;

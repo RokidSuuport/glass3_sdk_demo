@@ -4,8 +4,8 @@ data class KnownHazard(val id: Int, val category: String, val target: String, va
 data class HazardRecord(val id: Int, var hazard: Hazard, var lastSeen: Long, var signature: FrameSignature)
 
 /**
- * 用例：请求前 known() 提供去重上下文；返回后 merge(隐患, 原批次) 得到本轮新增条数。
- * 此缓存只存在内存、最多 30 条；不作为持久化业务记录，也不用于界面的历史列表。
+ * 用例：请求前用 known() 提供已发现的隐患摘要；收到结果后用 merge() 合并重复项，并返回新增条数。
+ * 最多在内存中保留 30 条，重启进程后清空；它不是数据库，也不用于展示历史列表。
  */
 class HazardLedger {
     private val records = mutableListOf<HazardRecord>()
@@ -47,7 +47,7 @@ class HazardLedger {
         for ((left, right) in listOf("左" to "右", "前" to "后")) {
             if ((left in x && right in y) || (right in x && left in y)) return false
         }
-        // 用连续双字片段计算重合度，兼容轻微措辞变化；这是近似规则，不等同于语义模型。
+        // 比较文字中连续两个字的重复比例，容忍轻微措辞差异；这只是简单规则，不理解文字含义。
         val xs = x.windowed(2).toSet(); val ys = y.windowed(2).toSet()
         return xs.isNotEmpty() && ys.isNotEmpty() && 2.0 * xs.intersect(ys).size / (xs.size + ys.size) >= 0.65
     }

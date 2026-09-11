@@ -22,7 +22,7 @@ import java.util.Locale
  * 用例入口：打开眼镜应用，即可预览现场并通过 Wi-Fi 识别消防隐患。
  * 阅读顺序：startSession → connectSdk → startCamera → inspect → expireResult。
  * 本 Demo 仅使用 SDK 的服务绑定、客户端注册和 NV21 相机能力；未传入 Rokid AK/SK，
- * 也未接入 ASR/TTS。模型鉴权使用独立的 ModelConfig，不属于 SDK 初始化参数。
+ * 也未接入 ASR/TTS。调用大模型所需的地址和密钥放在 ModelConfig 中，不是 SDK 初始化参数。
  */
 class InspectionActivity : Activity() {
     private lateinit var preview: Nv21PreviewView
@@ -31,7 +31,7 @@ class InspectionActivity : Activity() {
     private lateinit var detail: TextView
     private lateinit var table: HazardTableView
     private val frames = FrameQueue()
-    private val ledger = HazardLedger() // 用例：缓存仅辅助去重，不能拿来当界面历史列表。
+    private val ledger = HazardLedger() // 用例：只保存用于判断重复的隐患摘要；页面不显示历史列表。
     private var latestResult: InspectionResult? = null
     private var latestResultTime: String? = null
     private var resultExpiresAt = 0L
@@ -54,7 +54,7 @@ class InspectionActivity : Activity() {
     private var failures = 0
     private var auto = true
     private val frameLock = Any()
-    // 相机回调可能晚于页面退出到达；每次会话递增编号，旧回调不能覆盖新页面。
+    // 停止取帧时增加 session 编号；迟到的旧回调会被忽略，避免更新已退出的页面。
     @Volatile private var session = 0
     @Volatile private var latest: Nv21Frame? = null
 
@@ -73,13 +73,13 @@ class InspectionActivity : Activity() {
         resumed = true
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         preview.onResume()
-        expireResult() // 用例：切回应用时先清除过期结果，不重新赠送 10 秒显示时间。
+        expireResult() // 用例：回到前台先清除过期结果，不重新计算旧结果的显示时长。
         // 用例：通过眼镜系统服务接收共享 NV21 帧，本应用不直接打开 Android Camera。
         // 进入前台即可绑定 SDK，不在应用侧申请 CAMERA 运行时权限。
         startSession()
     }
 
-    /** 用例 1：进入前台后启动 SDK 会话。所有队列操作和 UI 更新都在主线程执行。 */
+    /** 用例 1：进入前台后启动 SDK 会话。帧队列和界面都由主线程更新，避免多个线程同时修改。 */
     private fun startSession() {
         if (!resumed || running) return
         running = true
@@ -139,8 +139,9 @@ class InspectionActivity : Activity() {
 
     private fun connectSdk() {
         // 用例 2：先绑定眼镜服务，再注册客户端，不能在 bind 返回时就打开相机。
-        // 本 Demo 跨页面暂停保留绑定；SDK 无法可靠解除尚未连接完成的绑定，
-        // 因此统一在销毁时释放，并处理销毁后才到达的连接回调。
+        // 页面暂停时只停止取帧，保留 SDK 连接。此版本 SDK 只会解绑已连接的服务，
+        // 所以页面销毁时若还未连接，等连接回调到达后再释放。
+        // isReady() 仅表示服务已经连接；仍需注册客户端并等待 onReady()。
         if (GlassSdk.isReady()) {
             registerCameraClient()
             return
@@ -181,21 +182,20 @@ class InspectionActivity : Activity() {
         } catch (_: Exception) { fail("眼镜 SDK 注册失败，单击重试") }
     }
 
-    /** 用例 3：查询设备支持的纯 NV21 尺寸，选择不超过 1280×720 的最大尺寸用于预览和截帧。 */
+    /** 用例 3：从 SDK 返回的尺寸中选择适合小窗预览和上传的分辨率，再开启 NV21 输出。 */
     private fun startCamera(token: Int) {
         if (cameraStarted) return
         try {
             val helper = CameraShareHelper()
             camera = helper
-            val size = helper.getSupportedPreviewSizes()
-                .filter { it.first % 2 == 0 && it.second % 2 == 0 &&
-                    it.first in 2..1280 && it.second in 2..720 && !it.third }
-                .maxByOrNull { it.first * it.second }
+            // 返回值依次是宽、高、是否竖屏；第三项不是“是否叠加屏幕”。
+            // 保留 SDK 返回的宽高顺序；纯相机画面由下面的 enableMix=false 决定。
+            val size = PreviewSizeSelector.select(helper.getSupportedPreviewSizes())
             cameraStarted = true
             cameraStartedAt = SystemClock.elapsedRealtime()
             // 15 FPS 为相机请求帧率；实际送入模型的频率由 startSession 中的采样器控制。
             helper.initNv21ExportWithConfig(false, CameraShareConfig(
-                previewWidth = size?.first ?: 1280, previewHeight = size?.second ?: 720,
+                previewWidth = size.first, previewHeight = size.second,
                 previewTargetFps = 15, enableVideoStabilization = false, zoomLevel = 1,
             ), object : CameraShareHelper.Nv21Callback {
                 override fun onCameraOpened(width: Int, height: Int) = Unit
@@ -208,7 +208,7 @@ class InspectionActivity : Activity() {
                     synchronized(frameLock) {
                         if (token != session) return
                         // SDK 可能复用回调缓冲区，必须复制后再交给异步预览、编码和网络任务。
-                        // elapsedRealtime 用于判断过期；currentTimeMillis 仅用于显示采样时间。
+                        // elapsedRealtime 不受系统日期调整影响，用于判断帧是否过期；currentTimeMillis 用于显示时间。
                         val frame = Nv21Frame(nv21.copyOf(), width, height,
                             SystemClock.elapsedRealtime(), System.currentTimeMillis())
                         latest = frame
@@ -221,7 +221,7 @@ class InspectionActivity : Activity() {
         } catch (_: Exception) { fail("相机启动失败，单击重试") }
     }
 
-    /** 用例 4：单击触摸板强制复检。force 绕过相似帧缓存，但仍遵守单请求和错误退避限制。 */
+    /** 用例 4：单击触摸板强制复检。force 允许重新检查相似画面，但仍需等待当前请求完成及失败后的重试间隔。 */
     private fun manualCheck() {
         if (!running) startSession() else {
             val frame = latest
@@ -252,7 +252,7 @@ class InspectionActivity : Activity() {
                 val answer = client.inspect(batch.map { it.frame }, ledger.known())
                 ensureActive()
                 if (token != session) return@launch
-                // 模型返回后先校验会话，再合并内部去重记录；界面始终只展示本次 answer。
+                // 模型返回后先确认页面仍在使用本次相机，再更新去重摘要；界面只展示本次 answer。
                 val added = ledger.merge(answer.hazards, batch)
                 latestResult = answer
                 table.render(answer)
@@ -278,7 +278,7 @@ class InspectionActivity : Activity() {
                 throw e
             } catch (e: Exception) {
                 if (token == session) {
-                    // 连续失败按 2、4、8、16、30 秒退避；成功后归零，避免限流时频繁重试。
+                    // 连续失败后分别等待 2、4、8、16、30 秒再重试；成功后重新计数。
                     failures = (failures + 1).coerceAtMost(5)
                     retryAt = SystemClock.elapsedRealtime() + (2000L shl (failures - 1)).coerceAtMost(30000L)
                     result.text = "识别失败：${e.message ?: "请稍后重试"}"
@@ -290,7 +290,7 @@ class InspectionActivity : Activity() {
         }
     }
 
-    /** 用例：到期只清空展示数据，保留 ledger 中的去重信息，仍能提示隐患已经收录。 */
+    /** 用例：10 秒到期后清空表格，ledger 中的隐患摘要仍保留，供后续识别判断重复。 */
     private fun expireResult() {
         if (latestResult == null || SystemClock.elapsedRealtime() < resultExpiresAt) return
         latestResult = null
@@ -319,7 +319,7 @@ class InspectionActivity : Activity() {
         detail.text = "已保留最近结果"
     }
 
-    /** 用例 7：离开前台时停止相机、取消请求并丢弃待处理帧；保留结果原有有效期。 */
+    /** 用例 7：离开前台时停止取帧、取消请求并清空画面缓存；隐患摘要和结果到期时间保留。 */
     private fun stopSession() {
         running = false
         synchronized(frameLock) {
@@ -338,7 +338,7 @@ class InspectionActivity : Activity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        // 用例：将眼镜按键映射为单击复检、左右翻页；长按交给 onKeyLongPress。
+        // 用例：单击触摸板重新识别，左右滑动翻页；长按在 onKeyLongPress 中处理。
         // 设备系统可能拦截长按，只有实际分发到本 Activity 的事件才会触发暂停/恢复。
         when (keyCode) {
             KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> {

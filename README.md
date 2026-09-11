@@ -2,6 +2,10 @@
 
 面向 Rokid Glass3 的示例应用，包含眼镜端 SDK 能力演示、手机与眼镜协同演示，以及面向实际业务的行业场景应用。
 
+## 示例使用声明
+
+本仓库的各项 Demo、配置和说明仅用于提供代码参考与使用示例，不构成对开发者技术选型或业务实现方式的强制要求。开发者可根据实际需求选择、调整或替换相关实现，并自行完成适配与验证。
+
 ## 工程概览
 
 | 工程 | 运行端 | 主要用途 |
@@ -196,7 +200,7 @@ bindSecurityService
 - **简洁结果展示**：纵向表格展示“隐患内容、法规依据、整改建议”；只显示最近一次结果，10 秒无新结果时清空。
 - **模型接入示例**：通过可配置的 Chat Completions 兼容接口接入视觉模型，包含 DeepSeek 接入示例。
 
-本地 DeepSeek 接入仅用于演示，不提供正式业务的大模型服务或账号密钥。正式项目中的大模型接入和业务功能由客户自行实现和维护。
+本地 DeepSeek 接入仅用于演示，不提供正式业务的大模型服务或账号密钥。正式项目中的大模型接入和业务功能由开发者自行实现和维护。
 
 识别结果和法规参考用于辅助现场复核，不作为自动违法认定。详细流程和代码用例见[隐患识别 Demo 说明](industry/hazard-recognition/README.md)。
 
@@ -228,7 +232,7 @@ bindSecurityService
 
 `CameraShareHelper().getSupportedPreviewSizes()`
 
-选择不超过 1280×720 的可用纯 NV21 尺寸。
+选择长边不超过 1280、短边不超过 720 的可用尺寸，保留 SDK 返回的宽高方向；没有合适选项时使用 SDK 默认尺寸。
 
 #### 5. 启动 NV21 输出
 
@@ -265,9 +269,9 @@ SDK 提供现场画面，以下业务能力均由 Demo 实现：
 
 需要复制接入流程时，见[隐患识别 SDK 接入用例](industry/hazard-recognition/README.md#sdk-接入用例)。
 
-客户接入自有视觉模型或网关，可参考[大模型接入与客户配置](industry/hazard-recognition/README.md#大模型接入与客户配置)，其中提供通用接口与 DeepSeek 的配置示例、密钥交付说明。
+开发者接入自有视觉模型或网关，可参考[大模型接入与开发者配置](industry/hazard-recognition/README.md#大模型接入与开发者配置)，其中提供通用接口与 DeepSeek 的配置示例。
 
-正式业务建议由客户在服务端完成去重，见[去重接入建议](industry/hazard-recognition/README.md#客户接入建议在服务端去重)。
+正式业务建议由开发者在服务端完成去重，见[去重接入建议](industry/hazard-recognition/README.md#开发者接入建议在服务端去重)。
 
 ## SDK 文档
 

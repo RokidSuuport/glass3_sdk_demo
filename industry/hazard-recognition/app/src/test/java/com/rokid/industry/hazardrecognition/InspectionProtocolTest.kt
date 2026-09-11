@@ -59,7 +59,7 @@ class InspectionProtocolTest {
         assertThrows(IllegalArgumentException::class.java) { InspectionProtocol.request("v", emptyList()) }
         assertThrows(IllegalArgumentException::class.java) { InspectionProtocol.request("v", List(4) { "a" }) }
     }
-    // 用例：演示合法 HTTPS 配置，以及空配置、HTTP、异常鉴权字符串的拒绝。
+    // 用例：演示填写正确的 HTTPS 配置可以通过检查；空配置、HTTP 地址和格式错误的密钥会被拒绝。
     @Test fun validatesConfigurationBeforeSendingFrames() {
         assertNull(ModelConfig("https://example.com/v1/chat/completions", "vision", "key").error())
         assertNotNull(ModelConfig("", "", "").error())
@@ -67,7 +67,7 @@ class InspectionProtocolTest {
         assertNotNull(ModelConfig("https://user:password@example.com", "vision", "key").error())
         assertNotNull(ModelConfig("https://example.com", "vision", "key\nInjected: header").error())
     }
-    // 用例：演示 NV21 数据长度、偶数尺寸及 2 秒新鲜度边界。
+    // 用例：演示 NV21 数据长度、偶数尺寸及 收到帧后 2 秒的有效期。
     @Test fun validatesNv21DimensionsAndRejectsOldFrames() {
         assertTrue(Nv21Frame.validSize(12, 4, 2))
         assertFalse(Nv21Frame.validSize(11, 4, 2))

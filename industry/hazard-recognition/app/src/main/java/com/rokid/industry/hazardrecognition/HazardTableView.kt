@@ -12,7 +12,7 @@ import android.widget.TextView
 
 /**
  * 用例：每次成功识别调用 render(answer)，显示“字段名在左、内容在右”的纵向表格。
- * 10 秒到期由 Activity 调用 render(null) 恢复等待态；本控件不管理计时和历史记录。
+ * 10 秒到期由 Activity 调用 render(null) 显示“等待识别结果”；本控件不负责计时或保存历史。
  */
 class HazardTableView(context: Context, attrs: AttributeSet? = null) : LinearLayout(context, attrs) {
     private val rows = LinearLayout(context).apply { orientation = VERTICAL }
@@ -43,7 +43,7 @@ class HazardTableView(context: Context, attrs: AttributeSet? = null) : LinearLay
         scroll.post { scroll.scrollTo(0, 0) }
     }
 
-    // 用例：眼镜左右滑动传 -1 / 1，每次翻动约 2/3 屏，保留部分上下文。
+    // 用例：眼镜左右滑动传 -1 / 1，每次滚动约 2/3 屏，方便接着阅读上一屏的内容。
     fun page(direction: Int) = scroll.smoothScrollBy(0, direction * scroll.height * 2 / 3)
 
     private fun row(values: List<String>): LinearLayout = LinearLayout(context).apply {

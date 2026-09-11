@@ -2,9 +2,9 @@ package com.rokid.industry.hazardrecognition
 
 import kotlin.math.abs
 
-/** 用例：直接从 NV21 抽取 32×18 个区域的 Y/V/U 特征，先在眼镜端筛帧，无需先生成 JPEG/Bitmap。 */
+/** 用例：把 NV21 画面分成 32×18 个小区域，比较亮度和颜色来筛掉相似帧，无需先转成图片。 */
 class FrameSignature private constructor(private val values: IntArray) {
-    // 默认阈值用于上传前去重；loose=true 仅用于隐患合并，还必须结合位置、类别等条件。
+    // 上传前使用较严格的相似度判断；loose=true 放宽要求，供隐患合并时结合位置和类别判断。
     // 这是轻量近似比较，不是物体跟踪；调整阈值时应使用现场移动、光照变化的样本验证。
     fun similar(other: FrameSignature, loose: Boolean = false): Boolean {
         var total = 0L
@@ -50,8 +50,9 @@ data class FrameSample(val frame: Nv21Frame, val signature: FrameSignature)
 enum class FrameOffer { QUEUED, IN_PROGRESS, KNOWN_HAZARD, KNOWN_FRAME, STALE }
 
 /**
- * 用例顺序：offer(最新帧, 单调时钟) → begin(单调时钟) → 请求完成后 complete(...)。
- * 由主线程持有，最多等待三帧且只允许一批请求进行中；更换相机会话时调用 clear()。
+ * 用例顺序：offer() 放入新帧 → begin() 取出一批 → 请求结束后 complete() 更新缓存。
+ * now 均传 SystemClock.elapsedRealtime()，保持与帧的 receivedAt 使用同一种计时方式。
+ * 在主线程使用；最多等待三帧，同一时间只处理一批。停止相机时调用 clear()。
  */
 class FrameQueue {
     private data class CachedFrame(val signature: FrameSignature, val expiresAt: Long, val hasHazard: Boolean)
@@ -61,7 +62,7 @@ class FrameQueue {
     var skipped = 0
         private set
 
-    /** 自动采样使用默认 force=false；用户主动复检使用 force=true，绕过已完成/进行中画面缓存。 */
+    /** 自动识别用 force=false；手动复检用 force=true 允许相似帧入队，仍需等待上一批结束。 */
     fun offer(frame: Nv21Frame, now: Long, force: Boolean = false): FrameOffer {
         if (!frame.isFresh(now)) return FrameOffer.STALE
         val sample = FrameSample(frame, FrameSignature.from(frame))
@@ -88,7 +89,7 @@ class FrameQueue {
         return FrameOffer.QUEUED
     }
 
-    /** 用例：网络空闲时取批次；返回空列表表示已有请求或没有新鲜候选帧，无需发送请求。 */
+    /** 用例：准备上传时取出一批；返回空列表表示还在处理上一批，或没有两秒内的新帧。 */
     fun begin(now: Long): List<FrameSample> {
         if (inFlight.isNotEmpty()) return emptyList()
         pending.removeAll { !it.frame.isFresh(now) }
@@ -97,7 +98,7 @@ class FrameQueue {
         return inFlight
     }
 
-    /** 用例：在请求 finally 中调用；hazardFrameIndices 是成功结果里有隐患的图片编号集合。 */
+    /** 用例：请求结束时在 finally 中调用；hazardFrameIndices 填本批中发现隐患的图片编号，从 0 开始。 */
     fun complete(now: Long, success: Boolean, uncertain: Boolean = false, hazardFrameIndices: Set<Int> = emptySet()) {
         if (success) {
             // 无法判断的画面 3 秒后可重查，明确结果 30 秒后可重查；失败不写缓存。

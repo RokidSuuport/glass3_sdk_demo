@@ -21,22 +21,22 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * 用例：在协程中调用 client.inspect(本批帧, ledger.known())，得到可直接展示的结构化结果。
+ * 用例：在协程中调用 client.inspect(本批帧, ledger.known())，得到包含隐患内容和整改建议的结果。
  * 调用方负责相机生命周期和采样；本类只负责 NV21 编码、HTTPS 请求及响应解析。
  * 页面销毁时调用 close()。这里使用模型 API Key，不调用 Rokid ASR/TTS 接口。
  */
 class InspectionClient(private val config: ModelConfig) {
-    // 禁止自动重定向，避免携带鉴权头跳转到其他地址；失败重试由 Activity 统一退避调度。
+    // 禁止自动重定向，避免携带鉴权头跳转到其他地址；失败后由 Activity 等待一段时间再重试。
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS).readTimeout(45, TimeUnit.SECONDS)
         .callTimeout(60, TimeUnit.SECONDS)
         .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build()
 
-    /** 用例：传入 1～3 张已复制的 NV21 帧。编码和网络工作切到 IO 线程，不阻塞眼镜界面。 */
+    /** 用例：传入 1～3 张已复制的 NV21 帧。图片转换和网络请求在后台执行，不阻塞眼镜界面。 */
     suspend fun inspect(frames: List<Nv21Frame>, known: List<KnownHazard>): InspectionResult = withContext(Dispatchers.IO) {
         require(frames.size in 1..3)
         require(config.error() == null) { config.error().orEmpty() }
-        // 通用图文接口接收 JPEG 图片，并非原始 NV21；此处用 80 品质压缩后转无换行 Base64。
+        // 通用图文接口接收 JPEG 图片，并非原始 NV21；此处用质量参数 80 压缩为 JPEG，再转成接口所需的 Base64 字符串。
         val images = frames.map { frame ->
             val jpeg = ByteArrayOutputStream().use { out ->
                 check(YuvImage(frame.bytes, ImageFormat.NV21, frame.width, frame.height, null)

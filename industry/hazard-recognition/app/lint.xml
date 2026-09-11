@@ -1,6 +1,6 @@
 <lint>
-    <!-- Rokid transitively includes this unused utility. This app never posts notifications.
-         Only ignore this library diagnostic; future notification calls in our code remain checked. -->
+    <!-- SDK 间接引入了此通知工具类，本 Demo 没有调用它。
+         仅忽略这个第三方类的权限提示，应用自己新增的通知代码仍会接受检查。 -->
     <issue id="NotificationPermission">
         <ignore regexp=".*com\.blankj\.utilcode\.util\.NotificationUtils.*" />
     </issue>
