@@ -5,10 +5,17 @@ import org.junit.Test
 
 /** 用例：模拟 SDK 返回不同方向的尺寸，不需要连接眼镜。 */
 class PreviewSizeSelectorTest {
-    // 回归：true 表示竖屏，不能将 SDK 常见的 720×1280 排除，也不能擅自对调宽高。
-    @Test fun portraitSizesKeepTheirSdkOrientation() {
-        assertEquals(720 to 1280, PreviewSizeSelector.select(listOf(
+    // 回归：只有竖向尺寸时沿用 SDK 默认配置，避免横向小窗内出现细长的竖向预览。
+    @Test fun portraitOnlySizesUseSdkDefaults() {
+        assertEquals(0 to 0, PreviewSizeSelector.select(listOf(
             Triple(1080, 1920, true), Triple(480, 640, true), Triple(720, 1280, true),
+        )))
+    }
+
+    // 即使竖向尺寸的像素更多，也优先使用适合本例横向小窗的尺寸。
+    @Test fun landscapeIsPreferredOverLargerPortraitSize() {
+        assertEquals(640 to 480, PreviewSizeSelector.select(listOf(
+            Triple(720, 1280, true), Triple(640, 480, false),
         )))
     }
 

@@ -1,13 +1,14 @@
 package com.rokid.industry.hazardrecognition
 
-/** 用例：选择最多 1280×720 像素的预览尺寸，横屏和竖屏都可以使用。 */
+/** 用例：为左上角的横向预览选择尺寸，最大使用 1280×720。 */
 internal object PreviewSizeSelector {
     fun select(sizes: List<Triple<Int, Int, Boolean>>): Pair<Int, Int> {
-        // SDK 的第三项只说明画面方向，不参与筛选，也不用于交换宽高。
-        // NV21 要求宽高为偶数；限制长短边，减少持续预览和上传时的数据量。
+        // SDK 返回的是显示方向下的宽高，第三项表示是否为竖向画面。
+        // 本例使用横向小窗，因此只选择宽大于高的尺寸；不要直接交换竖向尺寸的宽高。
+        // NV21 要求宽高为偶数；限制尺寸，减少持续预览和上传时的数据量。
         val selected = sizes.filter { (width, height, _) ->
             width >= 2 && height >= 2 && width % 2 == 0 && height % 2 == 0 &&
-                maxOf(width, height) <= 1280 && minOf(width, height) <= 720
+                width > height && width <= 1280 && height <= 720
         }.maxByOrNull { it.first * it.second }
 
         // 没有合适尺寸时使用 SDK 默认值：CameraShareConfig 的宽、高均为 0。
