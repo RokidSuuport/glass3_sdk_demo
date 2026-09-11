@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">隐患识别</string>
+    <string name="live_preview">实时相机预览</string>
+    <string name="connecting_camera">正在连接相机</string>
+    <string name="inspection_result">识别结果</string>
+    <string name="awaiting_check">对准识别区域，等待识别</string>
+    <string name="inspection_note">九小场所 · 最近结果 · 法规依据供复核</string>
+</resources>

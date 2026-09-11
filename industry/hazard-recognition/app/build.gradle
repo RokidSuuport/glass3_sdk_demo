@@ -1,0 +1,50 @@
+import groovy.json.JsonOutput
+
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+// Demo 用法：复制配置示例为 inspection.properties，填写完整接口地址、视觉模型名、API Key。
+// 此文件已被 Git 忽略；真实密钥不要写进本构建脚本或提交到仓库。
+def config = new Properties()
+def configFile = rootProject.file('inspection.properties')
+if (configFile.exists()) configFile.withInputStream { config.load(new InputStreamReader(it, 'UTF-8')) }
+// 1～3 FPS 是本地 NV21 筛选目标，不是云端请求次数；默认 3 FPS 对应约 334ms。
+def sampleFps = config.getProperty('sampleFps', '3').toInteger()
+if (sampleFps < 1 || sampleFps > 3) throw new GradleException('sampleFps must be 1..3')
+
+android {
+    namespace 'com.rokid.industry.hazardrecognition'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.rokid.industry.hazardrecognition'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+        // Demo 在构建时注入配置，修改后需要重新构建安装；Key 会进入 APK，仅用于私有演示。
+        // 正式产品可将模型调用迁移到自有网关；这里不是 Rokid SDK 的 AK/SK 配置。
+        buildConfigField 'String', 'MODEL_ENDPOINT', JsonOutput.toJson(config.getProperty('endpoint', '').trim())
+        buildConfigField 'String', 'MODEL_NAME', JsonOutput.toJson(config.getProperty('model', '').trim())
+        buildConfigField 'String', 'MODEL_API_KEY', JsonOutput.toJson(config.getProperty('apiKey', '').trim())
+        buildConfigField 'long', 'SAMPLE_INTERVAL_MS', "${Math.ceil(1000d / sampleFps).toLong()}L"
+    }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions { jvmTarget = '1.8' }
+    lint { lintConfig = file('lint.xml') }
+    packaging { resources { excludes += '/META-INF/{AL2.0,LGPL2.1}' } }
+}
+
+dependencies {
+    // 眼镜 SDK 提供服务绑定及 NV21 回调；本 Demo 不使用手机 SDK、ASR 或 TTS。
+    implementation 'com.rokid.security:glass3.open.sdk:2.2.0-E'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}

@@ -1,0 +1,19 @@
+// 用例：将当前 hazard-recognition 目录作为独立 Android 工程打开，不需要同时导入原有手机 Demo。
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        // 眼镜 SDK 的 Maven 仓库；开发机首次构建需要能访问该仓库。
+        maven { url 'https://maven.rokid.com/repository/maven-public/' }
+    }
+}
+rootProject.name = 'HazardRecognition'
+include ':app'

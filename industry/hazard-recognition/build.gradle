@@ -1,0 +1,5 @@
+// 独立 Demo 的插件版本入口；与原工程保持一致，升级时需一起核对 AGP/Kotlin/Lint 兼容性。
+plugins {
+    id 'com.android.application' version '8.4.2' apply false
+    id 'org.jetbrains.kotlin.android' version '2.2.0' apply false
+}

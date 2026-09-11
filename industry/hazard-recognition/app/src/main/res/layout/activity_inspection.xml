@@ -1,0 +1,32 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="8dp" android:background="#000000">
+    <!-- 用例：左上角保留 128×72dp 预览，右侧显示名称与识别状态，避免预览占据中央。 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="top">
+        <com.rokid.industry.hazardrecognition.Nv21PreviewView android:id="@+id/preview"
+            android:layout_width="128dp" android:layout_height="72dp"
+            android:contentDescription="@string/live_preview" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical" android:paddingStart="12dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/app_name" android:textColor="#FFFFFF"
+                android:textSize="16sp" android:textStyle="bold" />
+            <TextView android:id="@+id/status" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                android:textColor="#CCCCCC" android:textSize="12sp"
+                android:text="@string/connecting_camera" />
+        </LinearLayout>
+    </LinearLayout>
+    <!-- 最新结果的摘要及采样时间，由 Activity 随新结果替换，10 秒到期后恢复等待态。 -->
+    <TextView android:id="@+id/result" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp" android:textSize="13sp" android:textColor="#FFFFFF"
+        android:text="@string/awaiting_check" />
+    <TextView android:id="@+id/detail" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginBottom="8dp"
+        android:textColor="#AAAAAA" android:textSize="10sp" android:text="@string/inspection_note" />
+    <!-- 剩余空间交给纵向字段表格；具体字段、字号、列宽和翻页逻辑见 HazardTableView。 -->
+    <com.rokid.industry.hazardrecognition.HazardTableView android:id="@+id/hazard_table"
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+</LinearLayout>

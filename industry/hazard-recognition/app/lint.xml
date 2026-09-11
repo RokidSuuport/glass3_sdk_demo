@@ -1,0 +1,7 @@
+<lint>
+    <!-- Rokid transitively includes this unused utility. This app never posts notifications.
+         Only ignore this library diagnostic; future notification calls in our code remain checked. -->
+    <issue id="NotificationPermission">
+        <ignore regexp=".*com\.blankj\.utilcode\.util\.NotificationUtils.*" />
+    </issue>
+</lint>
