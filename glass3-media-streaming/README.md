@@ -4,12 +4,13 @@
 
 ## 按你的目标选择入口
 
-| 目标 | 调用入口 | 从哪里开始 |
+| 目标 | 使用方式 | 从哪里开始 |
 | --- | --- | --- |
-| 只获取视频 / 音频原始流，交给自己的算法、编码器或传输链路 | `GlassMediaCapture` | [原始媒体采集接入](docs/media-capture-integration.md) |
-| 将眼镜画面和声音传到浏览器，或参考完整传输流程 | `GlassMediaStreamer` | [上手运行](docs/getting-started.md)，跑通后看 [完整推流接入](docs/webrtc-streaming.md) |
+| 我想直接运行体验 | 安装眼镜应用、启动 PC 接收页，在浏览器查看实时画面和声音，无需编写接入代码 | [上手运行](docs/getting-started.md) |
+| 我只想获取原始音视频流 | 调用 `GlassMediaCapture` 获取 NV21 视频帧和 PCM 音频帧，交给自己的算法、编码器或传输链路 | [原始媒体采集接入](docs/media-capture-integration.md) |
+| 我想把完整推流接入自己的 App | 调用 `GlassMediaStreamer`，复用采集、信令和 WebRTC 传输流程，将音视频发送到浏览器 | [完整推流接入](docs/webrtc-streaming.md) |
 
-两个入口独立使用：只取流不需要启动 PC 服务。需要接入自己的另一个 Android 工程时，先按 [源码组件接入](docs/source-integration.md) 复制并注册组件，再复制对应的 Kotlin 或 Java 页面。
+后两种目标分别对应两个独立的代码入口；只取流不需要启动 PC 服务。接入自己的 Android 工程时，先按 [源码组件接入](docs/source-integration.md) 复制并注册组件，再复制对应的 Kotlin 或 Java 页面。
 
 ## 数据链路
 
