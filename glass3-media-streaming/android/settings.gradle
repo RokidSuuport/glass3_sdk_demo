@@ -11,7 +11,7 @@ pluginManagement {
         gradlePluginPortal()
         maven { url 'https://maven.aliyun.com/repository/google/' }
         maven { url 'https://maven.aliyun.com/repository/public/' }
-        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+        maven { url 'https://maven.rokid.com/repository/maven-public/' }
     }
 }
 
@@ -22,7 +22,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url 'https://maven.aliyun.com/repository/google/' }
         maven { url 'https://maven.aliyun.com/repository/public/' }
-        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+        maven { url 'https://maven.rokid.com/repository/maven-public/' }
     }
 }
 
