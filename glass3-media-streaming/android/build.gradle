@@ -3,3 +3,11 @@ plugins {
     id 'com.android.library' version '8.10.0' apply false
     id 'org.jetbrains.kotlin.android' version '2.2.0' apply false
 }
+
+// 发布任务属于本工程的维护工具，不是源码组件接入客户工程的前置条件。
+subprojects { component ->
+    component.plugins.withId('com.android.library') {
+        component.apply plugin: 'maven-publish'
+        component.apply from: rootProject.file('customer-publishing.gradle')
+    }
+}

@@ -1,6 +1,6 @@
 package com.rokid.glass.mediastream.transport.webrtc
 
-data class TransportStats(
+data class TransportStats @JvmOverloads constructor(
     val videoBytesSent: Long = 0,
     val audioBytesSent: Long = 0,
     val videoBitrateBps: Long = 0,
@@ -11,6 +11,10 @@ data class TransportStats(
     val roundTripTimeMs: Long = 0,
     val pcmUnderrunBytes: Long = 0,
     val pcmDroppedBytes: Long = 0,
+    val encodedVideoWidth: Int = 0,
+    val encodedVideoHeight: Int = 0,
+    val encodedVideoFps: Double = 0.0,
+    val videoQualityLimitationReason: String = "unknown",
 )
 
 internal data class RawRtcStat(

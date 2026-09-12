@@ -28,15 +28,13 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * 将底层“已完成清理、但仍抛出聚合异常”的行为限制在页面边界内。
+ * 将生命周期请求入队时的同步异常限制在页面边界内。
  *
- * [GlassMediaCapture.stop] 和 [GlassMediaCapture.release] 会尽力释放全部资源，然后把清理阶段的
- * 异常重新抛出，方便集成方发现设备或 SDK 问题。页面不能让该异常导致 Activity 崩溃，因此在此
- * 统一转交给稳定错误展示或 Logcat。
+ * [GlassMediaCapture.stop] 和 [GlassMediaCapture.release] 返回仅表示请求已接收，不表示设备已经
+ * 清理完毕。实际清理结果由状态回调报告；本函数只避免同步请求异常导致 Activity 崩溃。
  */
 internal fun runCaptureCleanup(
     action: () -> Unit,
@@ -72,7 +70,7 @@ class MediaCaptureActivity : AppCompatActivity() {
     private val snapshotWriter by lazy { Nv21SnapshotWriter(applicationContext) }
     private val snapshotExecutor = boundedIoExecutor("Glass3-SnapshotIo", capacity = 1)
     private val recordingExecutor = boundedIoExecutor("Glass3-RecordingIo", capacity = 2)
-    private val captureGeneration = AtomicLong(0L)
+    private val captureCallbacks = CaptureCallbackGate()
     private val hasVideoFrame = AtomicBoolean(false)
     private val latestDbfs = AtomicReference<Double?>(null)
     private val actualPcmFormat = AtomicReference<PcmFormat?>(null)
@@ -153,7 +151,7 @@ class MediaCaptureActivity : AppCompatActivity() {
     override fun onDestroy() {
         destroyed = true
         foreground = false
-        captureGeneration.incrementAndGet()
+        captureCallbacks.invalidate()
         cancelMetricRefresh()
         releasePlayer(nextState = PlaybackState.UNAVAILABLE, render = false)
         activeRecorder.getAndSet(null)?.let(::finalizeRecorderAfterDestroy)
@@ -185,7 +183,7 @@ class MediaCaptureActivity : AppCompatActivity() {
                 onGranted = { startCapture(requestedVideo, requestedAudio) },
                 onDenied = {
                     postCaptureStatus(
-                        generation = captureGeneration.get(),
+                        generation = captureCallbacks.current(),
                         status = CaptureStatus(
                             CaptureState.ERROR,
                             failure = MediaFailureCatalog.forCode(MediaErrorCode.PERMISSION_REQUIRED),
@@ -208,7 +206,7 @@ class MediaCaptureActivity : AppCompatActivity() {
     private fun startCapture(requestedVideo: Boolean, requestedAudio: Boolean) {
         // 权限弹窗可能在页面退到后台后才返回；此时不能偷偷重新占用相机和麦克风。
         if (!foreground || destroyed) return
-        val generation = captureGeneration.incrementAndGet()
+        val generation = captureCallbacks.begin()
         videoSelected = requestedVideo
         audioSelected = requestedAudio
         hasVideoFrame.set(false)
@@ -218,7 +216,7 @@ class MediaCaptureActivity : AppCompatActivity() {
         localMessage = null
 
         val videoListener = VideoFrameListener { frame ->
-            if (destroyed || captureGeneration.get() != generation) return@VideoFrameListener
+            if (destroyed || !captureCallbacks.acceptsFrame(generation)) return@VideoFrameListener
             hasVideoFrame.set(true)
             snapshotState.compareAndSet(SnapshotState.UNAVAILABLE, SnapshotState.READY)
 
@@ -236,7 +234,7 @@ class MediaCaptureActivity : AppCompatActivity() {
         }.takeIf { requestedVideo }
 
         val audioListener = AudioFrameListener { frame ->
-            if (destroyed || captureGeneration.get() != generation) return@AudioFrameListener
+            if (destroyed || !captureCallbacks.acceptsFrame(generation)) return@AudioFrameListener
             latestDbfs.set(AudioLevelMeter.dbfs(frame.data))
             actualPcmFormat.compareAndSet(null, frame.toPcmFormatOrNull())
 
@@ -271,7 +269,7 @@ class MediaCaptureActivity : AppCompatActivity() {
 
     private fun stopCapture() {
         cancelMetricRefresh()
-        captureGeneration.getAndIncrement()
+        captureCallbacks.stop()
         snapshotState.updateAndGet { state ->
             if (state == SnapshotState.PENDING_FRAME || state == SnapshotState.SAVING) {
                 SnapshotState.UNAVAILABLE
@@ -286,7 +284,7 @@ class MediaCaptureActivity : AppCompatActivity() {
         }
         if (!::capture.isInitialized) return
 
-        val cleanupSucceeded = runCaptureCleanup(
+        val stopAccepted = runCaptureCleanup(
             action = capture::stop,
             onFailure = { error ->
                 val failure = captureCleanupFailure(error)
@@ -298,7 +296,9 @@ class MediaCaptureActivity : AppCompatActivity() {
                 }
             },
         )
-        if (cleanupSucceeded && !destroyed) {
+        if (stopAccepted && !destroyed) {
+            // Usually STOPPING here. The same session's later IDLE/ERROR callback
+            // remains accepted, so buttons reopen only after real cleanup ends.
             currentStatus = runCatching { capture.currentStatus() }
                 .getOrDefault(CaptureStatus(CaptureState.IDLE))
             renderCurrentState()
@@ -333,7 +333,7 @@ class MediaCaptureActivity : AppCompatActivity() {
 
     private fun completeSnapshot(generation: Long, file: File?) {
         mainHandler.post {
-            if (destroyed || captureGeneration.get() != generation) return@post
+            if (destroyed || !captureCallbacks.acceptsFrame(generation)) return@post
             if (file == null) {
                 snapshotState.set(SnapshotState.ERROR)
                 localMessage = "保存画面失败，请稍后重试"
@@ -541,7 +541,7 @@ class MediaCaptureActivity : AppCompatActivity() {
 
     private fun postCaptureStatus(generation: Long, status: CaptureStatus) {
         runOnUiThread {
-            if (destroyed || captureGeneration.get() != generation) return@runOnUiThread
+            if (destroyed || !captureCallbacks.acceptsStatus(generation, status.state)) return@runOnUiThread
             currentStatus = status
             renderCurrentState()
             if (status.state == CaptureState.CAPTURING) scheduleMetricRefresh()

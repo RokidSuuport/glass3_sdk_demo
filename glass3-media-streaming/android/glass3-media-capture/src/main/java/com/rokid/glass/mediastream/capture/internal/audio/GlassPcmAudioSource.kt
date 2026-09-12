@@ -19,6 +19,7 @@ internal interface AudioSource {
     fun metrics(): AudioCaptureMetrics
 
     interface Events {
+        val ownsCleanup: Boolean get() = false
         fun onStarted()
         fun onFailure(failure: MediaFailure)
     }
@@ -62,6 +63,7 @@ internal class GlassPcmAudioSource(
     private val notificationDepth = ThreadLocal.withInitial { 0 }
     private val pendingWork = mutableListOf<DeferredWork>()
     private var active = false
+    private var terminalFailure = false
     private var stopping = false
     private var generation = 0L
     private var gatewayStartGeneration: Long? = null
@@ -103,6 +105,7 @@ internal class GlassPcmAudioSource(
                 "Rokid PCM must use $REQUIRED_BITS_PER_SAMPLE-bit samples"
             }
             active = true
+            terminalFailure = false
             generation += 1
             callbackGeneration = generation
             callback = createGatewayCallback(callbackGeneration)
@@ -322,22 +325,21 @@ internal class GlassPcmAudioSource(
         val plan = stateLock.withLock {
             if (!isCurrentLocked(callbackGeneration)) return
             if (expectedWatchdogEpoch != null && watchdogEpoch != expectedWatchdogEpoch) return
-            stopping = true
+            terminalFailure = true
             val currentEvents = events
-            val stopPlan = clearActiveStateLocked()
+            invalidateWatchdogLocked()
+            val stopPlan = StopPlan(checkNotNull(gatewayCallback), drainPendingWorkLocked())
             if (currentEvents != null) inFlightNotifications += 1
             FailurePlan(stopPlan, currentEvents)
         }
 
         plan.stopPlan.pendingWork.forEach(DeferredWork::cancel)
-        gatewayLifecycleLock.withLock {
-            runCatching { audioGateway.stop(plan.stopPlan.callback) }
-        }
-        finishStopping()
-        plan.events?.let { currentEvents ->
-            deliverReservedNotification {
-                currentEvents.onFailure(failure)
+        try {
+            plan.events?.let { currentEvents ->
+                deliverReservedNotification { currentEvents.onFailure(failure) }
             }
+        } finally {
+            if (plan.events?.ownsCleanup != true) stop()
         }
     }
 
@@ -422,7 +424,7 @@ internal class GlassPcmAudioSource(
     }
 
     private fun isCurrentLocked(expectedGeneration: Long): Boolean =
-        active && generation == expectedGeneration
+        active && !terminalFailure && generation == expectedGeneration
 
     private fun failure(
         code: MediaErrorCode,

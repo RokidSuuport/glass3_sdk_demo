@@ -168,7 +168,7 @@ internal class MediaCaptureScreenModel {
         CaptureState.PREPARING -> "正在连接 Glass 媒体服务并等待首个媒体帧。"
         CaptureState.CAPTURING -> "可查看实际格式和音量，也可按需保存画面或录制音频。"
         CaptureState.STOPPING -> "正在停止媒体回调并安全释放本次采集资源。"
-        CaptureState.ERROR -> "资源已清理，请根据错误提示处理后重新开始。"
+        CaptureState.ERROR -> "请根据错误提示处理后重试；组件会先完成资源清理并等待设备恢复。"
         CaptureState.RELEASED -> "当前页面已经释放相机、麦克风和文件资源。"
     }
 

@@ -257,7 +257,7 @@ class GlassPcmAudioSourceTest {
         source.start(AudioCaptureOptions(), listener, events)
 
         source.start(
-            AudioCaptureOptions(channelCount = 2),
+            AudioCaptureOptions(),
             AudioFrameListener { frame -> replacementFrames += frame },
             replacementEvents,
         )

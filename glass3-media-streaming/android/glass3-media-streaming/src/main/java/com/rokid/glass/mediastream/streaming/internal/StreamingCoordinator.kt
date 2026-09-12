@@ -446,7 +446,7 @@ internal class StreamingCoordinator(
 
         try {
             created.prepare(
-                PublishOptions(activeOptions.videoEnabled, activeOptions.audioEnabled),
+                PublishOptions(activeOptions.videoEnabled, activeOptions.audioEnabled, activeOptions.maxVideoBitrateBps),
                 publisherListener(runGeneration, attempt, peerToken, created),
             )
         } catch (error: Throwable) {
@@ -466,7 +466,7 @@ internal class StreamingCoordinator(
 
         try {
             capture.start(
-                CaptureOptions(),
+                CaptureOptions(video = activeOptions.videoCapture),
                 created.takeIf { activeOptions.videoEnabled },
                 created.takeIf { activeOptions.audioEnabled },
                 CaptureStatusListener { captureStatus ->
@@ -710,6 +710,10 @@ internal class StreamingCoordinator(
                     roundTripTimeMs = transport.roundTripTimeMs,
                     pcmUnderrunBytes = transport.pcmUnderrunBytes,
                     pcmDroppedBytes = transport.pcmDroppedBytes,
+                    encodedVideoWidth = transport.encodedVideoWidth,
+                    encodedVideoHeight = transport.encodedVideoHeight,
+                    encodedVideoFps = transport.encodedVideoFps,
+                    videoQualityLimitationReason = transport.videoQualityLimitationReason,
                 ),
             )
             notificationLocked()

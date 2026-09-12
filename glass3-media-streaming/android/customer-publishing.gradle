@@ -1,6 +1,6 @@
-// 三个客户组件共用同一组正式发布坐标和本地交付仓库。
+// 本工程维护用的可选打包验证，独立源码接入不依赖此文件。
 // `from components.release` 会把当前模块的 release AAR 及其依赖关系一起写入 POM，
-// 客户只需声明顶层坐标，无需猜测本工程内部的 project(...) 结构。
+// 客户源码接入路径通过 scripts/verify-source-consumer.sh 另行验证。
 android {
     publishing {
         singleVariant('release')

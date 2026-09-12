@@ -120,7 +120,7 @@ class CaptureCoordinatorTest {
         coordinator.start(CaptureOptions(), videoListener, audioListener, statusListener)
 
         coordinator.start(
-            CaptureOptions(audio = AudioCaptureOptions(channelCount = 2)),
+            CaptureOptions(video = VideoCaptureOptions(width = 640, height = 480)),
             VideoFrameListener { frame -> replacementVideoFrames += frame },
             AudioFrameListener { frame -> replacementAudioFrames += frame },
             CaptureStatusListener { error("replacement status listener must stay unused") },

@@ -31,6 +31,8 @@ test('receiver follows the expected connection path', () => {
   state = reduceReceiverState(state, { type: 'PEER_READY' });
   assert.equal(state.phase, 'connecting');
   state = reduceReceiverState(state, { type: 'ICE_CONNECTED' });
+  assert.equal(state.phase, 'waiting-media');
+  state = reduceReceiverState(state, { type: 'MEDIA_STATUS', video: true, audio: true });
   assert.equal(state.phase, 'streaming');
 });
 
@@ -60,7 +62,7 @@ test('an interrupted peer connection is visible until ICE recovers', () => {
   assert.deepEqual(disconnected, { roomId: 'room-2', phase: 'disconnected', error: '' });
 
   const recovered = reduceReceiverState(disconnected, { type: 'ICE_CONNECTED' });
-  assert.deepEqual(recovered, { roomId: 'room-2', phase: 'streaming', error: '' });
+  assert.deepEqual(recovered, { roomId: 'room-2', phase: 'waiting-media', error: '' });
 });
 
 test('stopping the receiver returns to idle', () => {

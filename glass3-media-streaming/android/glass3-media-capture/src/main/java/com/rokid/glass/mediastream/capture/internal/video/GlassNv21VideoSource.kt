@@ -19,6 +19,8 @@ internal interface VideoSource {
     fun metrics(): VideoCaptureMetrics
 
     interface Events {
+        /** The coordinator owns ordered audio/video/SDK cleanup; standalone sources clean themselves. */
+        val ownsCleanup: Boolean get() = false
         fun onStarted()
         fun onFailure(failure: MediaFailure)
     }
@@ -62,6 +64,7 @@ internal class GlassNv21VideoSource(
     private val notificationDepth = ThreadLocal.withInitial { 0 }
     private val pendingWork = mutableListOf<DeferredWork>()
     private var active = false
+    private var terminalFailure = false
     private var stopping = false
     private var generation = 0L
     private var gatewayStartGeneration: Long? = null
@@ -92,6 +95,7 @@ internal class GlassNv21VideoSource(
         val callbackGeneration = stateLock.withLock {
             check(!active && !stopping) { "Video source is already started or stopping" }
             active = true
+            terminalFailure = false
             generation += 1
             val startedGeneration = generation
             gatewayStartGeneration = startedGeneration
@@ -381,22 +385,21 @@ internal class GlassNv21VideoSource(
         val plan = stateLock.withLock {
             if (!isCurrentLocked(callbackGeneration)) return
             if (expectedWatchdogEpoch != null && watchdogEpoch != expectedWatchdogEpoch) return
-            stopping = true
+            terminalFailure = true
             val currentEvents = events
-            val workToCancel = clearActiveStateLocked()
+            invalidateWatchdogLocked()
+            val workToCancel = drainPendingWorkLocked()
             if (currentEvents != null) inFlightNotifications += 1
             FailurePlan(workToCancel, currentEvents)
         }
 
         plan.pendingWork.forEach(DeferredWork::cancel)
-        gatewayLifecycleLock.withLock {
-            runCatching(cameraGateway::stop)
-        }
-        finishStopping()
-        plan.events?.let { currentEvents ->
-            deliverReservedNotification {
-                currentEvents.onFailure(failure)
+        try {
+            plan.events?.let { currentEvents ->
+                deliverReservedNotification { currentEvents.onFailure(failure) }
             }
+        } finally {
+            if (plan.events?.ownsCleanup != true) stop()
         }
     }
 
@@ -496,7 +499,7 @@ internal class GlassNv21VideoSource(
     }
 
     private fun isCurrentLocked(expectedGeneration: Long): Boolean =
-        active && generation == expectedGeneration
+        active && !terminalFailure && generation == expectedGeneration
 
     private fun expectedNv21ByteCount(width: Int, height: Int): Int? {
         if (width <= 0 || height <= 0 || width % 2 != 0 || height % 2 != 0) return null

@@ -125,6 +125,10 @@ export function createServer({ host = '0.0.0.0', port = 8080, publicDir }) {
           const { peer, replaced } = registry.join(message.roomId, message.role, socket);
           joined = true;
           if (replaced) {
+            // Registry membership is already revoked, so queued messages and the
+            // old socket's eventual close cannot affect the replacement. Tell the
+            // retained peer to discard its old SDP/ICE before starting a new pair.
+            safeSend(peer, { type: 'leave', roomId: message.roomId });
             replaced.close(1000, `replaced by newer ${message.role}`);
           }
           if (peer) {

@@ -23,8 +23,8 @@ data class AudioCaptureOptions @JvmOverloads constructor(
     val bitsPerSample: Int = 16,
 ) {
     init {
-        require(sampleRateHz > 0) { "Audio sample rate must be positive" }
-        require(channelCount in 1..2) { "Audio channel count must be one or two" }
+        require(sampleRateHz == 16_000) { "Glass3 PCM sample rate must be 16000 Hz" }
+        require(channelCount == 1) { "Glass3 PCM must be mono" }
         require(bitsPerSample == 16) { "Audio format must be 16-bit PCM" }
     }
 }

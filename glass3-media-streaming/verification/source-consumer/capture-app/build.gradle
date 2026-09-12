@@ -1,0 +1,15 @@
+dependencies {
+    implementation project(':glass3-media-capture')
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.register('verifyCaptureIsolation') {
+    doLast {
+        def dependencies = configurations.debugRuntimeClasspath.incoming.resolutionResult.allComponents
+        assert !dependencies.any { component ->
+            def name = component.id.displayName
+            name.contains('webrtc-transport') || name.contains('glass3-media-streaming') ||
+                name.contains('io.github.webrtc-sdk')
+        } : '只取流应用不应依赖传输组件或 WebRTC 二进制'
+    }
+}

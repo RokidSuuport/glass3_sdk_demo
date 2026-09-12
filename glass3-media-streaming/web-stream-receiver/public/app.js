@@ -34,6 +34,11 @@ let peerConnection = null;
 let remoteStream = null;
 let pendingCandidates = [];
 let statsTimer = null;
+// The socket can survive several peers (leave/rejoin). Invalidate both socket
+// identity and peer epoch, including promises which cannot actually be cancelled.
+let peerEpoch = 0;
+let media = null;
+const MEDIA_STALE_MS = 3_000;
 const previousBytes = new Map();
 
 const websocketProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -54,7 +59,7 @@ function dispatch(event) {
   elements.status.textContent = stateLabel(state.phase);
   elements.error.hidden = !state.error;
   elements.error.textContent = state.error;
-  elements.start.disabled = ['signaling', 'waiting', 'connecting', 'streaming'].includes(state.phase);
+  elements.start.disabled = !['idle', 'error'].includes(state.phase);
   elements.disconnect.disabled = ['idle', 'error'].includes(state.phase);
 }
 
@@ -73,7 +78,7 @@ function fail(error) {
   const message = recovery ? `${summary} ${recovery}` : summary;
   appendLog(`错误：${message}`);
   dispatch({ type: 'FAILED', message });
-  closePeer();
+  disconnect(false);
 }
 
 function warn(error) {
@@ -86,19 +91,48 @@ function createPeer() {
   if (peerConnection) return peerConnection;
   const pc = new RTCPeerConnection({ iceServers: [] });
   remoteStream = new MediaStream();
+  const stream = remoteStream;
+  const evidence = {
+    videoTrack: false, audioTrack: false, lastVideoAt: null, lastAudioAt: null,
+    counters: new Map(), frameCallback: null, statsPending: false,
+  };
+  media = evidence;
   elements.video.srcObject = remoteStream;
   pc.addTransceiver('video', { direction: 'recvonly' });
   pc.addTransceiver('audio', { direction: 'recvonly' });
   pc.ontrack = ({ track }) => {
-    attachRemoteTrack(elements.video, remoteStream, track);
-    elements.placeholder.hidden = true;
-    elements.audio.disabled = false;
-    elements.fullscreen.disabled = false;
-    elements.video.play().catch(() => appendLog('浏览器阻止了自动播放，请点击“开启声音”'));
+    if (peerConnection !== pc) return;
+    attachRemoteTrack(elements.video, stream, track);
+    evidence[`${track.kind}Track`] = true;
+    renderPlaybackButton(evidence);
+    // ontrack describes a negotiated track, not a decoded frame. Only a browser
+    // presentation callback (or decoded-frame stats fallback) reveals real video.
+    if (track.kind === 'video' && evidence.frameCallback === null && elements.video.requestVideoFrameCallback) {
+      const onFrame = () => {
+        if (peerConnection !== pc) return;
+        evidence.lastVideoAt = performance.now();
+        renderMedia(pc, evidence);
+        evidence.frameCallback = elements.video.requestVideoFrameCallback(onFrame);
+      };
+      evidence.frameCallback = elements.video.requestVideoFrameCallback(onFrame);
+    }
+    track.onended = () => {
+      if (peerConnection !== pc) return;
+      evidence[`${track.kind}Track`] = false;
+      if (track.kind === 'video') evidence.lastVideoAt = null;
+      else evidence.lastAudioAt = null;
+      renderPlaybackButton(evidence);
+      renderMedia(pc, evidence);
+    };
+    elements.video.play().catch(() => {
+      if (peerConnection === pc) {
+        appendLog(`浏览器阻止了自动播放，请点击“${evidence.audioTrack ? '开启声音' : '播放视频'}”`);
+      }
+    });
     appendLog(`收到 ${track.kind} 轨道`);
   };
   pc.onicecandidate = ({ candidate }) => {
-    if (!candidate) return;
+    if (peerConnection !== pc || !candidate) return;
     send({
       type: 'ice-candidate',
       roomId,
@@ -110,33 +144,49 @@ function createPeer() {
     });
   };
   pc.oniceconnectionstatechange = () => {
+    if (peerConnection !== pc) return;
     appendLog(`ICE：${pc.iceConnectionState}`);
     if (['connected', 'completed'].includes(pc.iceConnectionState)) {
       dispatch({ type: 'ICE_CONNECTED' });
-      startStats();
+      renderMedia(pc, evidence);
+      startStats(pc, evidence);
     } else if (['failed'].includes(pc.iceConnectionState)) {
       fail('ICE 连接失败，请确认眼镜和 PC 在同一局域网');
     } else if (['disconnected', 'closed'].includes(pc.iceConnectionState)) {
+      evidence.lastVideoAt = null;
+      evidence.lastAudioAt = null;
       dispatch({ type: 'DISCONNECTED' });
+      elements.placeholder.hidden = false;
+      setPlaceholder('网络连接中断，等待恢复', '请检查眼镜和 PC 的网络连接。');
+      elements.fullscreen.disabled = true;
     }
   };
   peerConnection = pc;
   return pc;
 }
 
-async function handleSignal(message) {
+async function handleSignal(message, expectedSocket, expectedEpoch) {
+  const isCurrent = () => socket === expectedSocket && peerEpoch === expectedEpoch;
+  if (!isCurrent()) return;
   switch (message.type) {
     case 'peer-ready':
       dispatch({ type: 'PEER_READY' });
       appendLog('眼镜已进入房间');
       createPeer();
+      setPlaceholder('正在协商音视频', '连接建立后仍需等待真实媒体数据。');
       break;
     case 'offer': {
       const pc = createPeer();
       await pc.setRemoteDescription({ type: 'offer', sdp: message.sdp });
-      for (const candidate of pendingCandidates.splice(0)) await pc.addIceCandidate(candidate);
+      if (!isCurrent()) return;
+      for (const candidate of pendingCandidates.splice(0)) {
+        await pc.addIceCandidate(candidate);
+        if (!isCurrent()) return;
+      }
       const answer = await pc.createAnswer();
+      if (!isCurrent()) return;
       await pc.setLocalDescription(answer);
+      if (!isCurrent()) return;
       send({ type: 'answer', roomId, sdp: answer.sdp });
       appendLog('已返回 WebRTC Answer');
       break;
@@ -144,7 +194,10 @@ async function handleSignal(message) {
     case 'ice-candidate': {
       const candidate = new RTCIceCandidate(message.candidate);
       const pc = createPeer();
-      if (pc.remoteDescription) await pc.addIceCandidate(candidate);
+      if (pc.remoteDescription) {
+        await pc.addIceCandidate(candidate);
+        if (!isCurrent()) return;
+      }
       else pendingCandidates.push(candidate);
       break;
     }
@@ -172,21 +225,29 @@ function connect() {
   disconnect(false);
   dispatch({ type: 'SIGNALING_CONNECTING' });
   appendLog(`连接 ${signalingUrl}`);
-  socket = new WebSocket(signalingUrl);
-  socket.onopen = () => {
+  const ws = new WebSocket(signalingUrl);
+  socket = ws;
+  ws.onopen = () => {
+    if (socket !== ws) return;
     dispatch({ type: 'SIGNALING_OPEN' });
     send({ type: 'join', roomId, role: 'receiver' });
     appendLog('信令已连接，等待眼镜');
   };
-  socket.onmessage = ({ data }) => {
+  ws.onmessage = ({ data }) => {
+    if (socket !== ws) return;
+    const expectedEpoch = peerEpoch;
+    const failIfCurrent = (error) => {
+      if (socket === ws && peerEpoch === expectedEpoch) fail(error);
+    };
     try {
-      Promise.resolve(handleSignal(JSON.parse(data))).catch(fail);
+      handleSignal(JSON.parse(data), ws, expectedEpoch).catch(failIfCurrent);
     } catch (error) {
-      fail(error);
+      failIfCurrent(error);
     }
   };
-  socket.onerror = () => fail('WEBSOCKET_FAILED');
-  socket.onclose = () => {
+  ws.onerror = () => { if (socket === ws) fail('WEBSOCKET_FAILED'); };
+  ws.onclose = () => {
+    if (socket !== ws) return;
     if (!['idle', 'error'].includes(state.phase)) {
       closePeer();
       dispatch({ type: 'STOPPED' });
@@ -206,9 +267,14 @@ function resetMetrics() {
 }
 
 function closePeer() {
+  peerEpoch += 1;
   clearInterval(statsTimer);
   statsTimer = null;
   pendingCandidates = [];
+  if (media?.frameCallback !== null && media?.frameCallback !== undefined) {
+    elements.video.cancelVideoFrameCallback?.(media.frameCallback);
+  }
+  media = null;
   if (peerConnection) {
     peerConnection.ontrack = null;
     peerConnection.onicecandidate = null;
@@ -216,7 +282,7 @@ function closePeer() {
     peerConnection.close();
     peerConnection = null;
   }
-  remoteStream?.getTracks().forEach((track) => track.stop());
+  remoteStream?.getTracks().forEach((track) => { track.onended = null; track.stop(); });
   remoteStream = null;
   elements.video.srcObject = null;
   elements.video.muted = true;
@@ -224,16 +290,21 @@ function closePeer() {
   elements.audio.disabled = true;
   elements.fullscreen.disabled = true;
   elements.placeholder.hidden = false;
+  setPlaceholder('等待眼镜连接', '先点击“开始接收”，再在眼镜端填写本机局域网地址。');
   resetMetrics();
 }
 
 function disconnect(updateState = true) {
   closePeer();
   if (socket) {
-    socket.onclose = null;
-    if (socket.readyState === WebSocket.OPEN) send({ type: 'leave', roomId });
-    socket.close();
+    const ws = socket;
+    if (ws.readyState === WebSocket.OPEN) send({ type: 'leave', roomId });
     socket = null;
+    ws.onopen = null;
+    ws.onmessage = null;
+    ws.onerror = null;
+    ws.onclose = null;
+    ws.close();
   }
   if (updateState) {
     dispatch({ type: 'STOPPED' });
@@ -255,9 +326,52 @@ function formatRate(bitsPerSecond) {
   return `${Math.round(bitsPerSecond / 1_000)} kbps`;
 }
 
-async function updateStats() {
-  if (!peerConnection) return;
-  const reports = await peerConnection.getStats();
+function setPlaceholder(title, detail) {
+  elements.placeholder.querySelector('strong').textContent = title;
+  elements.placeholder.querySelector('span').textContent = detail;
+}
+
+function renderPlaybackButton(evidence) {
+  // A track can require a user gesture before it ever produces a displayed
+  // frame. Do not gate playback recovery on RTP statistics or decoded video.
+  elements.audio.disabled = !evidence.videoTrack && !evidence.audioTrack;
+  elements.audio.textContent = evidence.audioTrack
+    ? (elements.video.muted ? '开启声音' : '静音') : '播放视频';
+}
+
+function renderMedia(pc, evidence) {
+  if (peerConnection !== pc || !['connected', 'completed'].includes(pc.iceConnectionState)) return;
+  const now = performance.now();
+  const fresh = (at) => at !== null && now - at < MEDIA_STALE_MS;
+  const video = evidence.videoTrack && fresh(evidence.lastVideoAt);
+  const audio = evidence.audioTrack && fresh(evidence.lastAudioAt);
+  dispatch({ type: 'MEDIA_STATUS', video, audio });
+  elements.placeholder.hidden = video;
+  elements.fullscreen.disabled = !video;
+  renderPlaybackButton(evidence);
+  if (audio && !video) {
+    setPlaceholder('正在接收音频', evidence.videoTrack
+      ? '视频尚未出帧或暂时中断，等待画面恢复。'
+      : '眼镜未发送视频轨道；点击“开启声音”收听。');
+  } else if (!video) {
+    setPlaceholder(evidence.lastVideoAt === null ? '连接已建立，等待媒体数据' : '视频暂时中断，等待恢复',
+      '尚未收到可显示的画面或连续音频，请检查眼镜采集状态。');
+  }
+}
+
+async function updateStats(pc, evidence) {
+  if (peerConnection !== pc || evidence.statsPending) return;
+  evidence.statsPending = true;
+  let reports;
+  try {
+    reports = await pc.getStats();
+  } catch (error) {
+    if (peerConnection === pc) appendLog(`统计暂不可用：${error.message ?? error}`);
+    return;
+  } finally {
+    evidence.statsPending = false;
+  }
+  if (peerConnection !== pc) return;
   let lost = 0;
   let rttMs = null;
   reports.forEach((report) => {
@@ -270,8 +384,21 @@ async function updateStats() {
         if (report.frameWidth && report.frameHeight) {
           elements.resolution.textContent = `${report.frameWidth} × ${report.frameHeight}`;
         }
+        // Fallback for browsers without requestVideoFrameCallback: both decoded
+        // frames and a media element with current video data are required.
+        const decoded = Number(report.framesDecoded ?? 0);
+        const previous = evidence.counters.get(report.id) ?? 0;
+        evidence.counters.set(report.id, decoded);
+        if (!elements.video.requestVideoFrameCallback && decoded > previous &&
+            elements.video.readyState >= 2 && elements.video.videoWidth > 0) {
+          evidence.lastVideoAt = performance.now();
+        }
       } else if (kind === 'audio') {
         elements.audioBitrate.textContent = formatRate(bitrate(report));
+        const bytes = Number(report.bytesReceived ?? 0);
+        const previous = evidence.counters.get(report.id) ?? 0;
+        evidence.counters.set(report.id, bytes);
+        if (bytes > previous) evidence.lastAudioAt = performance.now();
       }
     }
     if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
@@ -280,26 +407,40 @@ async function updateStats() {
   });
   elements.packetLoss.textContent = String(lost);
   elements.rtt.textContent = rttMs === null ? '—' : `${Math.round(rttMs)} ms`;
+  renderMedia(pc, evidence);
 }
 
-function startStats() {
+function startStats(pc, evidence) {
   clearInterval(statsTimer);
-  updateStats().catch(fail);
-  statsTimer = setInterval(() => updateStats().catch(fail), 1_000);
+  const poll = () => {
+    renderMedia(pc, evidence);
+    // A statistics promise belongs only to its captured peer. Statistics errors
+    // are diagnostic, not grounds to terminate an otherwise working media path.
+    updateStats(pc, evidence);
+  };
+  poll();
+  statsTimer = setInterval(poll, 1_000);
 }
 
 elements.start.addEventListener('click', connect);
 elements.disconnect.addEventListener('click', () => disconnect(true));
 elements.audio.addEventListener('click', () => {
-  elements.video.muted = !elements.video.muted;
-  elements.audio.textContent = elements.video.muted ? '开启声音' : '静音';
+  const pc = peerConnection;
+  const evidence = media;
+  if (!pc || !evidence) return;
+  if (evidence.audioTrack) elements.video.muted = !elements.video.muted;
+  renderPlaybackButton(evidence);
   elements.video.play().catch((error) => {
+    if (peerConnection !== pc) return;
     elements.video.muted = true;
-    elements.audio.textContent = '开启声音';
+    renderPlaybackButton(evidence);
     warn(error);
   });
 });
-elements.fullscreen.addEventListener('click', () => elements.video.requestFullscreen?.().catch(warn));
+elements.fullscreen.addEventListener('click', () => {
+  const pc = peerConnection;
+  elements.video.requestFullscreen?.().catch((error) => { if (peerConnection === pc) warn(error); });
+});
 elements.clearLog.addEventListener('click', () => elements.eventLog.replaceChildren());
 window.addEventListener('beforeunload', () => disconnect(false));
 

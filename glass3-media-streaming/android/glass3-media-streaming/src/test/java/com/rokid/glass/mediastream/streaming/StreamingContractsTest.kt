@@ -9,6 +9,16 @@ import org.junit.Test
 
 class StreamingContractsTest {
     @Test
+    fun non_positive_video_bitrate_is_rejected_before_starting_resources() {
+        for (bitrate in listOf(0, -1)) {
+            val error = assertThrows(IllegalArgumentException::class.java) {
+                StreamingOptionsValidator.validate(StreamingOptions("ws://example.test/ws", maxVideoBitrateBps = bitrate))
+            }
+            assertTrue(error.message.orEmpty().contains("maxVideoBitrateBps"))
+        }
+    }
+
+    @Test
     fun options_default_to_audio_video_and_the_default_room() {
         val options = StreamingOptions("ws://192.168.1.10:8080/ws")
 

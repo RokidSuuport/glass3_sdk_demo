@@ -27,6 +27,8 @@ val status = streamer.currentStatus()
 | `videoEnabled` | `true` | 是否发送 NV21 视频 |
 | `audioEnabled` | `true` | 是否发送 PCM 音频 |
 | `roomId` | `default` | 与浏览器匹配的房间标识 |
+| `videoCapture` | `VideoCaptureOptions()` | NV21 采集请求，默认 1280 × 720 / 15 FPS |
+| `maxVideoBitrateBps` | `null` | 可选正数编码码率上限；不填写保留默认策略 |
 
 ### StreamingState
 
@@ -34,7 +36,9 @@ val status = streamer.currentStatus()
 
 ### StreamingStats
 
-提供 `videoWidth`、`videoHeight`、`videoFps`、`videoBitrateBps`、`audioBitrateBps`、`packetsLost`、`roundTripTimeMs`、`pcmUnderrunBytes` 和 `pcmDroppedBytes`。统计是运行状态快照，不应作为计费数据。
+`videoWidth`、`videoHeight`、`videoFps` 表示实际采集；`encodedVideoWidth`、`encodedVideoHeight`、`encodedVideoFps` 表示 WebRTC 实际编码输出（尚未获得时为 0）。`videoQualityLimitationReason` 为编码质量限制原因，缺失时为 `unknown`。
+
+还提供 `videoBitrateBps`、`audioBitrateBps`、`packetsLost`、`roundTripTimeMs`、`pcmUnderrunBytes` 和 `pcmDroppedBytes`。采集尺寸不等同于浏览器收到的尺寸。统计是运行状态快照，不应作为计费数据。
 
 ## GlassMediaCapture
 
@@ -53,7 +57,7 @@ val status = capture.currentStatus()
 
 ### CaptureOptions
 
-`video` 是 `VideoCaptureOptions`，默认 1280 × 720、15 FPS；`audio` 是 `AudioCaptureOptions`，默认 16 kHz、单声道、16 bit；`startupTimeoutMs` 默认 12000 ms。这个时间覆盖 Glass3 系统录音器冷启动时可能发生的内部重建，并且仍会在硬件长期无数据时明确失败。
+`video` 是 `VideoCaptureOptions`，默认请求 1280 × 720、15 FPS；`audio` 是 `AudioCaptureOptions`，当前仅接受 16 kHz、单声道、16 bit；`startupTimeoutMs` 默认 12000 ms。SDK 连接阶段也受超时保护，连接后媒体源的启动另有首帧/首包期限，不能把该值当作整个重试流程的总时长。
 
 ### CaptureState
 
@@ -90,4 +94,8 @@ val status = capture.currentStatus()
 
 ## 线程与生命周期约定
 
-状态和媒体回调不保证在主线程，更新 Android UI 必须切换到主线程。`start()`、`stop()` 和 `release()` 由组件串行保护；耗时的 Glass 媒体服务调用在组件专用线程执行，不会要求客户自己创建工作线程。组件还会在一次完整停止后留出 5 秒设备恢复窗口，再开始下一次采集。业务仍应避免多个页面同时控制同一个实例。推荐在页面离开时 `stop()`，最终销毁时 `release()`。
+状态和媒体回调不保证在主线程，更新 Android UI 必须切换到主线程。原始采集与完整传输均由组件串行处理耗时的 Glass SDK 生命周期请求，不要求业务在 UI 线程等待硬件。
+
+`stop()` 返回不代表资源立即释放；`STOPPING` 持续到清理完成，页面应继续接收终态。错误可以先于底层清理通知，`ERROR` 不是硬件已空闲的承诺。再次开始将等待清理与 5 秒恢复窗口，窗口内停止/释放会取消待启动请求；不要多层叠加同样的恢复等待。
+
+推荐在页面离开时 `stop()`，最终销毁时 `release()`。状态处理应很快返回；客户自己的耗时算法、文件写入仍应放到有界工作队列，已启动的业务任务需自行取消。不要由多个页面同时控制同一个实例。

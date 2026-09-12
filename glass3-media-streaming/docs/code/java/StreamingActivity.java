@@ -1,7 +1,7 @@
 /*
  * 用途：在完整源码工程中接入浏览器推流；可直接复制页面代码到眼镜业务模块。
  * 放置位置：app/src/main/java/com/rokid/glass/mediastream/guide/java/StreamingActivity.java。
- * 依赖：implementation project(":glass3-media-streaming")。
+ * 依赖：implementation project(":glass3-media-streaming")；另一个工程先按 source-integration.md 注册组件。
  * Manifest：INTERNET、ACCESS_NETWORK_STATE、CAMERA、RECORD_AUDIO、MODIFY_AUDIO_SETTINGS；
  * 使用 ws 地址时 application 还需 android:usesCleartextTraffic="true"。
  * 必改参数：把 SERVER_URL_HINT 替换为 PC 页面显示的信令地址；按业务修改 ROOM_ID。
@@ -43,6 +43,8 @@ public final class StreamingActivity extends Activity {
     private EditText serverUrlInput;
     private TextView statusView;
     private volatile boolean destroyed;
+    private boolean foreground;
+    private long generation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,7 @@ public final class StreamingActivity extends Activity {
     }
 
     private void requestPermissionsOrStart() {
+        if (!foreground || destroyed) return;
         for (String permission : REQUIRED_PERMISSIONS) {
             if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(REQUIRED_PERMISSIONS, REQUEST_MEDIA);
@@ -87,6 +90,7 @@ public final class StreamingActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode != REQUEST_MEDIA) return;
+        if (!foreground || destroyed) return;
         boolean granted = grantResults.length > 0;
         for (int result : grantResults) granted &= result == PackageManager.PERMISSION_GRANTED;
         if (granted) startStreaming();
@@ -94,15 +98,19 @@ public final class StreamingActivity extends Activity {
     }
 
     private void startStreaming() {
+        if (!foreground || destroyed) return;
+        StreamingState state = streamer.currentStatus().getState();
+        if (state != StreamingState.IDLE && state != StreamingState.ERROR) return;
         String url = serverUrlInput.getText().toString().trim();
         if (url.isEmpty() || url.contains("<") || url.contains(">")) {
             statusView.setText("请输入浏览器接收页显示的完整 ws:// 或 wss:// 信令地址");
             return;
         }
         try {
+            final long token = ++generation;
             StreamingOptions options = new StreamingOptions(url, true, true, ROOM_ID);
             streamer.start(options, status -> runOnUiThread(() -> {
-                if (!destroyed) render(status);
+                if (!destroyed && foreground && token == generation) render(status);
             }));
         } catch (RuntimeException error) {
             showLocalError(error);
@@ -119,8 +127,9 @@ public final class StreamingActivity extends Activity {
         StreamingStats stats = status.getStats();
         String text = String.format(
             Locale.US,
-            "状态：%s\n视频：%d × %d %.1f FPS\n码率：视频 %d bps，音频 %d bps",
+            "状态：%s\n采集：%d × %d %.1f FPS\n编码：%d × %d %.1f FPS\n码率：视频 %d bps，音频 %d bps",
             status.getState(), stats.getVideoWidth(), stats.getVideoHeight(), stats.getVideoFps(),
+            stats.getEncodedVideoWidth(), stats.getEncodedVideoHeight(), stats.getEncodedVideoFps(),
             stats.getVideoBitrateBps(), stats.getAudioBitrateBps()
         );
         statusView.setText(text);
@@ -143,8 +152,16 @@ public final class StreamingActivity extends Activity {
 
     @Override
     protected void onStop() {
+        foreground = false;
         safelyStop();
         super.onStop();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        foreground = true;
+        render(streamer.currentStatus());
     }
 
     @Override

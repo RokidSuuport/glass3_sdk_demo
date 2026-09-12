@@ -3,7 +3,7 @@ set -eu
 
 repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 
-test "$(basename "$repo_dir")" = "glass3-media-streaming"
+# 客户可以重命名工程目录；以下真实模块和应用配置才决定工程身份。
 test -d "$repo_dir/android/glass3-media-capture"
 test -d "$repo_dir/android/webrtc-transport"
 test -d "$repo_dir/android/glass3-media-streaming"

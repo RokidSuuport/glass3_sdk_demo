@@ -1,0 +1,27 @@
+plugins {
+    id 'com.android.application' version '8.10.0' apply false
+    id 'com.android.library' version '8.10.0' apply false
+    id 'org.jetbrains.kotlin.android' version '2.2.0' apply false
+}
+
+// 两个独立应用分别只调用一个入口，Kotlin / Java 页面都参加实际编译。
+configure([project(':capture-app'), project(':streaming-app')]) {
+    apply plugin: 'com.android.application'
+    apply plugin: 'org.jetbrains.kotlin.android'
+    android {
+        namespace "com.rokid.glass.source.${project.name == 'capture-app' ? 'capture' : 'streaming'}"
+        compileSdk 34
+        defaultConfig {
+            minSdk 29
+            targetSdk 34
+            versionCode 1
+            versionName '1.0'
+            ndk { abiFilters 'arm64-v8a' }
+        }
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_17
+            targetCompatibility JavaVersion.VERSION_17
+        }
+        kotlinOptions { jvmTarget = '17' }
+    }
+}

@@ -148,13 +148,19 @@ class StreamingScreenModelTest {
                     roundTripTimeMs = 37,
                     pcmUnderrunBytes = 320,
                     pcmDroppedBytes = 640,
+                    encodedVideoWidth = 640,
+                    encodedVideoHeight = 360,
+                    encodedVideoFps = 12.5,
+                    videoQualityLimitationReason = "bandwidth",
                 ),
             ),
         ).metricsText
 
-        assertTrue(unavailable.contains("视频：--"))
+        assertTrue(unavailable.contains("采集：--"))
+        assertTrue(unavailable.contains("发送：--"))
         assertFalse(unavailable.contains("0 × 0"))
         assertTrue(actual.contains("1280 × 720 @ 14.5 fps"))
+        assertTrue(actual.contains("发送：640 × 360 @ 12.5 fps"))
         assertTrue(actual.contains("1200 kbps"))
         assertTrue(actual.contains("24 kbps"))
         assertTrue(actual.contains("丢包：3"))

@@ -12,6 +12,7 @@ import com.rokid.glass.mediastream.capture.MediaFailureCatalog
 import com.rokid.glass.mediastream.capture.Nv21Frame
 import com.rokid.glass.mediastream.capture.PcmFrame
 import com.rokid.glass.mediastream.capture.VideoCaptureMetrics
+import com.rokid.glass.mediastream.capture.VideoCaptureOptions
 import com.rokid.glass.mediastream.capture.VideoFrameListener
 import com.rokid.glass.mediastream.streaming.StreamingOptions
 import com.rokid.glass.mediastream.streaming.StreamingState
@@ -30,6 +31,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StreamingCoordinatorTest {
+    @Test
+    fun requested_video_capture_and_bitrate_reach_their_independent_consumers() {
+        val fixture = Fixture()
+        val options = fixture.options.copy(
+            videoCapture = VideoCaptureOptions(width = 640, height = 480, fps = 20),
+            maxVideoBitrateBps = 900_000,
+        )
+        fixture.coordinator.start(options, fixture.listener)
+        fixture.signaling().open()
+        fixture.signaling().message(SignalingMessage(SignalingType.PEER_READY))
+
+        assertEquals(640, fixture.capture.options?.video?.width)
+        assertEquals(480, fixture.capture.options?.video?.height)
+        assertEquals(20, fixture.capture.options?.video?.fps)
+        assertEquals(900_000, fixture.publisher().options?.maxVideoBitrateBps)
+    }
+
     @Test
     fun signaling_opens_before_media_and_offer_waits_for_capture_readiness() {
         val fixture = Fixture()
@@ -202,6 +220,10 @@ class StreamingCoordinatorTest {
                 roundTripTimeMs = 37L,
                 pcmUnderrunBytes = 320L,
                 pcmDroppedBytes = 640L,
+                encodedVideoWidth = 640,
+                encodedVideoHeight = 360,
+                encodedVideoFps = 12.5,
+                videoQualityLimitationReason = "bandwidth",
             ),
         )
 
@@ -214,6 +236,10 @@ class StreamingCoordinatorTest {
         assertEquals(37L, fixture.status().stats.roundTripTimeMs)
         assertEquals(320L, fixture.status().stats.pcmUnderrunBytes)
         assertEquals(640L, fixture.status().stats.pcmDroppedBytes)
+        assertEquals(640, fixture.status().stats.encodedVideoWidth)
+        assertEquals(360, fixture.status().stats.encodedVideoHeight)
+        assertEquals(12.5, fixture.status().stats.encodedVideoFps, 0.0)
+        assertEquals("bandwidth", fixture.status().stats.videoQualityLimitationReason)
     }
 
     @Test
@@ -554,6 +580,7 @@ class StreamingCoordinatorTest {
         var audioListener: AudioFrameListener? = null
         var statusListener: CaptureStatusListener? = null
         var status = CaptureStatus(CaptureState.IDLE)
+        var options: CaptureOptions? = null
 
         override fun start(
             options: CaptureOptions,
@@ -562,6 +589,7 @@ class StreamingCoordinatorTest {
             statusListener: CaptureStatusListener?,
         ) {
             events += "capture.start"
+            this.options = options
             startCount += 1
             this.videoListener = videoListener
             this.audioListener = audioListener

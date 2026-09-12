@@ -51,10 +51,10 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 46px); letter-spacing: -0.035em; }
   color: #aebbd0;
   font-size: 13px;
 }
-.status[data-phase="streaming"] { border-color: #1d9e74; color: #66e0b5; }
+.status[data-phase="streaming"], .status[data-phase="video"], .status[data-phase="audio"] { border-color: #1d9e74; color: #66e0b5; }
 .status[data-phase="error"] { border-color: #a94a55; color: #ff8894; }
 .status[data-phase="disconnected"] { border-color: #a94a55; color: #ffb0b8; }
-.status[data-phase="connecting"], .status[data-phase="signaling"] { border-color: #bd8b2b; color: #ffd27a; }
+.status[data-phase="connecting"], .status[data-phase="signaling"], .status[data-phase="waiting-media"] { border-color: #bd8b2b; color: #ffd27a; }
 
 .toolbar, .connection-card, .viewer-card, .events-card, .metrics article {
   border: 1px solid rgba(109, 133, 169, 0.2);

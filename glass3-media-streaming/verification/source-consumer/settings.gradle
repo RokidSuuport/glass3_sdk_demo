@@ -1,0 +1,26 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.rokid-inc.com/repository/maven-public/' }
+    }
+}
+rootProject.name = 'glass3-source-integration'
+// 验证脚本将源码组件复制到独立临时工程；不借用原工程的构建/发布脚本。
+include ':glass3-media-capture', ':webrtc-transport', ':glass3-media-streaming'
+['glass3-media-capture', 'webrtc-transport', 'glass3-media-streaming'].each {
+    project(":$it").projectDir = file("components/$it")
+}
+include ':capture-app', ':streaming-app'

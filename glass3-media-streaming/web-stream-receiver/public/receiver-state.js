@@ -8,6 +8,9 @@ const STATE_LABELS = Object.freeze({
   waiting: '等待眼镜端连接',
   'waiting-sender': '等待眼镜端连接',
   connecting: '正在协商音视频',
+  'waiting-media': '连接已建立，等待媒体数据',
+  video: '正在接收视频',
+  audio: '正在接收音频',
   streaming: '正在接收音视频',
   disconnected: '连接已断开',
   error: '连接异常',
@@ -51,7 +54,13 @@ export function reduceReceiverState(state, event) {
     case 'PEER_READY':
       return { ...state, phase: 'connecting', error: '' };
     case 'ICE_CONNECTED':
-      return { ...state, phase: 'streaming', error: '' };
+      return { ...state, phase: 'waiting-media', error: '' };
+    case 'MEDIA_STATUS':
+      return {
+        ...state,
+        phase: event.video && event.audio ? 'streaming'
+          : event.video ? 'video' : event.audio ? 'audio' : 'waiting-media',
+      };
     case 'PEER_LEFT':
       return { ...state, phase: 'waiting', error: '' };
     case 'DISCONNECTED':

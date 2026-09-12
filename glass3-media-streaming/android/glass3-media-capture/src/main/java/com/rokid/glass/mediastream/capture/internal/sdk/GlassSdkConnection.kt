@@ -52,6 +52,7 @@ internal class GlassSdkConnection(
     private var readyReported = false
     private var terminalReported = false
     private var ownsBind = false
+    private var cancelledOwnedBindGeneration: Long? = null
 
     override fun bind(listener: SdkConnection.Listener) {
         val callbackGeneration = synchronized(lock) {
@@ -61,6 +62,7 @@ internal class GlassSdkConnection(
             readyReported = false
             terminalReported = false
             ownsBind = false
+            cancelledOwnedBindGeneration = null
             generation
         }
 
@@ -90,6 +92,7 @@ internal class GlassSdkConnection(
     override fun unbind() {
         val shouldUnbind = synchronized(lock) {
             if (listener == null && !ownsBind) return
+            cancelledOwnedBindGeneration = generation.takeIf { ownsBind && !readyReported }
             generation += 1
             listener = null
             readyReported = false
@@ -116,7 +119,15 @@ internal class GlassSdkConnection(
 
     private fun reportReady(callbackGeneration: Long) {
         val currentListener = synchronized(lock) {
-            if (!isCurrentLocked(callbackGeneration) || readyReported || terminalReported) return
+            if (!isCurrentLocked(callbackGeneration) || readyReported || terminalReported) {
+                if (cancelledOwnedBindGeneration == callbackGeneration && listener == null) {
+                    cancelledOwnedBindGeneration = null
+                    // SDK 2.2.0-E ignores unbind before it becomes ready. Finish only our cancelled
+                    // bind; holding the lock prevents a new local generation from borrowing it.
+                    runCatching(gateway::unbind)
+                }
+                return
+            }
             readyReported = true
             listener
         }

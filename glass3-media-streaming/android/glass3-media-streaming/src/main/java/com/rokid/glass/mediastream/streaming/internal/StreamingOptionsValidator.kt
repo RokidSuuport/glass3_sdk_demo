@@ -13,6 +13,9 @@ internal object StreamingOptionsValidator {
         require(roomIdPattern.matches(options.roomId)) {
             "roomId must contain 1-32 letters, digits, underscores, or hyphens"
         }
+        require(options.maxVideoBitrateBps == null || options.maxVideoBitrateBps > 0) {
+            "maxVideoBitrateBps must be positive"
+        }
         return options.copy(serverUrl = validateSignalingUrl(options.serverUrl))
     }
 }

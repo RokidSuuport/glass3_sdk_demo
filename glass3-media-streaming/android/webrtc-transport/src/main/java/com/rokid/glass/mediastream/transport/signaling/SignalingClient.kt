@@ -157,27 +157,21 @@ class SignalingClient internal constructor(
                             "Signaling message room does not match the active room"
                         }
                     }
-                    synchronized(lock) {
-                        if (
-                            generation == callbackGeneration &&
+                    val deliver = synchronized(lock) {
+                        generation == callbackGeneration &&
                             joinedGeneration == callbackGeneration &&
                             listener === current.first &&
                             socket === current.third
-                        ) {
-                            current.first.onMessage(message)
-                        }
                     }
+                    if (deliver) current.first.onMessage(message)
                 } catch (error: Throwable) {
-                    synchronized(lock) {
-                        if (
-                            generation == callbackGeneration &&
+                    val deliver = synchronized(lock) {
+                        generation == callbackGeneration &&
                             joinedGeneration == callbackGeneration &&
                             listener === current.first &&
                             socket === current.third
-                        ) {
-                            current.first.onFailure(error)
-                        }
                     }
+                    if (deliver) current.first.onFailure(error)
                 }
             }
 
@@ -222,12 +216,15 @@ class SignalingClient internal constructor(
             failGeneration(expectedGeneration, IllegalStateException("Failed to send join message"))
             return
         }
-        synchronized(lock) {
+        val deliverOpen = synchronized(lock) {
             if (generation == expectedGeneration && socket === current.first && !disposed) {
                 joinedGeneration = expectedGeneration
-                current.third.onOpen()
+                true
+            } else {
+                false
             }
         }
+        if (deliverOpen) current.third.onOpen()
     }
 
     private fun closeGeneration(expectedGeneration: Long, reason: String) {

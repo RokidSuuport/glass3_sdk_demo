@@ -11,6 +11,7 @@ $docs_dir/configuration.md \
 $docs_dir/troubleshooting.md \
 $docs_dir/production-deployment.md \
 $docs_dir/api-reference.md \
+$docs_dir/source-integration.md \
 $docs_dir/code/kotlin/StreamingActivity.kt \
 $docs_dir/code/kotlin/MediaCaptureActivity.kt \
 $docs_dir/code/java/StreamingActivity.java \
@@ -20,13 +21,9 @@ for file in $customer_files; do
   test -s "$file"
 done
 
-for route in '我只想直接使用' '我想把完整推流接入自己的 App' '我只想获取 NV21/PCM 原始数据'; do
-  rg -q "$route" "$repo_dir/README.md"
-done
-
-for guide in "$docs_dir/webrtc-streaming.md" "$docs_dir/media-capture-integration.md"; do
-  rg -q "implementation project\(':glass3-media-capture'\)" "$guide"
-done
+# 两个入口的示例由 verify-source-consumer.sh 实际编译，避免只检查固定文案。
+test -s "$docs_dir/code/shared/LatestVideoWorker.java"
+test -s "$repo_dir/scripts/verify-source-consumer.sh"
 
 if rg -n -i 'maven|aar|[.]pom([^a-z]|$)|MAVEN_REPOSITORY_PATH' $customer_files; then
   echo 'Customer-facing guidance must describe direct use and source components only.' >&2
@@ -50,7 +47,7 @@ rg -q "docs/code/kotlin" "$repo_dir/verification/aar-consumer/app/build.gradle"
 rg -q "docs/code/java" "$repo_dir/verification/aar-consumer/app/build.gradle"
 
 if rg -n \
-  '(^|[^0-9])(192[.]168[.]|10[.][0-9]|172[.](1[6-9]|2[0-9]|3[01])[.])|storePassword|keyPassword|BEGIN (OPENSSH|RSA) PRIVATE KEY|local[.]properties' \
+  '(^|[^0-9.])(192[.]168|10[.][0-9]{1,3}|172[.](1[6-9]|2[0-9]|3[01]))[.][0-9]{1,3}[.][0-9]{1,3}([^0-9.]|$)|storePassword|keyPassword|BEGIN (OPENSSH|RSA) PRIVATE KEY|local[.]properties' \
   $customer_files; then
   echo 'Customer files contain a private-network value, signing secret, private key, or local SDK file.' >&2
   exit 1

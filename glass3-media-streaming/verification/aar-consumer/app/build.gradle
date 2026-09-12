@@ -28,6 +28,7 @@ android {
         main.java.srcDirs += [
             '../../../docs/code/kotlin',
             '../../../docs/code/java',
+            '../../../docs/code/shared',
         ]
     }
 }

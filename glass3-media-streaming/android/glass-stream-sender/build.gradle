@@ -57,10 +57,9 @@ android {
 }
 
 dependencies {
-    // 本仓库已经包含下面两个源码模块，所以这里直接使用 project(...)，
-    // 不需要先生成或导入 AAR。
-    // 如果把 Activity 复制到客户自己的另一个 Android 工程，不要照抄
-    // project(...)；请先按 docs 中“外部工程集成”章节接入发布的 Maven/AAR 产物。
+    // 本工程已在 settings.gradle 注册源码模块，可直接使用 project(...)。
+    // 复制页面到另一个 Android 工程时，还需复制对应组件目录并注册模块；
+    // 路径、构建环境和完整配置见 docs/source-integration.md，不能只复制这一行。
     implementation project(':glass3-media-capture')
     implementation project(':glass3-media-streaming')
 

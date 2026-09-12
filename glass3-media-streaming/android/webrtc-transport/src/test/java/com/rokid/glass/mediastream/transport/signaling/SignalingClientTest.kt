@@ -1,6 +1,8 @@
 package com.rokid.glass.mediastream.transport.signaling
 
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -9,6 +11,33 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SignalingClientTest {
+    @Test
+    fun incoming_listener_can_wait_for_a_concurrent_send_without_holding_the_signaling_lock() {
+        val factory = FakeSignalingSocketFactory()
+        val client = SignalingClient(socketFactory = factory)
+        val completed = CountDownLatch(1)
+        var sentWhileCallbackActive = false
+        val listener = object : SignalingClient.Listener {
+            override fun onOpen() = Unit
+            override fun onClosed(reason: String) = Unit
+            override fun onFailure(error: Throwable) = throw AssertionError(error)
+            override fun onMessage(message: SignalingMessage) {
+                Thread {
+                    client.send(SignalingMessage(SignalingType.OFFER, sdp = "offer"))
+                    completed.countDown()
+                }.apply { isDaemon = true }.start()
+                sentWhileCallbackActive = completed.await(1, TimeUnit.SECONDS)
+            }
+        }
+        client.connect("ws://192.168.1.10:8080/ws", "default", listener)
+        factory.lastSocket.callback.onOpen()
+        factory.lastSocket.callback.onText("{\"type\":\"peer-ready\"}")
+
+        assertTrue("listener must not hold the signaling lock while waiting for publisher work", sentWhileCallbackActive)
+        assertTrue(completed.await(1, TimeUnit.SECONDS))
+        client.dispose()
+    }
+
     @Test
     fun opening_socket_joins_as_sender_before_application_messages() {
         val factory = FakeSignalingSocketFactory()

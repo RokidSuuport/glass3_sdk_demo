@@ -208,6 +208,12 @@ private class NativePublisherSession private constructor(
                     check(transceiver.direction == RtpTransceiver.RtpTransceiverDirection.SEND_ONLY) {
                         "Video transceiver is not send-only"
                     }
+                    val videoSender = transceiver.sender
+                    configureVideoBitrate(
+                        options.maxVideoBitrateBps,
+                        videoSender::getParameters,
+                        videoSender::setParameters,
+                    )
                     createdVideoSourceLifecycle.start()
                 }
 

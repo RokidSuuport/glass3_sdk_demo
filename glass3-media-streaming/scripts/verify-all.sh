@@ -16,6 +16,7 @@ repo_dir="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
   :glass3-media-capture:assembleRelease \
   :webrtc-transport:assembleRelease \
   :glass3-media-streaming:assembleRelease
+sh "$repo_dir/scripts/verify-source-consumer.sh"
 "$repo_dir/scripts/verify-aar-consumer.sh"
 npm --prefix "$repo_dir/web-stream-receiver" test
 

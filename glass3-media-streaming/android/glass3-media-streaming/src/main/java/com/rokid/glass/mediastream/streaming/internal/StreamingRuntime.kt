@@ -22,8 +22,6 @@ import com.rokid.glass.mediastream.transport.signaling.SignalingClient
 import com.rokid.glass.mediastream.transport.signaling.SignalingMessage
 import com.rokid.glass.mediastream.transport.webrtc.MediaPublisher
 import com.rokid.glass.mediastream.transport.webrtc.WebRtcPublisher
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 internal interface StreamingController {
     fun start(options: StreamingOptions, listener: StreamingStatusListener?)
@@ -43,76 +41,6 @@ internal interface CaptureSession {
     fun stop()
     fun release()
     fun currentStatus(): CaptureStatus
-}
-
-internal interface CaptureOperationQueue {
-    fun execute(operation: () -> Unit)
-    fun shutdown()
-}
-
-internal class ExecutorCaptureOperationQueue(
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "Glass3-MediaCapture").apply { isDaemon = true }
-    },
-) : CaptureOperationQueue {
-    override fun execute(operation: () -> Unit) {
-        executor.execute(operation)
-    }
-
-    override fun shutdown() {
-        executor.shutdown()
-    }
-}
-
-/**
- * Serializes potentially slow Glass system-service calls away from the UI thread.
- *
- * The device audio service can spend several seconds rebuilding its recorder after
- * repeated sessions. Keeping start/stop/release on one worker both preserves their
- * order and prevents that platform recovery from causing an Activity ANR.
- */
-internal class AsyncCaptureSession(
-    private val delegate: CaptureSession,
-    private val operations: CaptureOperationQueue,
-    private val minimumRestartDelayMs: Long = 5_000L,
-    private val monotonicTimeMs: () -> Long = { System.nanoTime() / 1_000_000L },
-    private val sleep: (Long) -> Unit = Thread::sleep,
-) : CaptureSession {
-    private var lastStopCompletedAtMs: Long? = null
-
-    override fun start(
-        options: CaptureOptions,
-        videoListener: VideoFrameListener?,
-        audioListener: AudioFrameListener?,
-        statusListener: CaptureStatusListener?,
-    ) {
-        operations.execute {
-            lastStopCompletedAtMs?.let { stoppedAt ->
-                val remainingDelay = minimumRestartDelayMs - (monotonicTimeMs() - stoppedAt)
-                if (remainingDelay > 0L) sleep(remainingDelay)
-            }
-            delegate.start(options, videoListener, audioListener, statusListener)
-        }
-    }
-
-    override fun stop() {
-        operations.execute {
-            delegate.stop()
-            lastStopCompletedAtMs = monotonicTimeMs()
-        }
-    }
-
-    override fun release() {
-        operations.execute {
-            try {
-                delegate.release()
-            } finally {
-                operations.shutdown()
-            }
-        }
-    }
-
-    override fun currentStatus(): CaptureStatus = delegate.currentStatus()
 }
 
 internal interface SignalingSession {
@@ -253,10 +181,9 @@ internal object StreamingRuntimeFactory {
             "An application context is required"
         }
         val mainHandler = Handler(Looper.getMainLooper())
-        val capture = AsyncCaptureSession(
-            GlassCaptureSession(GlassMediaCapture.create(applicationContext)),
-            ExecutorCaptureOperationQueue(),
-        )
+        // GlassMediaCapture owns its serial worker and cancellable recovery window. Wrapping it
+        // again would treat an asynchronous stop return as completed cleanup and delay it twice.
+        val capture = GlassCaptureSession(GlassMediaCapture.create(applicationContext))
         return StreamingCoordinator(
             capture = capture,
             signalingFactory = SignalingSessionFactory {

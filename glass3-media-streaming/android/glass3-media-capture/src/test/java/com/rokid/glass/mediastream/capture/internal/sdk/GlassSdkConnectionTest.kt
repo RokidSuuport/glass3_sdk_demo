@@ -10,6 +10,37 @@ import org.junit.Test
 
 class GlassSdkConnectionTest {
     @Test
+    fun `cancelled owned binding is unbound again if SDK connects after its first unbind was ignored`() {
+        val gateway = FakeGateway(ready = false)
+        val events = mutableListOf<String>()
+        val connection = GlassSdkConnection(gateway)
+        connection.bind(listener(events))
+        connection.unbind()
+        // The vendor SDK's first unbind is a no-op until onServiceConnected sets readiness.
+        gateway.ready = true
+        gateway.callback(0).onServiceConnected()
+        gateway.callback(0).onServiceConnected()
+        assertEquals(2, gateway.unbindCount)
+        assertTrue(!gateway.ready)
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun `late cancelled binding cannot unbind a newer borrowed connection`() {
+        val gateway = FakeGateway(ready = false)
+        val connection = GlassSdkConnection(gateway)
+        connection.bind(listener(mutableListOf()))
+        connection.unbind()
+        gateway.ready = true
+        val secondEvents = mutableListOf<String>()
+        connection.bind(listener(secondEvents))
+        gateway.callback(0).onServiceConnected()
+        connection.unbind()
+        assertEquals(listOf("ready"), secondEvents)
+        assertEquals(1, gateway.bindCount)
+        assertEquals(1, gateway.unbindCount)
+    }
+    @Test
     fun `already ready SDK reports ready once without taking ownership of a bind`() {
         val gateway = FakeGateway(ready = true)
         val events = mutableListOf<String>()
@@ -125,6 +156,7 @@ class GlassSdkConnectionTest {
 
         override fun unbind() {
             unbindCount += 1
+            ready = false
         }
 
         fun callback(index: Int): IServiceConnectionCallback = callbacks[index]

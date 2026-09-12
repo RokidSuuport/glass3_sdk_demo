@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <application android:label="Glass3 原始媒体采集" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name="com.rokid.glass.mediastream.guide.kotlin.MediaCaptureActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="com.rokid.glass.mediastream.guide.java.MediaCaptureActivity" android:exported="false" />
+    </application>
+</manifest>

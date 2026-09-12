@@ -5,6 +5,8 @@ import com.rokid.glass.mediastream.capture.internal.AudioSourceFactory
 import com.rokid.glass.mediastream.capture.internal.CaptureController
 import com.rokid.glass.mediastream.capture.internal.CaptureCoordinator
 import com.rokid.glass.mediastream.capture.internal.VideoSourceFactory
+import com.rokid.glass.mediastream.capture.internal.AsyncCaptureController
+import com.rokid.glass.mediastream.capture.internal.ExecutorCaptureLifecycleQueue
 import com.rokid.glass.mediastream.capture.internal.audio.GlassPcmAudioSource
 import com.rokid.glass.mediastream.capture.internal.sdk.GlassSdkConnection
 import com.rokid.glass.mediastream.capture.internal.video.GlassNv21VideoSource
@@ -18,8 +20,9 @@ class GlassMediaCapture private constructor(
             val applicationContext = requireNotNull(context.applicationContext) {
                 "An application context is required"
             }
-            return GlassMediaCapture(
-                CaptureCoordinator(
+            val lifecycle = ExecutorCaptureLifecycleQueue()
+            return GlassMediaCapture(AsyncCaptureController(
+                delegate = CaptureCoordinator(
                     sdkConnection = GlassSdkConnection(applicationContext),
                     videoSourceFactory = VideoSourceFactory { startupTimeoutMs ->
                         GlassNv21VideoSource(startupTimeoutMs = startupTimeoutMs)
@@ -27,15 +30,19 @@ class GlassMediaCapture private constructor(
                     audioSourceFactory = AudioSourceFactory { startupTimeoutMs ->
                         GlassPcmAudioSource(startupTimeoutMs = startupTimeoutMs)
                     },
+                    dispatchOperation = { operation -> lifecycle.schedule(action = operation) },
+                    deferCleanupWait = true,
                 ),
-            )
+                queue = lifecycle,
+            ))
         }
 
         @JvmSynthetic
         internal fun create(controller: CaptureController): GlassMediaCapture =
-            GlassMediaCapture(controller)
+            GlassMediaCapture(AsyncCaptureController(controller, ExecutorCaptureLifecycleQueue()))
     }
 
+    /** Queues capture startup; null listeners disable that medium. Callbacks must stay lightweight. */
     fun start(
         videoListener: VideoFrameListener?,
         audioListener: AudioFrameListener?,
@@ -56,10 +63,15 @@ class GlassMediaCapture private constructor(
         controller.start(options, videoListener, audioListener, statusListener)
     }
 
+    /**
+     * Cancels pending startup and requests cleanup without blocking the caller. Observe IDLE before
+     * using the released media elsewhere. A subsequent start waits for cleanup and a recovery window.
+     */
     fun stop() {
         controller.stop()
     }
 
+    /** Permanently closes this capture asynchronously; RELEASED means queued cleanup has completed. */
     fun release() {
         controller.release()
     }

@@ -28,6 +28,25 @@ function nextJson(socket) {
   });
 }
 
+function nextMessages(socket, count) {
+  return new Promise((resolve, reject) => {
+    const messages = [];
+    const timer = setTimeout(() => {
+      socket.off('message', onMessage);
+      reject(new Error(`expected ${count} messages, received ${JSON.stringify(messages)}`));
+    }, 2_000);
+    function onMessage(data) {
+      messages.push(JSON.parse(data.toString()));
+      if (messages.length === count) {
+        clearTimeout(timer);
+        socket.off('message', onMessage);
+        resolve(messages);
+      }
+    }
+    socket.on('message', onMessage);
+  });
+}
+
 function waitForClose(socket) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timed out waiting for WebSocket close')), 2_000);
@@ -158,13 +177,47 @@ test('a newer receiver takes over the room and the stale receiver is closed', as
   await Promise.all([nextJson(sender), nextJson(staleReceiver)]);
 
   const staleClosed = waitForClose(staleReceiver);
-  const senderReady = nextJson(sender);
+  const senderRestart = nextMessages(sender, 2);
   const receiverReady = nextJson(newerReceiver);
   newerReceiver.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'receiver' }));
 
   assert.deepEqual(await staleClosed, { code: 1000, reason: 'replaced by newer receiver' });
-  assert.deepEqual(await senderReady, { type: 'peer-ready', roomId: 'default' });
+  assert.deepEqual(await senderRestart, [
+    { type: 'leave', roomId: 'default' },
+    { type: 'peer-ready', roomId: 'default' },
+  ]);
   assert.deepEqual(await receiverReady, { type: 'peer-ready', roomId: 'default' });
+
+  // The retained sender can now negotiate with the new receiver; delayed close
+  // of the replaced socket must not emit a second leave into the new session.
+  const answer = nextJson(sender);
+  newerReceiver.send(JSON.stringify({ type: 'answer', roomId: 'default', sdp: 'new-answer' }));
+  assert.deepEqual(await answer, { type: 'answer', roomId: 'default', sdp: 'new-answer' });
+});
+
+test('a newer sender tells the retained receiver to discard its old peer before readiness', async (t) => {
+  const server = createServer({ host: '127.0.0.1', port: 0, publicDir: new URL('../public/', import.meta.url) });
+  const address = await server.start();
+  const receiver = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+  const oldSender = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+  const newSender = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+  t.after(() => server.stop());
+  await Promise.all([waitForOpen(receiver), waitForOpen(oldSender), waitForOpen(newSender)]);
+  const initialReady = Promise.all([nextJson(receiver), nextJson(oldSender)]);
+  receiver.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'receiver' }));
+  oldSender.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'sender' }));
+  await initialReady;
+  const restart = nextMessages(receiver, 2);
+  const oldClosed = waitForClose(oldSender);
+  newSender.send(JSON.stringify({ type: 'join', roomId: 'default', role: 'sender' }));
+  assert.deepEqual(await restart, [
+    { type: 'leave', roomId: 'default' },
+    { type: 'peer-ready', roomId: 'default' },
+  ]);
+  await oldClosed;
+  const offer = nextJson(receiver);
+  newSender.send(JSON.stringify({ type: 'offer', roomId: 'default', sdp: 'fresh-offer' }));
+  assert.deepEqual(await offer, { type: 'offer', roomId: 'default', sdp: 'fresh-offer' });
 });
 
 test('first WebSocket message must be join', async (t) => {

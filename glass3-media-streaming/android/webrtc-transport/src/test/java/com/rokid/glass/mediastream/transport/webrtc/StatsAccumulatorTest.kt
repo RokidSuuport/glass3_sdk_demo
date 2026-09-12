@@ -6,6 +6,32 @@ import org.junit.Test
 
 class StatsAccumulatorTest {
     @Test
+    fun encoded_video_metrics_come_from_outbound_rtp_not_camera_or_remote_reports() {
+        val result = StatsAccumulator().calculate(1000, listOf(
+            RawRtcStat("media-source", mapOf("kind" to "video", "width" to 1280, "height" to 720, "framesPerSecond" to 15.0)),
+            RawRtcStat("outbound-rtp", mapOf("kind" to "video", "frameWidth" to 640, "frameHeight" to 360,
+                "framesPerSecond" to 12.5, "qualityLimitationReason" to "bandwidth")),
+            RawRtcStat("inbound-rtp", mapOf("kind" to "video", "frameWidth" to 1920, "frameHeight" to 1080)),
+        ))
+        assertEquals(640, result.encodedVideoWidth)
+        assertEquals(360, result.encodedVideoHeight)
+        assertEquals(12.5, result.encodedVideoFps, 0.0)
+        assertEquals("bandwidth", result.videoQualityLimitationReason)
+    }
+
+    @Test
+    fun unavailable_or_invalid_encoded_metrics_remain_unknown() {
+        val result = StatsAccumulator().calculate(1000, listOf(
+            RawRtcStat("outbound-rtp", mapOf("kind" to "video", "frameWidth" to -2, "frameHeight" to 0,
+                "framesPerSecond" to Double.NaN, "qualityLimitationReason" to "")),
+        ))
+        assertEquals(0, result.encodedVideoWidth)
+        assertEquals(0, result.encodedVideoHeight)
+        assertEquals(0.0, result.encodedVideoFps, 0.0)
+        assertEquals("unknown", result.videoQualityLimitationReason)
+    }
+
+    @Test
     fun computes_bitrate_and_outbound_diagnostics_from_all_matching_ssrcs() {
         val accumulator = StatsAccumulator()
         accumulator.calculate(

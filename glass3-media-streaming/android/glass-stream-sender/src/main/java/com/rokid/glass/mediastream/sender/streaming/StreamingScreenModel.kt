@@ -83,11 +83,18 @@ internal class StreamingScreenModel {
 
     private fun metrics(stats: StreamingStats): String = buildString {
         if (stats.videoWidth > 0 && stats.videoHeight > 0) {
-            append("视频：${stats.videoWidth} × ${stats.videoHeight} @ ")
+            append("采集：${stats.videoWidth} × ${stats.videoHeight} @ ")
             append(String.format(Locale.US, "%.1f", stats.videoFps))
             appendLine(" fps")
         } else {
-            appendLine("视频：--")
+            appendLine("采集：--")
+        }
+        if (stats.encodedVideoWidth > 0 && stats.encodedVideoHeight > 0) {
+            append("发送：${stats.encodedVideoWidth} × ${stats.encodedVideoHeight} @ ")
+            append(String.format(Locale.US, "%.1f", stats.encodedVideoFps))
+            appendLine(" fps")
+        } else {
+            appendLine("发送：--")
         }
         appendLine("视频码率：${stats.videoBitrateBps / 1_000} kbps")
         appendLine("音频码率：${stats.audioBitrateBps / 1_000} kbps")

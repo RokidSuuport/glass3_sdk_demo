@@ -12,9 +12,10 @@ import com.rokid.glass.mediastream.transport.webrtc.audio.WebRtcAudioAdapter
 import com.rokid.glass.mediastream.transport.webrtc.video.VideoFrameTarget
 import com.rokid.glass.mediastream.transport.webrtc.video.WebRtcVideoAdapter
 
-data class PublishOptions(
+data class PublishOptions @JvmOverloads constructor(
     val videoEnabled: Boolean,
     val audioEnabled: Boolean,
+    val maxVideoBitrateBps: Int? = null,
 )
 
 interface MediaPublisher : VideoFrameListener, AudioFrameListener {
@@ -100,7 +101,19 @@ class WebRtcPublisher internal constructor(
         val session: PublisherSession,
     )
 
+    private data class Notification(
+        val generation: Long,
+        val listener: MediaPublisher.Listener,
+        val deliver: (MediaPublisher.Listener) -> Unit,
+    )
+
     private val lock = Any()
+    private val notifications = ArrayDeque<Notification>()
+    private var notificationDrainActive = false
+    // A close invalidates callbacks immediately, but does not dispose a source while a frame or
+    // synchronous native operation still uses it. Each generation releases its own final lease.
+    private val activeOperations = mutableMapOf<Long, Int>()
+    private val deferredCloses = mutableMapOf<Long, CloseSnapshot>()
     private var generation = 0L
     private var phase = Phase.IDLE
     private var options: PublishOptions? = null
@@ -118,8 +131,11 @@ class WebRtcPublisher internal constructor(
         require(options.videoEnabled || options.audioEnabled) {
             "At least one media source must be enabled"
         }
+        require(options.maxVideoBitrateBps == null || options.maxVideoBitrateBps > 0) {
+            "maxVideoBitrateBps must be positive"
+        }
         val adapter = WebRtcAudioAdapter(ringBufferFactory())
-        val callbackGeneration = synchronized(lock) {
+        val callbackGeneration = withState {
             check(phase == Phase.IDLE) { "WebRtcPublisher is already prepared" }
             generation += 1
             phase = Phase.PREPARING
@@ -146,27 +162,30 @@ class WebRtcPublisher internal constructor(
             return
         }
 
-        val setupError = runCatching {
+        val adapterResult = runCatching {
+            val frameTarget = created.videoFrameTarget
             if (options.videoEnabled) {
-                requireNotNull(created.videoFrameTarget) {
+                requireNotNull(frameTarget) {
                     "Video-enabled publisher did not create a video source"
                 }
             } else {
-                check(created.videoFrameTarget == null) {
+                check(frameTarget == null) {
                     "Video-disabled publisher unexpectedly created a video source"
                 }
             }
-        }.exceptionOrNull()
+            frameTarget?.let(::WebRtcVideoAdapter)
+        }
+        val setupError = adapterResult.exceptionOrNull()
         if (setupError != null) {
             runCatching { created.close(adapter::close) }
             failPrepare(callbackGeneration, adapter, "WebRTC media setup failed", setupError)
             return
         }
 
-        val accepted = synchronized(lock) {
+        val accepted = withState {
             if (generation == callbackGeneration && phase == Phase.PREPARING) {
                 session = created
-                videoAdapter = created.videoFrameTarget?.let(::WebRtcVideoAdapter)
+                videoAdapter = adapterResult.getOrNull()
                 phase = Phase.PREPARED
                 true
             } else {
@@ -187,13 +206,14 @@ class WebRtcPublisher internal constructor(
     }
 
     override fun createOffer() {
-        val current = synchronized(lock) {
+        val current = withState {
             val activeSession = session
             if (phase != Phase.PREPARED || activeSession == null) {
                 notifyNegotiationFailureLocked("Cannot create a duplicate or out-of-order offer")
                 null
             } else {
                 phase = Phase.CREATING_OFFER
+                beginOperationLocked()
                 generation to activeSession
             }
         } ?: return
@@ -204,14 +224,16 @@ class WebRtcPublisher internal constructor(
             }
         } catch (error: Throwable) {
             handleOfferResult(current.first, Result.failure(error))
+        } finally {
+            finishOperation(current.first)
         }
     }
 
     override fun setRemoteAnswer(sdp: String) {
-        val current = synchronized(lock) {
+        val current = withState {
             if (sdp.isBlank()) {
                 notifyNegotiationFailureLocked("Remote answer SDP must not be blank")
-                return@synchronized null
+                return@withState null
             }
             val activeSession = session
             if (phase != Phase.LOCAL_OFFER_SET || activeSession == null) {
@@ -219,6 +241,7 @@ class WebRtcPublisher internal constructor(
                 null
             } else {
                 phase = Phase.SETTING_ANSWER
+                beginOperationLocked()
                 generation to activeSession
             }
         } ?: return
@@ -229,11 +252,13 @@ class WebRtcPublisher internal constructor(
             }
         } catch (error: Throwable) {
             handleAnswerResult(current.first, Result.failure(error))
+        } finally {
+            finishOperation(current.first)
         }
     }
 
     override fun addRemoteIceCandidate(candidate: IceCandidatePayload) {
-        val drainTarget = synchronized(lock) {
+        val drainTarget = withState {
             val activeSession = session
                 ?: throw IllegalStateException("WebRtcPublisher is not prepared")
             when (phase) {
@@ -266,32 +291,49 @@ class WebRtcPublisher internal constructor(
     }
 
     override fun onVideoFrame(frame: Nv21Frame) {
-        synchronized(lock) {
+        val target = withState {
             if (options?.videoEnabled != true) return
             val adapter = videoAdapter ?: return
-            try {
-                adapter.onVideoFrame(frame)
-            } catch (error: Throwable) {
-                notifyNegotiationFailureLocked("Failed to inject an external NV21 frame", error)
+            beginOperationLocked()
+            generation to adapter
+        }
+        try {
+            target.second.onVideoFrame(frame)
+        } catch (error: Throwable) {
+            withState {
+                if (generation == target.first) {
+                    notifyNegotiationFailureLocked("Failed to inject an external NV21 frame", error)
+                }
             }
+        } finally {
+            finishOperation(target.first)
         }
     }
 
     override fun onAudioFrame(frame: PcmFrame) {
-        synchronized(lock) {
+        val target = withState {
             if (options?.audioEnabled != true) return
             val adapter = audioAdapter ?: return
-            try {
-                adapter.onAudioFrame(frame)
-            } catch (error: Throwable) {
-                notifyNegotiationFailureLocked("Failed to inject an external PCM frame", error)
+            beginOperationLocked()
+            generation to adapter
+        }
+        try {
+            target.second.onAudioFrame(frame)
+        } catch (error: Throwable) {
+            withState {
+                if (generation == target.first) {
+                    notifyNegotiationFailureLocked("Failed to inject an external PCM frame", error)
+                }
             }
+        } finally {
+            finishOperation(target.first)
         }
     }
 
     override fun close() {
-        val snapshot = synchronized(lock) {
+        val snapshot = withState {
             if (phase == Phase.IDLE && session == null && audioAdapter == null) return
+            val closingGeneration = generation
             generation += 1
             val closing = CloseSnapshot(session, audioAdapter)
             phase = Phase.IDLE
@@ -305,9 +347,35 @@ class WebRtcPublisher internal constructor(
             pendingLocalCandidates.clear()
             pendingRemoteCandidates.clear()
             remoteIceDrainActive = false
-            closing
+            if ((activeOperations[closingGeneration] ?: 0) > 0) {
+                deferredCloses[closingGeneration] = closing
+                null
+            } else {
+                closing
+            }
         }
+        snapshot?.let(::releaseSnapshot)
+    }
 
+    private fun beginOperationLocked() {
+        activeOperations[generation] = (activeOperations[generation] ?: 0) + 1
+    }
+
+    private fun finishOperation(operationGeneration: Long) {
+        val closing = withState {
+            val remaining = (activeOperations[operationGeneration] ?: 1) - 1
+            if (remaining == 0) {
+                activeOperations.remove(operationGeneration)
+                deferredCloses.remove(operationGeneration)
+            } else {
+                activeOperations[operationGeneration] = remaining
+                null
+            }
+        }
+        closing?.let(::releaseSnapshot)
+    }
+
+    private fun releaseSnapshot(snapshot: CloseSnapshot) {
         var adapterReleased = false
         try {
             snapshot.session?.close {
@@ -322,10 +390,10 @@ class WebRtcPublisher internal constructor(
     private fun sessionEvents(callbackGeneration: Long): PublisherSessionEvents =
         object : PublisherSessionEvents {
             override fun onLocalIceCandidate(candidate: IceCandidatePayload) {
-                synchronized(lock) {
+                withState {
                     if (generation != callbackGeneration || phase == Phase.IDLE) return
                     if (phase.ordinal >= Phase.LOCAL_OFFER_SET.ordinal) {
-                        listener?.onLocalIceCandidate(candidate)
+                        notifyListenerLocked { it.onLocalIceCandidate(candidate) }
                     } else if (pendingLocalCandidates.size < MAX_PENDING_CANDIDATES) {
                         pendingLocalCandidates += candidate
                     } else {
@@ -335,14 +403,14 @@ class WebRtcPublisher internal constructor(
             }
 
             override fun onConnectionStateChanged(state: PublisherConnectionState) {
-                synchronized(lock) {
+                withState {
                     if (generation != callbackGeneration || phase == Phase.IDLE) return
                     when (state) {
                         PublisherConnectionState.CONNECTED -> {
                             if (!connected && !terminalConnectionReported) {
                                 connected = true
                                 phase = Phase.CONNECTED
-                                listener?.onConnected()
+                                notifyListenerLocked { it.onConnected() }
                             }
                         }
 
@@ -355,7 +423,7 @@ class WebRtcPublisher internal constructor(
             }
 
             override fun onStats(stats: TransportStats) {
-                synchronized(lock) {
+                withState {
                     if (
                         generation != callbackGeneration ||
                         phase == Phase.IDLE ||
@@ -364,17 +432,16 @@ class WebRtcPublisher internal constructor(
                         return
                     }
                     val pcm = audioAdapter?.metrics()
-                    listener?.onStats(
-                        stats.copy(
-                            pcmUnderrunBytes = pcm?.silenceBytes ?: 0,
-                            pcmDroppedBytes = pcm?.droppedBytes ?: 0,
-                        ),
+                    val snapshot = stats.copy(
+                        pcmUnderrunBytes = pcm?.silenceBytes ?: 0,
+                        pcmDroppedBytes = pcm?.droppedBytes ?: 0,
                     )
+                    notifyListenerLocked { it.onStats(snapshot) }
                 }
             }
 
             override fun onFailure(message: String, cause: Throwable?) {
-                synchronized(lock) {
+                withState {
                     if (generation != callbackGeneration || phase == Phase.IDLE) return
                     notifyNegotiationFailureLocked(message, cause)
                 }
@@ -382,7 +449,7 @@ class WebRtcPublisher internal constructor(
         }
 
     private fun handleOfferResult(callbackGeneration: Long, result: Result<String>) {
-        synchronized(lock) {
+        withState {
             if (generation != callbackGeneration || phase != Phase.CREATING_OFFER) return
             result.fold(
                 onSuccess = { sdp ->
@@ -392,12 +459,12 @@ class WebRtcPublisher internal constructor(
                         notifyNegotiationFailureLocked("Created local offer SDP was blank")
                     } else {
                         phase = Phase.LOCAL_OFFER_SET
-                        listener?.onLocalOffer(sdp)
+                        notifyListenerLocked { it.onLocalOffer(sdp) }
                         val candidates = pendingLocalCandidates.toList()
                         pendingLocalCandidates.clear()
                         for (candidate in candidates) {
                             if (generation != callbackGeneration || phase == Phase.IDLE) break
-                            listener?.onLocalIceCandidate(candidate)
+                            notifyListenerLocked { it.onLocalIceCandidate(candidate) }
                         }
                     }
                 },
@@ -411,7 +478,7 @@ class WebRtcPublisher internal constructor(
     }
 
     private fun handleAnswerResult(callbackGeneration: Long, result: Result<Unit>) {
-        val drainTarget = synchronized(lock) {
+        val drainTarget = withState {
             if (generation != callbackGeneration || phase != Phase.SETTING_ANSWER) {
                 return
             }
@@ -450,7 +517,7 @@ class WebRtcPublisher internal constructor(
 
     private fun drainRemoteCandidates(target: CandidateTarget) {
         while (true) {
-            val candidate = synchronized(lock) {
+            val candidate = withState {
                 if (!isCurrentTargetLocked(target)) return
                 if (pendingRemoteCandidates.isEmpty()) {
                     remoteIceDrainActive = false
@@ -463,19 +530,27 @@ class WebRtcPublisher internal constructor(
     }
 
     private fun addCandidate(target: CandidateTarget, candidate: IceCandidatePayload) {
-        if (!isCurrentTarget(target)) return
+        val active = withState {
+            if (!isCurrentTargetLocked(target)) false else {
+                beginOperationLocked()
+                true
+            }
+        }
+        if (!active) return
         val accepted = try {
             target.session.addRemoteIceCandidate(candidate)
         } catch (error: Throwable) {
-            synchronized(lock) {
+            withState {
                 if (isCurrentTargetLocked(target)) {
                     notifyNegotiationFailureLocked("Failed to add a remote ICE candidate", error)
                 }
             }
             return
+        } finally {
+            finishOperation(target.generation)
         }
         if (!accepted) {
-            synchronized(lock) {
+            withState {
                 if (isCurrentTargetLocked(target)) {
                     notifyNegotiationFailureLocked("Failed to add a remote ICE candidate")
                 }
@@ -487,9 +562,9 @@ class WebRtcPublisher internal constructor(
         if (terminalConnectionReported) return
         terminalConnectionReported = true
         if (connected) {
-            listener?.onDisconnected(
-                NETWORK_DISCONNECTED + ": WebRTC connection entered " + state.name.lowercase(),
-            )
+            notifyListenerLocked {
+                it.onDisconnected(NETWORK_DISCONNECTED + ": WebRTC connection entered " + state.name.lowercase())
+            }
         } else {
             notifyNegotiationFailureLocked(
                 "WebRTC connection entered " + state.name.lowercase(),
@@ -498,7 +573,7 @@ class WebRtcPublisher internal constructor(
     }
 
     private fun notifyNegotiationFailureLocked(message: String, cause: Throwable? = null) {
-        listener?.onFailure(WEBRTC_NEGOTIATION_FAILED + ": " + message, cause)
+        notifyListenerLocked { it.onFailure(WEBRTC_NEGOTIATION_FAILED + ": " + message, cause) }
     }
 
     private fun failPrepare(
@@ -507,10 +582,15 @@ class WebRtcPublisher internal constructor(
         message: String,
         error: Throwable,
     ) {
-        synchronized(lock) {
-            if (generation != callbackGeneration) return@synchronized
-            notifyNegotiationFailureLocked(message, error)
+        withState {
+            if (generation != callbackGeneration) return@withState
+            val failedListener = listener
             generation += 1
+            if (failedListener != null) {
+                notifications += Notification(generation, failedListener) {
+                    it.onFailure(WEBRTC_NEGOTIATION_FAILED + ": " + message, error)
+                }
+            }
             phase = Phase.IDLE
             options = null
             listener = null
@@ -524,14 +604,51 @@ class WebRtcPublisher internal constructor(
         adapter.close()
     }
 
-    private fun isCurrentTarget(target: CandidateTarget): Boolean = synchronized(lock) {
-        isCurrentTargetLocked(target)
-    }
-
     private fun isCurrentTargetLocked(target: CandidateTarget): Boolean {
         return generation == target.generation &&
             phase != Phase.IDLE &&
             session === target.session
+    }
+
+    // Only state and snapshots are touched under this monitor. Cross-component callbacks and
+    // native operations run outside it, so signaling and WebRTC cannot acquire each other's locks.
+    private inline fun <T> withState(block: () -> T): T {
+        try {
+            return synchronized(lock, block)
+        } finally {
+            drainNotifications()
+        }
+    }
+
+    private fun notifyListenerLocked(deliver: (MediaPublisher.Listener) -> Unit) {
+        val currentListener = listener ?: return
+        notifications += Notification(generation, currentListener, deliver)
+    }
+
+    private fun drainNotifications() {
+        if (Thread.holdsLock(lock)) return
+        synchronized(lock) {
+            if (notificationDrainActive) return
+            notificationDrainActive = true
+        }
+        while (true) {
+            val next = synchronized(lock) {
+                while (notifications.isNotEmpty() && notifications.first().generation != generation) {
+                    notifications.removeFirst()
+                }
+                if (notifications.isEmpty()) {
+                    notificationDrainActive = false
+                    return
+                }
+                notifications.removeFirst()
+            }
+            try {
+                next.deliver(next.listener)
+            } catch (error: Throwable) {
+                synchronized(lock) { notificationDrainActive = false }
+                throw error
+            }
+        }
     }
 
     private companion object {

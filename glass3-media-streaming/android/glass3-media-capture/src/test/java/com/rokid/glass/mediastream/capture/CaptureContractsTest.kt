@@ -38,7 +38,7 @@ class CaptureContractsTest {
     }
 
     @Test
-    fun `audio options enforce PCM16 with a positive mono or stereo sample rate`() {
+    fun `audio options reject invalid PCM sample rates channel counts and sample widths`() {
         assertThrows(IllegalArgumentException::class.java) {
             AudioCaptureOptions(sampleRateHz = 0)
         }
@@ -61,6 +61,12 @@ class CaptureContractsTest {
         assertThrows(IllegalArgumentException::class.java) {
             CaptureOptions(startupTimeoutMs = -1)
         }
+    }
+
+    @Test
+    fun `unsupported device PCM formats are rejected before a capture session is created`() {
+        assertThrows(IllegalArgumentException::class.java) { AudioCaptureOptions(sampleRateHz = 48_000) }
+        assertThrows(IllegalArgumentException::class.java) { AudioCaptureOptions(channelCount = 2) }
     }
 
     @Test

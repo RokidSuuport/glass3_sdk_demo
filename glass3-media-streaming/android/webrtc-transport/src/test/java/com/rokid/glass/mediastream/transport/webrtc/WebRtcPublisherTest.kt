@@ -10,6 +10,8 @@ import com.rokid.glass.mediastream.transport.webrtc.audio.WebRtcAudioAdapter
 import com.rokid.glass.mediastream.transport.webrtc.video.VideoFrameTarget
 import java.lang.reflect.InvocationTargetException
 import java.nio.ByteBuffer
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.Function1
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -19,6 +21,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WebRtcPublisherTest {
+    @Test
+    fun local_offer_listener_does_not_block_a_concurrent_remote_answer() {
+        val factory = FakePublisherSessionFactory()
+        val publisher = WebRtcPublisher(factory)
+        val completed = CountDownLatch(1)
+        var answeredWhileCallbackActive = false
+        val listener = object : MediaPublisher.Listener by RecordingListener() {
+            override fun onLocalOffer(sdp: String) {
+                Thread {
+                    publisher.setRemoteAnswer("answer")
+                    completed.countDown()
+                }.apply { isDaemon = true }.start()
+                answeredWhileCallbackActive = completed.await(1, TimeUnit.SECONDS)
+            }
+        }
+        publisher.prepare(PublishOptions(false, true), listener)
+        publisher.createOffer()
+        factory.sessions.single().completeOffer(Result.success("offer"))
+
+        assertTrue("native callbacks must not hold the publisher lock while calling signaling", answeredWhileCallbackActive)
+        assertTrue(completed.await(1, TimeUnit.SECONDS))
+        assertEquals("answer", factory.sessions.single().remoteAnswer)
+        publisher.close()
+    }
+
+    @Test
+    fun concurrent_close_from_a_native_frame_callback_is_nonblocking_and_defers_native_disposal() {
+        val releases = mutableListOf<String>()
+        val factory = FakePublisherSessionFactory(releases)
+        val publisher = WebRtcPublisher(factory)
+        publisher.prepare(PublishOptions(true, false), RecordingListener())
+        val completed = CountDownLatch(1)
+        var closedWhileFrameActive = false
+        var disposedWhileFrameActive = false
+        factory.sessions.single().beforeVideoFrame = {
+            Thread { publisher.close(); completed.countDown() }.apply { isDaemon = true }.start()
+            closedWhileFrameActive = completed.await(1, TimeUnit.SECONDS)
+            disposedWhileFrameActive = releases.isNotEmpty()
+        }
+        val frame = nv21Frame(ByteArray(12), 4, 2, 1L)
+        publisher.onVideoFrame(frame)
+        frame.close()
+
+        assertTrue("close must not wait for a native callback to release the state lock", closedWhileFrameActive)
+        assertFalse("native resources must survive an in-flight frame", disposedWhileFrameActive)
+        assertEquals(listOf("peer", "videoSource", "audioAdapter", "audioModule", "factory"), releases)
+    }
+
     @Test
     fun prepare_rejects_an_empty_media_selection() {
         val publisher = WebRtcPublisher(FakePublisherSessionFactory())
@@ -298,8 +348,12 @@ class WebRtcPublisherTest {
         val hasVideoSender = options.videoEnabled
         val hasAudioSender = options.audioEnabled
         val videoFrames = mutableListOf<VideoObservation>()
+        var beforeVideoFrame: (() -> Unit)? = null
         override val videoFrameTarget: VideoFrameTarget? = if (options.videoEnabled) {
-            VideoFrameTarget { frame -> videoFrames += VideoObservation(frame.buffer.width, frame.buffer.height, frame.timestampNs) }
+            VideoFrameTarget { frame ->
+                beforeVideoFrame?.invoke()
+                videoFrames += VideoObservation(frame.buffer.width, frame.buffer.height, frame.timestampNs)
+            }
         } else {
             null
         }

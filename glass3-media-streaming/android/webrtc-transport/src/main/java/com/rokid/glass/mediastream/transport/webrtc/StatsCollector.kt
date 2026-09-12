@@ -20,6 +20,10 @@ internal class StatsAccumulator {
         var framesEncoded = 0L
         var packetsLost = 0L
         var roundTripTimeMs = 0L
+        var encodedWidth = 0
+        var encodedHeight = 0
+        var encodedFps = 0.0
+        var qualityLimitationReason = "unknown"
 
         for (stat in stats) {
             val kind = stat.members["kind"]?.toString()
@@ -32,6 +36,22 @@ internal class StatsAccumulator {
                         framesEncoded,
                         stat.members.nonNegativeLong("framesEncoded"),
                     )
+                    val width = stat.members.nonNegativeLong("frameWidth").coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    val height = stat.members.nonNegativeLong("frameHeight").coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    val reason = (stat.members["qualityLimitationReason"] as? String)
+                        ?.takeIf(String::isNotBlank) ?: "unknown"
+                    // Keep one coherent encoding's dimensions/FPS; RTX reports have no dimensions.
+                    // The current publisher creates one video encoding. If more are reported, show
+                    // the largest actual encoding rather than combining unrelated width/height values.
+                    if (width > 0 && height > 0 && width.toLong() * height >= encodedWidth.toLong() * encodedHeight) {
+                        encodedWidth = width
+                        encodedHeight = height
+                        encodedFps = stat.members.doubleValue("framesPerSecond")
+                            .takeIf { it.isFinite() && it >= 0.0 } ?: 0.0
+                        qualityLimitationReason = reason
+                    } else if (qualityLimitationReason == "unknown" && reason != "unknown") {
+                        qualityLimitationReason = reason
+                    }
                 }
 
                 stat.type == "outbound-rtp" && kind == "audio" -> {
@@ -63,6 +83,10 @@ internal class StatsAccumulator {
             framesEncoded = framesEncoded,
             packetsLost = packetsLost.coerceAtLeast(0),
             roundTripTimeMs = roundTripTimeMs,
+            encodedVideoWidth = encodedWidth,
+            encodedVideoHeight = encodedHeight,
+            encodedVideoFps = encodedFps,
+            videoQualityLimitationReason = qualityLimitationReason,
         )
     }
 

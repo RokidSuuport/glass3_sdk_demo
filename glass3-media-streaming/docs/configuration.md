@@ -51,7 +51,7 @@ CaptureOptions(
 )
 ```
 
-宽高必须是正偶数，FPS 范围为 1 到 60，音频当前只接受 16 bit PCM。配置值合法不代表设备固件一定支持该组合，应以首帧和状态回调为准。
+宽高必须是正偶数，FPS 范围为 1 到 60。音频当前只接受 16 kHz、单声道、16 bit PCM，其他格式在创建选项时即报错。需要其他音频格式时，在获取 PCM 后自行重采样/转换。配置值合法不代表设备固件一定支持该视频组合，应以首帧和状态回调为准。
 
 ## 推流参数
 
@@ -68,6 +68,30 @@ StreamingOptions(
 - 音视频至少启用一项。
 - `roomId` 必须与浏览器一致。默认服务适合单设备体验，不具备身份认证。
 - 局域网服务默认监听 TCP 8080，网页和 WebSocket 共用一个服务。
+
+## 采集尺寸与编码尺寸
+
+这三项不要混为一谈：
+
+| 指标 | 从哪里读取 | 含义 |
+| --- | --- | --- |
+| 请求采集尺寸 | `CaptureOptions.video` / `StreamingOptions.videoCapture` | 希望设备提供的 NV21 格式 |
+| 实际采集尺寸 | `Nv21Frame.width/height`；推流 `stats.videoWidth/videoHeight/videoFps` | CameraShare 实际交付的帧 |
+| 实际编码/接收尺寸 | 眼镜 `stats.encodedVideoWidth/encodedVideoHeight/encodedVideoFps`；浏览器统计区 | WebRTC 编码、接收和解码的图像 |
+
+例如请求 720p 并设置视频码率上限：
+
+```kotlin
+StreamingOptions(
+    serverUrl = "ws://<PC-IP>:8080/ws",
+    videoCapture = VideoCaptureOptions(width = 1280, height = 720, fps = 15),
+    maxVideoBitrateBps = 3_000_000,
+)
+```
+
+只取流时，将同样的 `VideoCaptureOptions` 作为 `CaptureOptions` 的 `video` 参数。要尝试 1080p，改为 `width = 1920, height = 1080`；是否支持仍由固件、CameraShare 和当时资源决定，必须检查实际首帧尺寸和持续帧率，不能只看请求值。
+
+`maxVideoBitrateBps` 必须为正数，是编码器的上限，不是最低保证值；不填写时保持默认策略。WebRTC 仍可根据网络与负载降低码率、帧率或分辨率，本入口不承诺锁定输出尺寸。`videoQualityLimitationReason` 可用于排查发送端的带宽或 CPU 限制，未取得数据时为 `unknown`。
 
 ## 缓冲与性能
 

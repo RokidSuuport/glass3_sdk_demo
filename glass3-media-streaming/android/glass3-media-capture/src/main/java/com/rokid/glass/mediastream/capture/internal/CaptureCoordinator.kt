@@ -16,6 +16,9 @@ import com.rokid.glass.mediastream.capture.VideoFrameListener
 import com.rokid.glass.mediastream.capture.internal.audio.AudioSource
 import com.rokid.glass.mediastream.capture.internal.sdk.SdkConnection
 import com.rokid.glass.mediastream.capture.internal.video.VideoSource
+import com.rokid.glass.mediastream.capture.internal.video.TimeoutScheduler
+import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -30,6 +33,9 @@ internal interface CaptureController {
     fun stop()
     fun release()
     fun currentStatus(): CaptureStatus
+    fun isCleanupInProgress(): Boolean = false
+    /** Nonblocking cancellation of callbacks/start work; actual resources are released by stop. */
+    fun invalidateCallbacks() = Unit
 }
 
 internal fun interface VideoSourceFactory {
@@ -44,6 +50,9 @@ internal class CaptureCoordinator(
     private val sdkConnection: SdkConnection,
     private val videoSourceFactory: VideoSourceFactory,
     private val audioSourceFactory: AudioSourceFactory,
+    private val bindTimeoutScheduler: TimeoutScheduler = CaptureBindTimeoutScheduler,
+    private val dispatchOperation: (() -> Unit) -> Unit = { it() },
+    private val deferCleanupWait: Boolean = false,
 ) : CaptureController {
     private class Session(
         val generation: Long,
@@ -59,6 +68,7 @@ internal class CaptureCoordinator(
         var audioStartAttempted = false
         var firstVideoFrameReceived = false
         var firstAudioFrameReceived = false
+        var bindTimeout: TimeoutScheduler.Cancellable? = null
     }
 
     private data class StatusNotification(
@@ -90,6 +100,7 @@ internal class CaptureCoordinator(
     private val statusNotificationsIdle = stateLock.newCondition()
     private val operationLock = ReentrantLock(true)
     private val statusNotificationDepth = ThreadLocal.withInitial { 0 }
+    private val mediaNotificationDepth = ThreadLocal.withInitial { 0 }
     private var inFlightStatusNotifications = 0
     private var generation = 0L
     private var state = CaptureState.IDLE
@@ -109,7 +120,7 @@ internal class CaptureCoordinator(
     ) {
         val startedSession = stateLock.withLock {
             while (cleaningUp) {
-                if ((statusNotificationDepth.get() ?: 0) > 0) {
+                if (isInCallback()) {
                     check(desiredTerminalState != CaptureState.RELEASED) {
                         "Capture has been released"
                     }
@@ -168,6 +179,11 @@ internal class CaptureCoordinator(
             val mayBind = stateLock.withLock {
                 if (!isCurrentLocked(startedSession.generation)) false else {
                     startedSession.sdkBindAttempted = true
+                    startedSession.bindTimeout = bindTimeoutScheduler.schedule(options.startupTimeoutMs) {
+                        fail(startedSession.generation, MediaFailureCatalog.forCode(MediaErrorCode.SDK_NOT_READY).copy(
+                            technicalMessage = "Glass SDK did not bind within ${options.startupTimeoutMs}ms",
+                        ), bindingDeadline = true)
+                    }
                     true
                 }
             }
@@ -204,9 +220,27 @@ internal class CaptureCoordinator(
         }
     }
 
+    override fun isCleanupInProgress(): Boolean = stateLock.withLock { cleaningUp }
+
+    override fun invalidateCallbacks() {
+        stateLock.withLock {
+            session?.let {
+                generation++
+                it.bindTimeout?.cancel()
+                it.bindTimeout = null
+            }
+        }
+    }
+
     private fun sdkListener(callbackGeneration: Long) = object : SdkConnection.Listener {
         override fun onReady() {
-            startSources(callbackGeneration)
+            val current = stateLock.withLock {
+                session?.takeIf { isCurrentLocked(callbackGeneration) }?.also {
+                    it.bindTimeout?.cancel()
+                    it.bindTimeout = null
+                }
+            } ?: return
+            dispatchOperation { startSources(current.generation) }
         }
 
         override fun onFailure(failure: MediaFailure) {
@@ -281,6 +315,7 @@ internal class CaptureCoordinator(
     }
 
     private fun videoEvents(callbackGeneration: Long) = object : VideoSource.Events {
+        override val ownsCleanup = true
         override fun onStarted() = Unit
 
         override fun onFailure(failure: MediaFailure) {
@@ -289,6 +324,7 @@ internal class CaptureCoordinator(
     }
 
     private fun audioEvents(callbackGeneration: Long) = object : AudioSource.Events {
+        override val ownsCleanup = true
         override fun onStarted() = Unit
 
         override fun onFailure(failure: MediaFailure) {
@@ -303,7 +339,7 @@ internal class CaptureCoordinator(
     ) {
         notifyStatus(markFirstFrame(callbackGeneration, video = true))
         if (isCurrent(callbackGeneration)) {
-            activeSession.videoListener?.onVideoFrame(frame)
+            withinMediaCallback { activeSession.videoListener?.onVideoFrame(frame) }
         }
     }
 
@@ -314,7 +350,7 @@ internal class CaptureCoordinator(
     ) {
         notifyStatus(markFirstFrame(callbackGeneration, video = false))
         if (isCurrent(callbackGeneration)) {
-            activeSession.audioListener?.onAudioFrame(frame)
+            withinMediaCallback { activeSession.audioListener?.onAudioFrame(frame) }
         }
     }
 
@@ -350,7 +386,7 @@ internal class CaptureCoordinator(
                     desiredTerminalState = CaptureState.RELEASED
                     pendingStart = null
                 }
-                if ((statusNotificationDepth.get() ?: 0) > 0) return
+                if (isInCallback() || deferCleanupWait) return
                 lifecycleIdle.awaitUninterruptibly()
             }
             if (state == CaptureState.RELEASED) return
@@ -384,6 +420,10 @@ internal class CaptureCoordinator(
         }
 
         notifyStatus(plan.stoppingNotification)
+        completeStop(plan)
+    }
+
+    private fun completeStop(plan: CleanupPlan) {
         val cleanupErrors = cleanup(plan.session)
         val finalMetrics = metrics(plan.session)
         val completion = stateLock.withLock {
@@ -417,9 +457,11 @@ internal class CaptureCoordinator(
         throwIfCleanupFailed(cleanupErrors)
     }
 
-    private fun fail(callbackGeneration: Long, mediaFailure: MediaFailure) {
+    private fun fail(callbackGeneration: Long, mediaFailure: MediaFailure, bindingDeadline: Boolean = false) {
         val plan = stateLock.withLock {
             val activeSession = session?.takeIf { isCurrentLocked(callbackGeneration) } ?: return
+            // cancel(false) cannot retract a timeout task already dispatched on another thread.
+            if (bindingDeadline && activeSession.bindTimeout == null) return
             if (cleaningUp) return
             cleaningUp = true
             desiredTerminalState = CaptureState.ERROR
@@ -444,10 +486,14 @@ internal class CaptureCoordinator(
         }
 
         notifyStatus(plan.stoppingNotification)
+        dispatchOperation { completeFailure(plan, mediaFailure) }
+    }
+
+    private fun completeFailure(plan: CleanupPlan, mediaFailure: MediaFailure) {
         val cleanupErrors = cleanup(plan.session)
         val finalMetrics = metrics(plan.session)
         val finalFailure = aggregate(mediaFailure, cleanupErrors)
-        val notification = stateLock.withLock {
+        val completion = stateLock.withLock {
             lastVideoMetrics = finalMetrics.first
             lastAudioMetrics = finalMetrics.second
             state = desiredTerminalState ?: CaptureState.ERROR
@@ -455,16 +501,22 @@ internal class CaptureCoordinator(
             failure = finalFailure.takeUnless { state == CaptureState.RELEASED }
             cleaningUp = false
             lifecycleIdle.signalAll()
-            StatusNotification(
+            val notification = StatusNotification(
                 generation,
                 plan.session.statusListener,
                 CaptureStatus(state, lastVideoMetrics, lastAudioMetrics, failure),
             )
+            val restart = pendingStart.takeUnless { state == CaptureState.RELEASED }
+            pendingStart = null
+            CleanupCompletion(notification, restart)
         }
-        notifyStatus(notification)
+        completion.pendingStart?.let { start(it.options, it.videoListener, it.audioListener, it.statusListener) }
+        notifyStatus(completion.notification)
     }
 
     private fun cleanup(activeSession: Session): List<Throwable> = operationLock.withLock {
+        activeSession.bindTimeout?.cancel()
+        activeSession.bindTimeout = null
         val errors = mutableListOf<Throwable>()
         fun attempt(action: () -> Unit) {
             try {
@@ -573,6 +625,15 @@ internal class CaptureCoordinator(
         isCurrentLocked(callbackGeneration)
     }
 
+    private fun isInCallback(): Boolean =
+        (statusNotificationDepth.get() ?: 0) > 0 || (mediaNotificationDepth.get() ?: 0) > 0
+
+    private inline fun withinMediaCallback(action: () -> Unit) {
+        val previous = mediaNotificationDepth.get() ?: 0
+        mediaNotificationDepth.set(previous + 1)
+        try { action() } finally { mediaNotificationDepth.set(previous) }
+    }
+
     private fun isCurrentLocked(callbackGeneration: Long): Boolean =
         !cleaningUp && session?.generation == callbackGeneration && generation == callbackGeneration
 
@@ -585,4 +646,15 @@ internal class CaptureCoordinator(
             (cause.message ?: cause.javaClass.simpleName),
         cause = cause,
     )
+}
+
+private object CaptureBindTimeoutScheduler : TimeoutScheduler {
+    private val executor = ScheduledThreadPoolExecutor(1) { task ->
+        Thread(task, "Glass3-SdkBindTimeout").apply { isDaemon = true }
+    }.apply { removeOnCancelPolicy = true }
+
+    override fun schedule(delayMs: Long, action: () -> Unit): TimeoutScheduler.Cancellable {
+        val future = executor.schedule(action, delayMs, TimeUnit.MILLISECONDS)
+        return TimeoutScheduler.Cancellable { future.cancel(false) }
+    }
 }
