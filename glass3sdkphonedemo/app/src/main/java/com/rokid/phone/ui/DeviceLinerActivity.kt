@@ -179,8 +179,7 @@ class DeviceLinerActivity : BaseActivity<ActivityDeviceLinkerBinding>(), OnItemC
 
     private fun fetchLinkersData() {
         L.d(TAG, "fetchLinkersData")
-        val deviceNameFilter:List<String> = listOf("D01","D06")
-        PSecuritySDK.getBluetoothRingService()?.startScan(deviceNameFilter)
+        PSecuritySDK.getBluetoothRingService()?.startScan(emptyList(), 10000)
     }
 
     override fun initViewBinding(): ActivityDeviceLinkerBinding {
