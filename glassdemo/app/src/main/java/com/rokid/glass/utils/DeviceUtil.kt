@@ -5,9 +5,9 @@ import android.content.pm.PackageManager
 import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.LocaleList
-import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
+import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.uitls.log.L
 import java.io.BufferedReader
 import java.io.FileReader
@@ -213,16 +213,17 @@ object DeviceUtil {
     /**
      * 重启设备
      */
-    fun rebootDevice(context: Context) {
+    fun rebootDevice() {
         L.v("DeviceUtil", "rebootDevice() call")
         try {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager?
-            if (powerManager != null) {
-                L.v("DeviceUtil", "the powerManager reboot call")
-                powerManager.reboot(null)
+            val deviceService = GlassSdk.getGlassDeviceService()
+            if (deviceService == null) {
+                L.e("DeviceUtil", "rebootDevice failed: Glass SDK is not ready")
+                return
             }
+            deviceService.reboot()
         } catch (e: Exception) {
-            e.printStackTrace()
+            L.e("DeviceUtil", "rebootDevice failed: ${e.message}", e)
         }
     }
 }
