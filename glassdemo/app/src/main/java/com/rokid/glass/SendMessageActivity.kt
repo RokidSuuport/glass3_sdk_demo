@@ -47,7 +47,11 @@ import com.rokid.security.system.server.device.listener.IWifiOperationCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
 import com.rokid.security.system.server.message.file.listener.FileReceiveListener
 import com.rokid.security.system.server.message.listener.IMessageListener
+import com.rokid.security.system.server.tts.ITtsService
 import com.rokid.security.system.server.tts.listener.SpeechCompleteListener
+import com.rokid.glass.speech.OnlineSpeechSession
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -99,29 +103,13 @@ class SendMessageActivity : BaseActivity() {
     private lateinit var huoVoiceAction: VoiceAction
     private var startAsrAfterPermissionGranted = false
     private var onlineAsrTimeoutJob: Job? = null
-    private var onlineTtsPending = false
+    private val onlineAsrSession = OnlineSpeechSession()
+    private val onlineTtsSession = OnlineSpeechSession()
     private var onlineTtsTimeoutJob: Job? = null
-
-    private val ttsCompleteListener = object : SpeechCompleteListener.Stub() {
-        override fun onComplete() {
-            runOnUiThread {
-                onlineTtsTimeoutJob?.cancel()
-                onlineTtsTimeoutJob = null
-                onlineTtsPending = false
-                log("在线 TTS 播放完成")
-            }
-        }
-
-        override fun onServiceConnectState(connected: Boolean) {
-            runOnUiThread {
-                if (connected) {
-                    log("在线 TTS 服务连接成功")
-                } else if (onlineTtsPending) {
-                    log("在线 TTS 服务连接失败：请检查网络及灵眸账号鉴权状态，SDK 未返回具体错误码")
-                }
-            }
-        }
-    }
+    private var onlineTtsService: ITtsService? = null
+    private var onlineTtsListener: SpeechCompleteListener? = null
+    private val speechHandler = Handler(Looper.getMainLooper())
+    private var ttsPageActive = false
 
     private val audioTrack = AudioTrack(
         AudioManager.STREAM_MUSIC,                // 音频流类型
@@ -136,40 +124,40 @@ class SendMessageActivity : BaseActivity() {
         AudioTrack.MODE_STREAM                    // 流式模式（适合实时播放）
     )
 
-    private val speechCallback = object : SpeechCallback.Stub() {
-        override fun onStart() {
+    private fun deliver(session: OnlineSpeechSession, token: Long, action: () -> Unit) {
+        speechHandler.post {
+            if (session.accepts(token) && !isDestroyed) action()
+        }
+    }
+
+    private fun speechCallback(token: Long) = object : SpeechCallback.Stub() {
+        override fun onStart() = deliver(onlineAsrSession, token) {
+            onlineAsrSession.started(token)
             cancelOnlineAsrTimeout()
             log(OnlineAsrStatusMessages.started)
         }
 
-        override fun onIntermediateVad(content: String) {
-            log(content)
-        }
+        override fun onIntermediateVad(content: String) = deliver(onlineAsrSession, token) { log(content) }
 
-        override fun onAsrComplete(content: String?) {
-            cancelOnlineAsrTimeout()
+        override fun onAsrComplete(content: String?) = deliver(onlineAsrSession, token) {
             val result = content.orEmpty()
-            Log.i(TAG, "语音转文本完成: $result")
             log(if (result.isBlank()) "语音转文本完成，但未识别到内容" else result)
         }
 
-        override fun onAsrCompleteWithIntent(content: String?, intent: Int, intentJson: String) {
-            cancelOnlineAsrTimeout()
+        override fun onAsrCompleteWithIntent(content: String?, intent: Int, intentJson: String) = deliver(onlineAsrSession, token) {
             log("识别的内容=${content.orEmpty()},意图index=$intent,意图json=$intentJson")
         }
 
-        override fun onError(code: Int) {
-            cancelOnlineAsrTimeout()
+        override fun onError(code: Int) = deliver(onlineAsrSession, token) {
+            stopOnlineAsr()
             log(OnlineAsrStatusMessages.error(code))
         }
 
-        override fun onServiceConnectState(connect: Boolean) {
-            if (connect) {
-                log(OnlineAsrStatusMessages.connected)
-            } else {
-                cancelOnlineAsrTimeout()
-                log(OnlineAsrStatusMessages.connectionFailed)
-            }
+        override fun onServiceConnectState(connect: Boolean) = deliver(onlineAsrSession, token) {
+            // SDK 2.2.0-E replays cached state and supplies no route/session ID.
+            // This signal alone cannot establish that this recognition request failed.
+            if (connect) log(OnlineAsrStatusMessages.connected)
+            else log("在线 ASR 连接状态未就绪，等待识别启动或错误回调")
         }
     }
 
@@ -634,7 +622,11 @@ class SendMessageActivity : BaseActivity() {
     }
 
     private fun startAsr() {
-        cancelOnlineAsrTimeout()
+        if (onlineAsrSession.id != 0L) {
+            val stopped = stopOnlineAsr()
+            log(if (stopped) "在线 ASR 已请求停止，再次点击可开始新的识别" else "在线 ASR 停止失败，请再次点击重试清理")
+            return
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) !=
             PackageManager.PERMISSION_GRANTED
         ) {
@@ -665,15 +657,16 @@ class SendMessageActivity : BaseActivity() {
         }
 
         try {
-            asrService.stopSpeech()
+            val token = onlineAsrSession.begin()
+            binding.btnOnlineAsr.text = "停止ASR"
             log(OnlineAsrStatusMessages.connecting)
             scheduleOnlineAsrTimeout()
-            asrService.startSpeech(speechCallback)
+            asrService.startSpeech(speechCallback(token))
         } catch (error: SecurityException) {
-            cancelOnlineAsrTimeout()
+            stopOnlineAsr()
             log("在线 ASR 鉴权或权限失败：请检查灵眸账号登录和系统授权状态")
         } catch (error: Exception) {
-            cancelOnlineAsrTimeout()
+            stopOnlineAsr()
             log("在线 ASR 启动异常：${error.message.orEmpty()}，请检查网络及灵眸账号鉴权状态")
         }
     }
@@ -683,7 +676,10 @@ class SendMessageActivity : BaseActivity() {
         onlineAsrTimeoutJob = lifecycleScope.launch {
             delay(ONLINE_ASR_TIMEOUT_MS)
             onlineAsrTimeoutJob = null
-            log(OnlineAsrStatusMessages.connectionTimeout)
+            if (onlineAsrSession.starting) {
+                stopOnlineAsr()
+                log(OnlineAsrStatusMessages.connectionTimeout)
+            }
         }
     }
 
@@ -692,55 +688,129 @@ class SendMessageActivity : BaseActivity() {
         onlineAsrTimeoutJob = null
     }
 
+    private fun stopOnlineAsr(): Boolean {
+        cancelOnlineAsrTimeout()
+        val stopped = onlineAsrSession.cancel {
+            runCatching {
+                val service = GlassSdk.getGlassAsrService() ?: return@runCatching false
+                service.stopSpeech()
+                true
+            }.getOrDefault(false)
+        }
+        binding.btnOnlineAsr.text = if (stopped) "在线ASR" else "重试停止ASR"
+        return stopped
+    }
+
     private fun playOnlineTts() {
-        if (!GlassSdk.isReady()) {
-            return log("SDK 尚未初始化完成，请稍后重试")
+        if (onlineTtsSession.stopping && !cancelOnlineTts()) {
+            return log("上次播报尚未清理成功，队列已暂停，请稍后重试")
         }
-        if (!isNetworkAvailable()) {
-            return log("在线 TTS 播放失败：当前无可用网络")
+        if (!GlassSdk.isReady()) return log("SDK 尚未初始化完成，请稍后重试")
+        if (!isNetworkAvailable()) return log("在线 TTS 播放失败：当前无可用网络")
+        if (!onlineTtsSession.enqueue()) {
+            return log("在线 TTS 队列已满（最多 ${OnlineSpeechSession.CAPACITY} 条，含正在播报），本次点击未受理")
         }
-        val service = GlassSdk.getGlassTtsService()
-            ?: return log("在线 TTS 服务不可用")
-        if (onlineTtsPending) {
-            return log("在线 TTS 请求处理中，请稍候")
-        }
-        try {
-            service.setSpeechCompleteListener(ttsCompleteListener)
-            dispatchOnlineTts()
-        } catch (error: SecurityException) {
-            onlineTtsPending = false
-            log("在线 TTS 鉴权或权限失败：请检查灵眸账号登录和系统授权状态")
-        } catch (error: Exception) {
-            onlineTtsPending = false
-            log(describeOnlineTtsFailure(error))
+        if (onlineTtsSession.id != 0L) {
+            log("在线 TTS 已加入队列，前面还有 ${onlineTtsSession.waiting} 条播报")
+        } else {
+            dispatchNextOnlineTts()
         }
     }
 
-    private fun dispatchOnlineTts() {
-        val service = GlassSdk.getGlassTtsService() ?: run {
-            log("在线 TTS 服务不可用")
-            return
+    private fun dispatchNextOnlineTts() {
+        if (!ttsPageActive || isFinishing || isDestroyed || onlineTtsSession.id != 0L || onlineTtsSession.waiting == 0) return
+        if (!GlassSdk.isReady() || !isNetworkAvailable()) {
+            val removed = onlineTtsSession.clearQueue()
+            return log("语音服务或网络不可用，已取消 $removed 条待播报请求，请恢复后重试")
         }
+        val service = GlassSdk.getGlassTtsService() ?: run {
+            val removed = onlineTtsSession.clearQueue()
+            return log("在线 TTS 服务不可用，已取消 $removed 条待播报请求")
+        }
+        val token = onlineTtsSession.beginNext()
+        if (token == 0L) return
+        var submitted = false
+        val listener = object : SpeechCompleteListener.Stub() {
+            override fun onComplete() = deliver(onlineTtsSession, token) {
+                onlineTtsSession.complete(token)
+                onlineTtsTimeoutJob?.cancel()
+                onlineTtsTimeoutJob = null
+                detachOnlineTtsListener()
+                log("在线 TTS 播放完成，剩余 ${onlineTtsSession.waiting} 条")
+                speechHandler.post { dispatchNextOnlineTts() }
+            }
+
+            override fun onServiceConnectState(connected: Boolean) = deliver(onlineTtsSession, token) {
+                // Legacy state has no route identity; never cancel playback based on it alone.
+                if (connected) log("在线 TTS 服务连接成功")
+                else log("在线 TTS 连接状态未就绪，等待播放完成或超时")
+            }
+        }
+        onlineTtsService = service
+        onlineTtsListener = listener
         try {
-            onlineTtsPending = true
+            service.setSpeechCompleteListener(listener)
+            // Retain ownership before submission, including a lost IPC reply.
+            submitted = true
             service.doSpeechTts(ONLINE_TTS_DEMO_TEXT)
-            log("在线 TTS 请求已发送：$ONLINE_TTS_DEMO_TEXT")
-            onlineTtsTimeoutJob?.cancel()
+            log("在线 TTS 请求已发送")
             onlineTtsTimeoutJob = lifecycleScope.launch {
                 delay(ONLINE_TTS_TIMEOUT_MS)
-                if (onlineTtsPending) {
-                    onlineTtsPending = false
-                    log("在线 TTS 未收到完成回调：请检查网络、灵眸账号鉴权状态及声音路由")
+                if (onlineTtsSession.accepts(token)) {
+                    val cleaned = cancelOnlineTts()
+                    log(if (cleaned) "在线 TTS 未收到完成回调，已请求取消，将继续处理队列；此超时不能判定鉴权或声音路由故障"
+                        else "在线 TTS 超时且清理未完成，队列已暂停，请稍后重试")
+                    if (cleaned) speechHandler.post { dispatchNextOnlineTts() }
                 }
-                onlineTtsTimeoutJob = null
             }
-        } catch (error: SecurityException) {
-            onlineTtsPending = false
-            log("在线 TTS 鉴权或权限失败：请检查灵眸账号登录和系统授权状态")
         } catch (error: Exception) {
-            onlineTtsPending = false
+            // Registration failure never submitted audio; do not invoke global cancel then.
+            if (!submitted) onlineTtsSession.complete(token)
+            val cleaned = cancelOnlineTts()
             log(describeOnlineTtsFailure(error))
+            val removed = onlineTtsSession.clearQueue()
+            log("在线 TTS 提交失败，已取消 $removed 条待播报请求")
+            if (!cleaned) log("在线 TTS 清理未完成，请稍后重试")
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ttsPageActive = true
+    }
+
+    private fun cancelOnlineTts(): Boolean {
+        onlineTtsTimeoutJob?.cancel()
+        onlineTtsTimeoutJob = null
+        // cancel() rejects callbacks before invoking the SDK, even when cancellation fails.
+        val canceled = onlineTtsSession.cancel {
+            runCatching {
+                val service = onlineTtsService ?: return@runCatching false
+                // SDK 2.2.0-E exposes only global cancellation. Never invoke it while idle.
+                service.doCancelTts()
+                true
+            }.getOrDefault(false)
+        }
+        detachOnlineTtsListener()
+        return canceled
+    }
+
+    private fun detachOnlineTtsListener() {
+        val listener = onlineTtsListener
+        onlineTtsListener = null
+        if (listener != null) runCatching { onlineTtsService?.removeSpeechCompleteListener() }
+    }
+
+    override fun onStop() {
+        stopOnlineAsr()
+        ttsPageActive = false
+        val removed = onlineTtsSession.clearQueue()
+        if (removed > 0 || onlineTtsSession.id != 0L) {
+            log("已离开页面，取消当前播报及 $removed 条排队请求")
+        }
+        val cleaned = cancelOnlineTts()
+        if (!cleaned) L.w("SendMessageActivity", "Online TTS cleanup failed on page stop")
+        super.onStop()
     }
 
     private fun playOfflineTts() {
@@ -952,11 +1022,9 @@ class SendMessageActivity : BaseActivity() {
         GlassSdk.getGlassMessageService()?.removeMessageListener(mMessageListener)
         mFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
         mBTFileOperator?.removeFileReceiveListener(bleFileReceiveListener)
-        GlassSdk.getGlassAsrService()?.stopSpeech()
-        onlineTtsTimeoutJob?.cancel()
-        onlineTtsTimeoutJob = null
-        onlineTtsPending = false
-        runCatching { GlassSdk.getGlassTtsService()?.removeSpeechCompleteListener() }
+        stopOnlineAsr()
+        cancelOnlineTts()
+        speechHandler.removeCallbacksAndMessages(null)
         if (::huoVoiceAction.isInitialized) {
             GlassSdk.getGlassOfflineCmdService()?.remove(huoVoiceAction)
         }

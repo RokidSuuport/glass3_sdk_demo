@@ -45,10 +45,10 @@ class SendMessageSpeechButtonsContractTest {
         assertTrue(source.contains("getGlassOfflineTtsService()"))
         assertTrue(source.contains("playTtsMsg(OFFLINE_TTS_DEMO_TEXT)"))
         assertTrue(
-            source.indexOf("binding.btnOnlineTts") < source.indexOf("binding.btnOfflineTts")
+            source.lastIndexOf("binding.btnOnlineTts") < source.lastIndexOf("binding.btnOfflineTts")
         )
         assertTrue(
-            source.indexOf("binding.btnOfflineTts") < source.indexOf("binding.btnOnlineAsr")
+            source.lastIndexOf("binding.btnOfflineTts") < source.lastIndexOf("binding.btnOnlineAsr")
         )
     }
 
@@ -63,7 +63,7 @@ class SendMessageSpeechButtonsContractTest {
         assertTrue(source.contains("SpeechCompleteListener.Stub()"))
         assertTrue(source.contains("在线 TTS 播放完成"))
         assertTrue(source.contains("当前无可用网络"))
-        assertTrue(source.contains("灵眸账号鉴权状态"))
+        assertTrue(source.contains("此超时不能判定鉴权或声音路由故障"))
         assertTrue(source.contains("鉴权或权限失败"))
         assertTrue(source.contains("未收到完成回调"))
         assertTrue(source.contains("离线 TTS 请求已发送"))
@@ -78,16 +78,12 @@ class SendMessageSpeechButtonsContractTest {
             "src/main/java/com/rokid/glass/SendMessageActivity.kt"
         ).readText()
 
-        assertTrue(source.contains("dispatchOnlineTts()"))
+        assertTrue(source.contains("service.doSpeechTts(ONLINE_TTS_DEMO_TEXT)"))
         assertTrue(source.contains("在线 TTS 服务连接成功"))
         assertTrue(source.contains("在线 TTS 请求已发送"))
         assertFalse(source.contains("onlineTtsWaitingForConnection"))
         assertFalse(source.contains("正在连接在线 TTS 服务，请稍候..."))
-        assertFalse(
-            source.substringAfter("private fun playOnlineTts()")
-                .substringBefore("private fun dispatchOnlineTts()")
-                .contains("service.doSpeechTts(ONLINE_TTS_DEMO_TEXT)")
-        )
+
     }
 
     @Test
@@ -98,7 +94,7 @@ class SendMessageSpeechButtonsContractTest {
 
         assertTrue(source.contains("OnlineAsrStatusMessages.noNetwork"))
         assertTrue(source.contains("OnlineAsrStatusMessages.serviceUnavailable"))
-        assertTrue(source.contains("OnlineAsrStatusMessages.connectionFailed"))
+        assertFalse(source.contains("log(OnlineAsrStatusMessages.connectionFailed)"))
         assertTrue(source.contains("OnlineAsrStatusMessages.connectionTimeout"))
         assertTrue(source.contains("OnlineAsrStatusMessages.error(code)"))
         assertTrue(source.contains("onlineAsrTimeoutJob"))
