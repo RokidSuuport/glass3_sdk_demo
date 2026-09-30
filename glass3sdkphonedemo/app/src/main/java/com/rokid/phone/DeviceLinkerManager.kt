@@ -16,6 +16,7 @@ import com.rokid.phone.ui.classicbt.model.BluetoothDeviceInfo
 import com.rokid.phone.data.CustomMessage
 import com.rokid.phone.data.GlobalData
 import com.rokid.phone.data.GlobalEvent
+import com.rokid.phone.audio.AudioStreamControl
 import com.rokid.phone.utils.ProjectBusinessType
 import com.rokid.phone.utils.RKSystemInfo
 import com.rokid.phone.utils.SPUtil
@@ -43,8 +44,6 @@ object DeviceLinkerManager {
 
     const val TAG = "DeviceLinkerManager"
     private const val AUDIO_TAG = "AUDIO_TAG"
-    private const val AUDIO_STREAM_START = "AUDIO_STREAM_START"
-    private const val AUDIO_STREAM_STOP = "AUDIO_STREAM_STOP"
     var mWifiP2pDevice: WifiP2pDevice? = null
 
     //上一次连接的设备状态
@@ -370,13 +369,13 @@ object DeviceLinkerManager {
     }
 
     private fun handleAudioStreamControl(msg: String): Boolean {
-        return when (msg) {
-            AUDIO_STREAM_START -> {
+        return when (AudioStreamControl.decode(mGson, msg)) {
+            AudioStreamControl.Action.START -> {
                 requestAudioStream()
                 true
             }
 
-            AUDIO_STREAM_STOP -> {
+            AudioStreamControl.Action.STOP -> {
                 stopAudioStream()
                 true
             }
@@ -402,6 +401,10 @@ object DeviceLinkerManager {
     }
 
     fun stopAudioStream() {
+        if (!isAudioStreamRequested) {
+            Log.d(TAG, "stopAudioStream: audio stream is not requested")
+            return
+        }
         val device = PSecuritySDK.getAbsDeviceInfoService() ?: run {
             Log.e(TAG, "stopAudioStream: device service is not initialized; keep requested state")
             return

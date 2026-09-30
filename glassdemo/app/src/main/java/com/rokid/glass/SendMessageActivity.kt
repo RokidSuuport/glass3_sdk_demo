@@ -17,7 +17,10 @@ import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.gson.Gson
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.rokid.glass.audio.AudioStreamControl
+import com.rokid.glass.audio.AudioStreamSession
 import com.rokid.glass.base.BaseActivity
 import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.speech.OnlineAsrStatusMessages
@@ -72,8 +75,6 @@ class SendMessageActivity : BaseActivity() {
 
     companion object {
         private const val REQUEST_RECORD_AUDIO_PERMISSION = 1001
-        private const val AUDIO_STREAM_START = "AUDIO_STREAM_START"
-        private const val AUDIO_STREAM_STOP = "AUDIO_STREAM_STOP"
         private const val ONLINE_TTS_DEMO_TEXT = "这是在线TTS语音播报"
         private const val OFFLINE_TTS_DEMO_TEXT = "这是离线TTS语音播报"
         private const val ONLINE_ASR_TIMEOUT_MS = 15_000L
@@ -108,6 +109,8 @@ class SendMessageActivity : BaseActivity() {
     private var onlineTtsTimeoutJob: Job? = null
     private var onlineTtsService: ITtsService? = null
     private var onlineTtsListener: SpeechCompleteListener? = null
+    private val audioStreamSession = AudioStreamSession()
+    private val gson = Gson()
     private val speechHandler = Handler(Looper.getMainLooper())
     private var ttsPageActive = false
 
@@ -396,8 +399,7 @@ class SendMessageActivity : BaseActivity() {
 
 
             R.id.btSendAudioStream -> {
-                GlassSdk.getGlassMessageService()?.sendTextMessageByClassicBT(AUDIO_STREAM_START)
-                log("请求手机端开始接收音频流")
+                startAudioStreamRemotely()
             }
 
             R.id.btStopSendAudioStream -> {
@@ -1031,12 +1033,33 @@ class SendMessageActivity : BaseActivity() {
     }
 
     private fun stopAudioStreamLocally(notifyPhone: Boolean) {
+        if (!audioStreamSession.markStopped()) {
+            Log.d(TAG, "stopAudioStreamLocally: audio stream is not active")
+            return
+        }
         val messageService = GlassSdk.getGlassMessageService()
         messageService?.stopAudioStreamData()
         if (notifyPhone) {
-            messageService?.sendTextMessageByClassicBT(AUDIO_STREAM_STOP)
+            messageService?.sendTextMessageByClassicBT(
+                AudioStreamControl.encode(gson, AudioStreamControl.Action.STOP)
+            )
         }
         log("眼镜端已主动停止发送音频流")
+    }
+
+    private fun startAudioStreamRemotely() {
+        val messageService = GlassSdk.getGlassMessageService() ?: run {
+            log("消息服务尚未初始化，无法请求音频流")
+            return
+        }
+        if (!audioStreamSession.markStarted()) {
+            log("音频流请求已发送，无需重复启动")
+            return
+        }
+        messageService.sendTextMessageByClassicBT(
+            AudioStreamControl.encode(gson, AudioStreamControl.Action.START)
+        )
+        log("请求手机端开始接收音频流")
     }
 
 
