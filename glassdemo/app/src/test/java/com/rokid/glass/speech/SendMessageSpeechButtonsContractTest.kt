@@ -92,7 +92,7 @@ class SendMessageSpeechButtonsContractTest {
             "src/main/java/com/rokid/glass/SendMessageActivity.kt"
         ).readText()
 
-        assertTrue(source.contains("OnlineAsrStatusMessages.noNetwork"))
+        assertTrue(source.contains("checkSpeechNetwork(\"在线 ASR\")"))
         assertTrue(source.contains("OnlineAsrStatusMessages.serviceUnavailable"))
         assertFalse(source.contains("log(OnlineAsrStatusMessages.connectionFailed)"))
         assertTrue(source.contains("OnlineAsrStatusMessages.connectionTimeout"))
@@ -103,7 +103,7 @@ class SendMessageSpeechButtonsContractTest {
         assertTrue(
             source.substringAfter("private fun startAsr()")
                 .substringBefore("private fun playOnlineTts()")
-                .contains("if (!isNetworkAvailable())")
+                .contains("checkSpeechNetwork(\"在线 ASR\")")
         )
     }
 }

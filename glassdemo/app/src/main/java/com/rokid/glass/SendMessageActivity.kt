@@ -647,10 +647,7 @@ class SendMessageActivity : BaseActivity() {
             return
         }
 
-        if (!isNetworkAvailable()) {
-            log(OnlineAsrStatusMessages.noNetwork)
-            return
-        }
+        if (!checkSpeechNetwork("在线 ASR")) return
 
         val asrService = GlassSdk.getGlassAsrService()
         if (asrService == null) {
@@ -708,7 +705,7 @@ class SendMessageActivity : BaseActivity() {
             return log("上次播报尚未清理成功，队列已暂停，请稍后重试")
         }
         if (!GlassSdk.isReady()) return log("SDK 尚未初始化完成，请稍后重试")
-        if (!isNetworkAvailable()) return log("在线 TTS 播放失败：当前无可用网络")
+        if (!checkSpeechNetwork("在线 TTS")) return
         if (!onlineTtsSession.enqueue()) {
             return log("在线 TTS 队列已满（最多 ${OnlineSpeechSession.CAPACITY} 条，含正在播报），本次点击未受理")
         }
@@ -721,7 +718,7 @@ class SendMessageActivity : BaseActivity() {
 
     private fun dispatchNextOnlineTts() {
         if (!ttsPageActive || isFinishing || isDestroyed || onlineTtsSession.id != 0L || onlineTtsSession.waiting == 0) return
-        if (!GlassSdk.isReady() || !isNetworkAvailable()) {
+        if (!GlassSdk.isReady() || !checkSpeechNetwork("在线 TTS")) {
             val removed = onlineTtsSession.clearQueue()
             return log("语音服务或网络不可用，已取消 $removed 条待播报请求，请恢复后重试")
         }
@@ -831,11 +828,24 @@ class SendMessageActivity : BaseActivity() {
         }
     }
 
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = getSystemService(ConnectivityManager::class.java) ?: return false
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    private fun checkSpeechNetwork(feature: String): Boolean {
+        val route = runCatching { GlassSdk.getGlassDeviceService()?.getNetworkType() }.getOrNull()
+        // Unknown Binder/network state must not be mistaken for a confirmed offline route.
+        val localInternet: Boolean? = if (route == 1) runCatching {
+            val cm = getSystemService(ConnectivityManager::class.java)
+            val network = cm?.activeNetwork
+            if (cm == null) null
+            else if (network == null) false
+            else cm.getNetworkCapabilities(network)
+                ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        }.getOrNull() else null
+        val policy = com.rokid.glass.speech.SpeechNetworkPolicy
+        log("$feature：${policy.hint(route)}")
+        if (!policy.canAttempt(route, localInternet)) {
+            log("$feature：眼镜直连模式下当前无可用网络，请连接眼镜 Wi-Fi；手机有网不代表当前路径会使用手机中继")
+            return false
+        }
+        return true
     }
 
     private fun describeOnlineTtsFailure(error: Exception): String {
