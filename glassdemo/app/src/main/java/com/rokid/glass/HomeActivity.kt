@@ -314,6 +314,7 @@ class HomeActivity : BaseActivity() {
             directionTracker.stop()
         }
         GlassSdk.getGlassMediaService()?.stopRecord()
+        GlassSdk.unregisterLeqiInterceptor()
         GlassSdkUtils.destroySdk()
     }
 
@@ -348,6 +349,17 @@ class HomeActivity : BaseActivity() {
                     MenuConfigType.MenuInfoType.SDK_TAKE_PHOTO,
                     R.mipmap.icon_take_photo,
                     R.mipmap.icon_take_photo,
+                    R.drawable.home_bg,
+                    R.drawable.home_bg_focus,
+                    false
+                )
+            )
+            add(
+                MenuItem(
+                    demoString(R.string.demo_device_tools),
+                    MenuConfigType.MenuInfoType.DEVICE_TOOLS,
+                    R.drawable.icon_device_tools,
+                    R.drawable.icon_device_tools,
                     R.drawable.home_bg,
                     R.drawable.home_bg_focus,
                     false
@@ -476,6 +488,10 @@ class HomeActivity : BaseActivity() {
 
             MenuConfigType.MenuInfoType.SDK_TAKE_PHOTO -> {
                 startActivity(Intent(this, SdkMediaActivity::class.java))
+            }
+
+            MenuConfigType.MenuInfoType.DEVICE_TOOLS -> {
+                startActivity(Intent(this, DeviceToolsActivity::class.java))
             }
 
             MenuConfigType.MenuInfoType.MENU_FACE_RECOG -> {

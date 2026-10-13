@@ -1,82 +1,108 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/black"
-    android:padding="16dp">
-
+    android:padding="12dp">
     <TextView
         android:id="@+id/tv_title"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/demo_leqiinterceptor_test"
+        android:text="@string/leqi_ab_title"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:textColor="@color/green"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+        android:textColor="@color/green" />
     <TextView
         android:id="@+id/tv_interceptor_status"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/demo_interceptor_not_registered"
+        android:layout_marginTop="4dp"
         android:textColor="@color/green"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_title" />
-
+        android:textSize="12sp" />
+    <TextView
+        android:id="@+id/tv_callback_counts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/green"
+        android:textStyle="bold"
+        android:textSize="14sp" />
     <TextView
         android:id="@+id/tv_foreground_status"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:text="@string/demo_foreground_no"
-        android:textSize="14sp"
         android:textColor="@color/green"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_interceptor_status" />
-
-    <TextView
-        android:id="@+id/tv_hint"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:padding="12dp"
-        android:textColor="@color/green"
-        android:text="@string/demo_this_page_registers_leqiinterceptor_nwhen_the_device_receives"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_foreground_status" />
-
+        android:textSize="12sp" />
+    <ScrollView
+        android:id="@+id/controls_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:layout_marginTop="4dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_register_a"
+                    style="@style/LeqiAbButton"
+                    android:text="@string/leqi_ab_register_a" />
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_register_b"
+                    style="@style/LeqiAbButton"
+                    android:text="@string/leqi_ab_register_b" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_unregister_a"
+                    style="@style/LeqiAbButton"
+                    android:text="@string/leqi_ab_unregister_a" />
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_unregister_b"
+                    style="@style/LeqiAbButton"
+                    android:text="@string/leqi_ab_unregister_b" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/tv_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="6dp"
+                android:textColor="@color/green"
+                android:text="@string/leqi_ab_hint"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </ScrollView>
     <TextView
         android:id="@+id/tv_log_label"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="4dp"
         android:text="@string/demo_event_log"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="@color/green"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_hint" />
-
-    <TextView
-        android:id="@+id/tv_log"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:padding="8dp"
-        android:scrollbars="vertical"
-        android:text="@string/demo_none"
         android:textSize="12sp"
-        android:textColor="@color/green"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_log_label" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+        android:textStyle="bold"
+        android:textColor="@color/green" />
+    <ScrollView
+        android:id="@+id/log_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:layout_marginTop="4dp">
+        <TextView
+            android:id="@+id/tv_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/green" />
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="media_settings_back">返回拍照录像</string>
+    <string name="media_take_photo">拍照</string>
+    <string name="media_record_video">录像</string>
+    <string name="media_photo_size_title">拍照分辨率</string>
+    <string name="media_video_size_title">录像分辨率</string>
+    <string name="media_photo_settings">拍照设置</string>
+    <string name="media_video_settings">录像设置</string>
+    <string name="media_photo_summary_default">拍照 · 1.0×\n1280×720</string>
+    <string name="media_video_summary_default">录像 · 1.0×\n1280×720</string>
+    <string name="media_photo_summary">拍照 · %2$s×\n%1$s</string>
+    <string name="media_video_summary">录像 · %2$s×\n%1$s</string>
+    <string name="media_photo_settings_hint">自动保存，用于下次拍照，不修改录像设置。</string>
+    <string name="media_video_settings_hint">自动保存，用于下次录像；当前录像改倍率需点应用。水印可叠加文字/时间，接入时可修改文字。</string>
+    <string name="media_photo_legacy_hint">旧接口使用预设尺寸和整数倍率；切换时拍照倍率取整。zoomCamera 控制共享相机。</string>
+    <string name="media_video_legacy_hint">旧接口使用整数倍率，切换时录像倍率取整；应用倍率通过 zoomCamera 控制共享相机。其他设置用于下次录像。</string>
+    <string name="media_resolution">分辨率\n%1$s</string>
+    <string name="media_sizes_loading">正在读取相机分辨率…</string>
+    <string name="media_sizes_unavailable">无法获取相机分辨率，请检查 SDK 连接后重试。</string>
+    <string name="media_sizes_found">相机返回 %1$d 个预览分辨率；拍摄是否支持以结果回调为准。</string>
+</resources>

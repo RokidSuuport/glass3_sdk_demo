@@ -61,6 +61,33 @@
             android:textColor="@android:color/white"
             android:textSize="16sp" />
 
+        <Button
+            android:id="@+id/btn_i420_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:backgroundTint="@null"
+            android:focusable="false"
+            android:padding="16dp"
+            android:text="@string/camera_i420_export"
+            android:textColor="@android:color/white"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btn_surface_legacy_mode"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:backgroundTint="@null"
+            android:focusable="false"
+            android:padding="16dp"
+            android:text="@string/camera_surface_legacy"
+            android:textColor="@android:color/white"
+            android:textSize="16sp" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

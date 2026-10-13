@@ -22,7 +22,7 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:adjustViewBounds="true"
-            android:scaleType="centerInside"
+            android:scaleType="fitCenter"
             tools:src="@mipmap/icon_face_recog" />
 
         <ImageView

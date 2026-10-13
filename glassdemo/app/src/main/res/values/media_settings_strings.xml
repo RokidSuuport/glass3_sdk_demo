@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="media_settings_back">Back to photo / video</string>
+    <string name="media_take_photo">Take photo</string>
+    <string name="media_record_video">Record video</string>
+    <string name="media_photo_size_title">Photo resolution</string>
+    <string name="media_video_size_title">Video resolution</string>
+    <string name="media_photo_settings">Photo settings</string>
+    <string name="media_video_settings">Video settings</string>
+    <string name="media_photo_summary_default">Photo · 1.0×\n1280×720</string>
+    <string name="media_video_summary_default">Video · 1.0×\n1280×720</string>
+    <string name="media_photo_summary">Photo · %2$s×\n%1$s</string>
+    <string name="media_video_summary">Video · %2$s×\n%1$s</string>
+    <string name="media_photo_settings_hint">Saved for your next photo. Video settings stay unchanged.</string>
+    <string name="media_video_settings_hint">Saved for your next recording. Apply zoom to update the current recording. Watermarks add text/time; SDK callers can customise the text.</string>
+    <string name="media_photo_legacy_hint">Legacy photos use preset sizes and integer zoom; switching rounds photo zoom. zoomCamera controls the shared camera.</string>
+    <string name="media_video_legacy_hint">Legacy video uses integer zoom; switching rounds video zoom. Apply uses zoomCamera to control the shared camera. Other changes affect the next recording.</string>
+    <string name="media_resolution">Resolution\n%1$s</string>
+    <string name="media_sizes_loading">Reading camera resolutions…</string>
+    <string name="media_sizes_unavailable">Camera resolutions unavailable. Check the SDK connection and try again.</string>
+    <string name="media_sizes_found">Camera reports %1$d preview resolutions. Capture support is confirmed by the result callback.</string>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_device_tools">Device tools</string>
+    <string name="device_cancel_app_visibility">Cancel app display settings</string>
+    <string name="device_app_visibility_pending">App display settings are still being processed.</string>
+    <string name="device_app_visibility_result">%1$s: %2$s</string>
+    <string name="device_operation_failed">Device operation failed: %1$s</string>
+    <string name="device_ai_operation_failed">AI operation failed: %1$s</string>
+    <string name="device_ai_service_unavailable">AI service is not connected. Check the connection on the home page and retry.</string>
+    <string name="device_audio_media_service_unavailable">Media service is not connected. Check the connection on the home page and retry.</string>
+    <string name="device_audio_permission_required">Microphone permission is required to capture audio.</string>
+    <string name="device_audio_permission_denied">Microphone permission denied. Audio capture is unavailable.</string>
+    <string name="device_leqi_register">Register Leqi interceptor</string>
+    <string name="device_leqi_unregister">Unregister Leqi interceptor</string>
+    <string name="device_leqi_register_returned">[Leqi] Register call returned. Interception remains active after leaving this page; the app unregisters when HomeActivity exits.</string>
+    <string name="device_leqi_unregister_returned">[Leqi] unregisterLeqiInterceptor(this page object) returned; source: %1$s.</string>
+    <string name="device_leqi_callback">[Leqi callback] Count on this page: %1$d; consumed; content: %2$s</string>
+    <string name="device_leqi_error">[Leqi] %1$s failed: %2$s</string>
+</resources>

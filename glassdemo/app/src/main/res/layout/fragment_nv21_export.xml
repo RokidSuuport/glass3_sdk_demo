@@ -15,17 +15,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"
-        android:layout_margin="12dp"
+        android:layout_margin="6dp"
         android:fillViewport="true"
         android:background="#CC000000"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:padding="3dp"
         android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -34,25 +35,36 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
+        <Button
+            style="@style/CameraSettingButton"
+            android:id="@+id/btn_nv21_api"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:background="@drawable/camera_mode_button_bg"
+            android:focusable="false"
+            android:text="@string/nv21_mode_options_buffer"
+            android:textColor="@android:color/white" />
+
         <!-- 分辨率 -->
         <!-- Resolution. -->
         <LinearLayout
             android:id="@+id/row_resolution"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="3dp"
             android:background="@drawable/camera_mode_button_bg"
             android:focusable="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="6dp">
+            android:padding="3dp">
 
             <TextView
-                android:layout_width="80dp"
+                android:layout_width="104dp"
                 android:layout_height="wrap_content"
                 android:text="@string/demo_resolution"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <Spinner
                 android:id="@+id/spinner_resolution"
@@ -67,19 +79,19 @@
             android:id="@+id/row_fps"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="3dp"
             android:background="@drawable/camera_mode_button_bg"
             android:focusable="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="6dp">
+            android:padding="3dp">
 
             <TextView
-                android:layout_width="80dp"
+                android:layout_width="104dp"
                 android:layout_height="wrap_content"
                 android:text="@string/demo_fps"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <Spinner
                 android:id="@+id/spinner_fps"
@@ -94,19 +106,19 @@
             android:id="@+id/row_zoom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="3dp"
             android:background="@drawable/camera_mode_button_bg"
             android:focusable="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="6dp">
+            android:padding="3dp">
 
             <TextView
-                android:layout_width="100dp"
+                android:layout_width="64dp"
                 android:layout_height="wrap_content"
-                android:text="@string/demo_zoom"
+                android:text="@string/camera_zoom_label"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <SeekBar
                 android:id="@+id/seekbar_zoom"
@@ -119,13 +131,23 @@
 
             <TextView
                 android:id="@+id/tv_zoom_value"
-                android:layout_width="40dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="64dp"
                 android:gravity="center"
                 android:text="@string/demo_1"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_actual_zoom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/camera_zoom_pending"
+            android:textColor="@android:color/white"
+            android:textSize="13sp" />
 
         <!-- 防抖开关 -->
         <!-- Stabilization switch. -->
@@ -133,19 +155,21 @@
             android:id="@+id/row_eis"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="3dp"
             android:background="@drawable/camera_mode_button_bg"
             android:focusable="false"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="6dp">
+            android:padding="3dp">
 
             <TextView
-                android:layout_width="80dp"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
                 android:text="@string/demo_stabilization_eis"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <Switch
                 android:id="@+id/switch_eis"
@@ -159,15 +183,16 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="3dp"
             android:gravity="center"
             android:orientation="horizontal">
 
             <Button
+            style="@style/CameraSettingButton"
                 android:id="@+id/btn_apply"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="3dp"
                 android:layout_weight="1"
                 android:background="@drawable/camera_mode_button_bg"
                 android:focusable="false"
@@ -175,14 +200,15 @@
                 android:textColor="@android:color/white" />
 
             <Button
+            style="@style/CameraSettingButton"
                 android:id="@+id/btn_toggle_config"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="3dp"
                 android:layout_weight="1"
                 android:background="@drawable/camera_mode_button_bg"
                 android:focusable="false"
-                android:text="@string/demo_hide"
+                android:text="@string/camera_return_preview"
                 android:textColor="@android:color/white" />
         </LinearLayout>
         </LinearLayout>
@@ -199,7 +225,7 @@
         android:background="#80000000"
         android:padding="12dp"
         android:textColor="@android:color/white"
-        android:textSize="14sp" />
+        android:textSize="13sp" />
 
     <!-- 显示配置按钮 -->
     <!-- Show the configuration button. -->

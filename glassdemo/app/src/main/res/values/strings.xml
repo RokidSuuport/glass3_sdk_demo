@@ -245,7 +245,6 @@
     <string name="demo_configuration_x_eis_zoom">Configuration: %1$sx%2$s (%3$s), EIS=%4$s, zoom=%5$s</string>
     <string name="demo_configuration_x_fps_eis_zoom">Configuration: %1$sx%2$s@%3$s fps (%4$s), EIS=%5$s, zoom=%6$s</string>
     <string name="demo_connected_x">Connected: %1$sx%2$s</string>
-    <string name="demo_sdk_callback_fps_preview_rendering_fps_discarded_preview">SDK callback: %1$.1f fps, preview rendering: %2$.1f fps, discarded preview frames: %3$d</string>
     <string name="demo_1280x720_15fps_eis_off_zoom_1_ndemo_switching">1280x720@15fps, EIS=OFF, zoom=1\nDemo: switching to 1920x1080@15fps, zoom=2 in 15 seconds</string>
     <string name="demo_nlive_frame_rate_fps">\nLive frame rate: %1$.1f fps</string>
     <string name="demo_connected_x_nconfiguration">Connected: %1$sx%2$s\nConfiguration: %3$s%4$s</string>

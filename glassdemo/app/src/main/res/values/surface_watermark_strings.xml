@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="camera_zoom_confirm">Set and confirm zoom\nBefore using actual zoom</string>
+    <string name="watermark_summary_on">Watermark: on</string>
+    <string name="watermark_summary_off">Watermark: off</string>
+    <string name="watermark_explanation">Watermark adds text and time; the SDK supports custom text.</string>
+    <string name="watermark_default_text">Task in progress</string>
+</resources>

@@ -1,559 +1,613 @@
 package com.rokid.glass.camera
 
-import com.rokid.glass.utils.demoString
-
-import android.opengl.GLES11Ext
-import android.opengl.GLES20
-import android.opengl.GLSurfaceView
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
-import android.view.LayoutInflater
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.rokid.security.glass3.sdk.base.data.media.TextWatermarkConfig
+import android.graphics.Color
+import android.graphics.SurfaceTexture
+import android.os.SystemClock
+import android.view.Surface
+import android.view.TextureView
+import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.Button
 import android.widget.TextView
-import androidx.fragment.app.Fragment
 import com.rokid.glesse.R
 import com.rokid.security.glass3.open.sdk.GlassSdk
+import com.rokid.security.glass3.open.sdk.camera.CameraZoomSession
 import com.rokid.security.glass3.open.sdk.camera.CameraShareHelper
-import com.rokid.security.glass3.sdk.base.data.media.CameraShareConfig
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import javax.microedition.khronos.egl.EGLConfig
-import javax.microedition.khronos.opengles.GL10
+import com.rokid.security.glass3.sdk.base.data.media.CameraSurfaceContract
+import com.rokid.security.glass3.sdk.base.data.media.CameraZoomConfig
+import com.rokid.security.glass3.sdk.base.data.media.CameraZoomState
+import com.rokid.security.glass3.open.sdk.uitls.log.L
+import com.rokid.security.system.server.media.IMediaServer
+import com.rokid.security.system.server.media.SurfaceShareContractProbe
+import com.rokid.security.system.server.media.callback.ICameraSurfaceCallback
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Surface 共享模式 Fragment
- * Fragment for Surface sharing mode.
- * 仅渲染相机画面到 GLSurfaceView
- * Render only the camera image to GLSurfaceView.
+ * Surface 适用于显示、GPU 合成或接受 Surface 的处理链路，无需在客户端读取 NV21/I420 像素。
+ * 本页直接通过 AIDL 提交 TextureView 的 Surface，避免为了显示而把 CPU YUV 数据重新上传。
+ * 若识别算法要求 NV21，使用 NV21 页；若下游要 I420 三平面并异步持帧，使用 I420 页。
+ * 先协商 Surface 缓冲尺寸再启动；updateTexImage 后的原始相机时间戳用于确认实际倍率。
+ * 文字水印属于本 Surface 输出，不能推断其他 NV21/I420 输出有同样水印。
+ * 本页只演示开关与固定示例文字；接入方可配置 TextWatermarkItem.text，或使用原 callback Binder
+ * 调用 updateCameraShareWatermarkText 更新已有文本项，无需在 Demo 再设置独立修改按钮。
  */
-class SurfaceShareFragment : Fragment() {
+class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextureListener {
+    companion object { fun newInstance() = SurfaceShareFragment() }
+    private lateinit var preview: CameraTextureView
+    private var requestedWidth = 1280
+    private var requestedHeight = 720
+    private var requestedFps = 24
+    private var requestedZoom = 1f
+    private var requestedEis = false
+    private var enableWatermark = false
+    private lateinit var watermarkConfig: TextWatermarkConfig
+    private var producerWatermark: TextWatermarkConfig? = null
+    @Volatile private var liveRequestedZoom = 1f
+    @Volatile private var followingShared = false
+    private data class PreviewRequest(val camera: CameraApiRequest, val watermark: TextWatermarkConfig?, val followShared: Boolean = false)
+    // Keep applied settings separate from edits that have not been applied yet.
+    private var appliedRequest = PreviewRequest(CameraApiRequest(requestedWidth, requestedHeight, requestedFps, requestedZoom, requestedEis), null)
+    private var previewWanted = true
+    private var requestedTexture: SurfaceTexture? = null
+    private var startPending = false
+    private val startRequest = AtomicLong()
+    private val zoomCommand = AtomicLong()
+    @Volatile private var previewStarted = false
+    override val previewRequiresStart = true
+    override val previewStartsAutomatically get() = previewWanted
+    private val zooms = floatArrayOf(1f, 1.25f, 1.575f, 2f, 4f, 8f)
+    private var resolutions = listOf(1280 to 720, 1920 to 1080, 1080 to 1920, 640 to 480)
+    private lateinit var resolutionButton: Button
+    private lateinit var zoomButton: Button
+    private lateinit var actualZoom: TextView
+    private lateinit var fpsButton: Button
+    private lateinit var eisButton: Button
+    private lateinit var watermarkButton: Button
+    private lateinit var applyButton: Button
+    private lateinit var liveZoomButton: Button
+    @Volatile private var foreground = false
+    @Volatile private var availableTexture: SurfaceTexture? = null
+    @Volatile private var zoomSession: CameraZoomSession? = null
+    private var producerService: IMediaServer? = null
+    private var producerCallback: ICameraSurfaceCallback? = null
+    private var producerSurface: Surface? = null
+    private var producerTexture: SurfaceTexture? = null
+    private val generation = AtomicLong()
+    private val observing = AtomicBoolean()
+    private var lastObservedAt = 0L
+    private var producerStoppedAt = 0L
+    private var displayWidth = 640
+    private var displayHeight = 480
+    private var measuredFrames = 0L
+    private var measuredSince = 0L
+    @Volatile private var appliedEis: Boolean? = null
+    @Volatile private var appliedFps: Int? = null
+    @Volatile private var producerRequestedEis = false
 
-    companion object {
-        private const val TAG = "SurfaceShareFragment"
-        // 第一次切换：15秒
-        // First switch: after 15 seconds.
-        private const val FIRST_SWITCH_DELAY_MS = 15_000L
-        // 第二次切换：再过15秒
-        // Second switch: after another 15 seconds.
-        private const val SECOND_SWITCH_DELAY_MS = 15_000L
+    private fun runtimeState() = "EIS requested=$producerRequestedEis; actual=${appliedEis ?: "unknown"}; actual FPS=${appliedFps ?: "unknown"}"
 
-        fun newInstance(): SurfaceShareFragment {
-            return SurfaceShareFragment()
+    private fun eisButtonText() = label("电子防抖（EIS）：", "Stabilization (EIS): ") +
+        if (requestedEis) label("开启", "On") else label("关闭", "Off")
+
+    private fun watermarkButtonText() = getString(if (enableWatermark)
+        R.string.watermark_summary_on else R.string.watermark_summary_off)
+
+    private fun updateActualZoom() = ui {
+        val state = zoomSession?.state
+        actualZoom.text = if (state?.ready == true && state.appliedZoom.isFinite())
+            getString(R.string.camera_zoom_actual_short, state.appliedZoom.toString())
+        else getString(R.string.camera_zoom_pending_short)
+    }
+
+    private fun showLiveStatus() = ui {
+        if (foreground && previewStarted) {
+            val intent = if (followingShared) label("跟随共享倍率", "Following shared zoom")
+                else label("本页请求倍率：${liveRequestedZoom}×", "Requested zoom: ${liveRequestedZoom}×")
+            // Read the latest cache on the UI thread: older Binder callbacks must not paint
+            // an outdated ready=false snapshot over the already confirmed state.
+            showStatus(label("Surface 预览", "Surface preview") + " · ${displayWidth}×${displayHeight}\n" +
+                intent + "\n" + cameraActualZoomText(zoomSession?.state), showInSettings = false)
         }
     }
 
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private var firstSwitchRunnable: Runnable? = null
-    private var secondSwitchRunnable: Runnable? = null
-
-    private lateinit var glSurfaceView: GLSurfaceView
-    private lateinit var tvInfo: TextView
-    private val surfaceHelper = CameraShareHelper()
-    private var renderer: SurfaceShareRenderer? = null
-    private var frameCount = 0L
-    private var lastFpsTime = 0L
-    // 当前配置文本
-    // Current configuration text.
-    private var currentConfigText = ""
-    // 当前 zoom 级别
-    // Current zoom level.
-    private var currentZoomLevel = 1
-    private var configSwitchInFlight = false
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_surface_share, container, false)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        glSurfaceView = view.findViewById(R.id.gl_surface_view)
-        tvInfo = view.findViewById(R.id.tv_info)
-
-        setupGLSurfaceView()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        frameCount = 0
-        lastFpsTime = 0L
-        glSurfaceView.onResume()
-        // 确保渲染线程恢复后 Surface 共享被正确拉起。
-        // Ensure Surface sharing starts correctly after the rendering thread resumes.
-        // onSurfaceCreated 在 EGL 重建时触发，但 teardownGlResourcesBlocking 只销毁了
-        // EGL recreation triggers onSurfaceCreated, but teardownGlResourcesBlocking only destroys
-        // GL 资源（shader/texture）而没有破坏 EGL Surface，onResume 恢复后可能不会
-        // the GL resources (shaders/textures), leaving the EGL Surface intact; resuming through onResume may therefore not
-        // 重新触发 onSurfaceCreated → startSurfaceShare()。
-        // trigger onSurfaceCreated and startSurfaceShare() again.
-        // 此外，即使 EGL 上下文被保留（未重建），shader program 已被 rend.release()
-        // Furthermore, even if the EGL context is preserved without recreation, rend.release() has already
-        // 删除，需要通过 queueEvent 一并恢复 shader + 纹理 + Surface 共享。
-        // deleted the shader program, so use queueEvent to restore the shaders, textures, and Surface sharing together.
-        glSurfaceView.queueEvent {
-            if (!surfaceHelper.isSurfaceActive()) {
-                renderer?.initShaderProgram()
-                renderer?.initBuffers()
-                startSurfaceShare()
-            }
+    override fun buildControls() {
+        note(label("Surface 设置 · 修改后点击应用", "Surface settings · Apply changes below"))
+        preview = CameraTextureView(requireContext()).apply { surfaceTextureListener = this@SurfaceShareFragment }
+        previewHost.addView(preview, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
+        resolutionButton = action("${requestedWidth}×$requestedHeight") {
+            val current = resolutions.indexOf(requestedWidth to requestedHeight)
+            val next = resolutions[(current + 1) % resolutions.size]
+            requestedWidth = next.first; requestedHeight = next.second
+            resolutionButton.text = "${requestedWidth}×$requestedHeight"
         }
-    }
-
-    /**
-     * 必须在 [GLSurfaceView.onPause] **之前**、且渲染线程仍在处理队列时执行完 GL 侧释放。
-     * Complete GL cleanup **before** [GLSurfaceView.onPause], while the rendering thread is still processing its queue.
-     * 若在 [onDestroyView] 才异步 [queueEvent] 又立刻 [onPause]，易出现上下文销毁与 BufferQueue/fence 交错，
-     * Asynchronously calling [queueEvent] only in [onDestroyView] and then immediately calling [onPause] can interleave context destruction with BufferQueue/fence operations,
-     * 系统 HWUI [RenderThread] 上可能触发 fdsan（duplicate close）。
-     * potentially triggering fdsan (duplicate close) on the system HWUI [RenderThread].
-     */
-    private fun teardownGlResourcesBlocking() {
-        firstSwitchRunnable?.let { mainHandler.removeCallbacks(it) }
-        secondSwitchRunnable?.let { mainHandler.removeCallbacks(it) }
-        firstSwitchRunnable = null
-        secondSwitchRunnable = null
-        if (!::glSurfaceView.isInitialized) return
-
-        val rend = renderer
-
-        Log.d(TAG, "teardownGlResourcesBlocking: releasing resources, surfaceActive=${surfaceHelper.isSurfaceActive()}")
-
-        val latch = CountDownLatch(1)
-        glSurfaceView.queueEvent {
-            try {
-                if (surfaceHelper.isSurfaceActive()) {
-                    surfaceHelper.releaseSurface()
-                }
-                Log.d(TAG, "teardownGlResourcesBlocking: releaseSurface completed on GL thread")
-            } catch (e: Exception) {
-                Log.e(TAG, "releaseSurface on GL thread failed", e)
-            }
-            try {
-                rend?.release()
-                Log.d(TAG, "teardownGlResourcesBlocking: renderer.release completed")
-            } catch (e: Exception) {
-                Log.e(TAG, "renderer.release failed", e)
-            } finally {
-                latch.countDown()
-            }
+        fpsButton = action("FPS: $requestedFps") {
+            val values = listOf(15, 20, 24, 30)
+            requestedFps = values[(values.indexOf(requestedFps) + 1) % values.size]
+            fpsButton.text = "FPS: $requestedFps"
         }
-        try {
-            if (!latch.await(500, TimeUnit.MILLISECONDS)) {
-                Log.w(TAG, "GL teardown timed out - potential resource leak!")
-            } else {
-                Log.d(TAG, "teardownGlResourcesBlocking: all resources released successfully")
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Log.e(TAG, "teardownGlResourcesBlocking interrupted", e)
+        settingRow(resolutionButton, fpsButton)
+        zoomButton = action(getString(R.string.camera_zoom_selected, requestedZoom.toString())) {
+            requestedZoom = zooms[(zooms.indexOfFirst { it == requestedZoom } + 1) % zooms.size]
+            zoomButton.text = getString(R.string.camera_zoom_selected, requestedZoom.toString())
         }
-    }
-
-    override fun onPause() {
-        teardownGlResourcesBlocking()
-        if (::glSurfaceView.isInitialized) {
-            glSurfaceView.onPause()
+        actualZoom = TextView(requireContext()).apply {
+            setTextColor(Color.WHITE)
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setPadding(4, 4, 4, 4)
+            text = getString(R.string.camera_zoom_pending_short)
         }
-        super.onPause()
-    }
-
-    override fun onDestroyView() {
-        teardownGlResourcesBlocking()
-        super.onDestroyView()
-    }
-
-    private fun setupGLSurfaceView() {
-        glSurfaceView.setEGLContextClientVersion(2)
-        renderer = SurfaceShareRenderer()
-        glSurfaceView.setRenderer(renderer)
-        glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
-    }
-
-    private fun startSurfaceShare() {
-        if (!GlassSdk.isReady()) {
-            Log.e(TAG, "GlassSdk not ready")
-            return
+        content.addView(actualZoom)
+        settingRow(zoomButton, actualZoom)
+        zoomButton.tag = "surface_config_zoom"
+        eisButton = action(eisButtonText()) {
+            requestedEis = !requestedEis
+            eisButton.text = eisButtonText()
         }
-
-        if (surfaceHelper.isSurfaceActive()) {
-            Log.w(TAG, "startSurfaceShare: already active, skip duplicate start")
-            return
+        watermarkConfig = cameraApiWatermark(getString(R.string.watermark_default_text))
+        watermarkButton = action(watermarkButtonText()) {
+            enableWatermark = !enableWatermark
+            watermarkButton.text = watermarkButtonText()
         }
-
-        val initialConfig = CameraShareConfig(
-            previewWidth = 1280,
-            previewHeight = 720,
-            previewTargetFps = 15,
-            enableVideoStabilization = false,
-            zoomLevel = 1,
-        )
-
-        currentConfigText =
-            demoString(R.string.demo_1280x720_15fps_eis_off_zoom_1_ndemo_switching)
-        currentZoomLevel = 1
-
-        Log.d(TAG, "Starting surface share: ${initialConfig.previewWidth}x${initialConfig.previewHeight}@${initialConfig.previewTargetFps}fps")
-        surfaceHelper.initSurfaceWithConfig(initialConfig, createSurfaceCallback(scheduleConfigSwitchOnOpen = true))
-    }
-
-    private fun createSurfaceCallback(scheduleConfigSwitchOnOpen: Boolean = false): CameraShareHelper.SurfaceCallback {
-        return object : CameraShareHelper.SurfaceCallback {
-            override fun onCameraOpened(width: Int, height: Int) {
-                Log.d(TAG, "Surface camera opened: ${width}x${height}")
-                notifyRendererCameraSizeChanged(width, height)
-                activity?.runOnUiThread {
-                    updateInfoDisplay(width, height)
-                }
-                if (scheduleConfigSwitchOnOpen) {
-                    scheduleFirstConfigSwitch()
-                }
-            }
-
-            override fun onFrameAvailable() {
-                frameCount++
-                val now = System.currentTimeMillis()
-                if (lastFpsTime == 0L) lastFpsTime = now
-                val elapsed = now - lastFpsTime
-                if (elapsed >= 1000) {
-                    val w = surfaceHelper.getCameraWidth()
-                    val h = surfaceHelper.getCameraHeight()
-                    activity?.runOnUiThread {
-                        updateInfoDisplay(w, h)
+        watermarkButton.tag = "surface_watermark"
+        settingRow(eisButton, watermarkButton)
+        note(getString(R.string.watermark_explanation))
+        var expanded = false
+        val extras = mutableListOf<View>()
+        lateinit var more: Button
+        more = action(getString(R.string.camera_zoom_controls)) {
+            expanded = !expanded
+            extras.forEach { it.visibility = if (expanded) View.VISIBLE else View.GONE }
+            more.setText(if (expanded) R.string.camera_hide_options else R.string.camera_zoom_controls)
+        }.apply { tag = "surface_more" }
+        val query = action(label("能力与状态", "Capabilities / status")) { queryCameraState() }
+            .apply { tag = "surface_query_capabilities" }
+        settingRow(more, query)
+        val firstExtra = content.childCount
+        val follow = runningAction(label("跟随共享倍率", "Follow shared zoom")) { followLiveZoom() }.apply { tag = "surface_follow_zoom" }
+        val confirm = runningAction(getString(R.string.camera_zoom_confirm)) {
+            val session = zoomSession ?: return@runningAction
+            val requestId = startRequest.get()
+            val ratio = requestedZoom
+            val command = zoomCommand.incrementAndGet()
+            val result = beginQueryResult("Surface setZoomAndAwait")
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val actual = withContext(controlDispatcher) {
+                        check(command == zoomCommand.get() && session === zoomSession && requestId == startRequest.get()) { "Zoom request superseded" }
+                        // This call submits its own zoom request. Use it instead of setZoom when
+                        // subsequent work needs confirmed appliedZoom; 2000 is a timeout, not a delay.
+                        session.setZoomAndAwait(ratio, 2000)
                     }
-                    frameCount = 0
-                    lastFpsTime = now
-                }
-                glSurfaceView.requestRender()
+                    if (session === zoomSession && requestId == startRequest.get() && command == zoomCommand.get()) {
+                        // The request re-establishes this output's explicit intent, even if it times out.
+                        liveRequestedZoom = ratio
+                        followingShared = false
+                        appliedRequest = appliedRequest.copy(camera = appliedRequest.camera.copy(zoom = ratio), followShared = false)
+                        updateLiveZoomLabel()
+                        updateActualZoom()
+                        showLiveStatus()
+                        result(cameraZoomAwaitResult(ratio, actual))
+                    }
+                } catch (error: Exception) { result(error.message.orEmpty()) }
             }
+        }.apply { tag = "surface_await_zoom" }
+        settingRow(follow, confirm)
+        for (index in firstExtra until content.childCount) extras.add(content.getChildAt(index))
+        extras.forEach { it.visibility = View.GONE }
+        applyButton = action(label("应用并预览", "Apply and preview")) {
+            startPreview(PreviewRequest(
+                CameraApiRequest(requestedWidth, requestedHeight, requestedFps, requestedZoom, requestedEis),
+                if (enableWatermark) watermarkConfig else null,
+            ))
+        }.apply { tag = "surface_apply" }
 
-            override fun onCameraClosed() {
-                Log.d(TAG, "Surface camera closed")
+        previewAction(label("停止预览", "Stop preview")) {
+            previewWanted = false
+            invalidateStart()
+            setPreviewLoading(false)
+            setPreviewActionsEnabled(false)
+            cleanup {
+                stopProducer()
+                showStatus(label("预览已停止，可修改参数后重新开始。", "Preview stopped. Adjust settings and start again."))
             }
+        }.tag = "surface_stop"
+        liveZoomButton = previewAction("") { changeLiveZoom() }.apply { tag = "surface_live_zoom" }
+        updateLiveZoomLabel()
+    }
 
-            override fun onError(code: Int, msg: String) {
-                Log.e(TAG, "Surface error: code=$code, msg=$msg")
-                activity?.runOnUiThread {
-                    tvInfo.text = demoString(R.string.demo_error, code, msg)
-                }
-            }
+    override fun finishSettings(returnButton: Button) { settingRow(applyButton, returnButton) }
 
-            override fun onSurfaceShareConfigChanged(
-                width: Int,
-                height: Int,
-                appliedPreviewFps: Int,
-                videoStabilizationEnabled: Boolean,
-            ) {
-                Log.d(TAG, "Config changed: ${width}x${height}, fps=$appliedPreviewFps, eis=$videoStabilizationEnabled")
-                val changedByLocalSwitch = configSwitchInFlight
-                configSwitchInFlight = false
-                if (!changedByLocalSwitch) {
-                    cancelScheduledConfigSwitches()
+    private fun startPreview(configuration: PreviewRequest, hideSettingsAfterStart: Boolean = true) {
+        if (!foreground || startPending) return
+        val texture = availableTexture
+        if (texture == null) {
+            beginQueryResult(label("无法开始预览", "Preview unavailable"))(label("预览窗口尚未就绪，请稍后重试。", "The preview surface is not ready. Please retry."))
+            return
+        }
+        val requestId = startRequest.incrementAndGet()
+        previewWanted = true
+        requestedTexture = texture
+        appliedRequest = configuration
+        startPending = true
+        setPreviewLoading(true)
+        setPreviewActionsEnabled(false)
+        applyButton.text = label("正在启动…", "Starting…")
+        showStatus(label("正在启动 Surface 预览…", "Starting Surface preview…"))
+        io {
+            try {
+                if (!canStart(texture, requestId)) return@io
+                stopProducer()
+                val token = startProducer(texture, configuration, requestId)
+                if (token != null) ui {
+                    if (alive(token) && startRequest.get() == requestId) {
+                        liveRequestedZoom = configuration.camera.zoom
+                        followingShared = configuration.followShared
+                        updateLiveZoomLabel()
+                        setPreviewActionsEnabled(true)
+                        setPreviewLoading(false)
+                        if (hideSettingsAfterStart) setPanelVisible(false)
+                        showLiveStatus()
+                    }
                 }
-                notifyRendererCameraSizeChanged(width, height)
-                val (displayWidth, displayHeight) = toDisplayResolution(width, height)
-                currentConfigText = "${displayWidth}x${displayHeight}@${appliedPreviewFps}fps, EIS=${if (videoStabilizationEnabled) "ON" else "OFF"}, zoom=$currentZoomLevel"
-                activity?.runOnUiThread {
-                    updateInfoDisplay(width, height)
-                }
+            } catch (error: Exception) {
+                L.w("CameraDemo", "Surface start failed: ${error.javaClass.simpleName}: ${error.message}")
+                ui { if (foreground && startRequest.get() == requestId) {
+                    previewWanted = false
+                    requestedTexture = null
+                    setPreviewLoading(false)
+                    setPreviewActionsEnabled(false)
+                    beginQueryResult(label("预览启动失败", "Preview failed to start"))(error.message ?: error.javaClass.simpleName)
+                } }
+            } finally {
+                ui { if (startRequest.get() == requestId) {
+                    startPending = false
+                    applyButton.text = label("应用并预览", "Apply and preview")
+                } }
             }
         }
     }
 
-    private fun toDisplayResolution(cameraWidth: Int, cameraHeight: Int): Pair<Int, Int> {
-        return cameraHeight to cameraWidth
-    }
-
-    private fun notifyRendererCameraSizeChanged(width: Int, height: Int) {
-        if (!::glSurfaceView.isInitialized) return
-        glSurfaceView.queueEvent {
-            renderer?.onCameraSizeChanged(width, height)
-            glSurfaceView.requestRender()
+    private fun maybeStartPreview() {
+        if (foreground && previewWanted && !startPending && availableTexture != null && requestedTexture !== availableTexture) {
+            startPreview(appliedRequest, hideSettingsAfterStart = false)
         }
     }
 
-    private fun cancelScheduledConfigSwitches() {
-        firstSwitchRunnable?.let { mainHandler.removeCallbacks(it) }
-        secondSwitchRunnable?.let { mainHandler.removeCallbacks(it) }
-        firstSwitchRunnable = null
-        secondSwitchRunnable = null
+    /** Main-thread invalidation; producer cleanup is serialized before the next start. */
+    private fun invalidateStart() {
+        startRequest.incrementAndGet()
+        generation.incrementAndGet()
+        requestedTexture = null
+        startPending = false
+        applyButton.text = label("应用并预览", "Apply and preview")
     }
 
-    /**
-     * 更新信息显示
-     * Update the information display.
-     */
-    private fun updateInfoDisplay(width: Int, height: Int) {
-        val (displayWidth, displayHeight) = toDisplayResolution(width, height)
-        val fpsText = if (lastFpsTime > 0) {
-            val elapsed = System.currentTimeMillis() - lastFpsTime
-            if (elapsed >= 1000 && frameCount > 0) {
-                demoString(R.string.demo_nlive_frame_rate_fps).format(frameCount * 1000f / elapsed)
-            } else {
-                ""
+    private fun updateLiveZoomLabel() {
+        liveZoomButton.text = if (followingShared) label("切换倍率\n当前跟随共享", "Change zoom\nFollowing shared")
+            else label("切换倍率\n已请求 ${liveRequestedZoom}×", "Change zoom\nRequested ${liveRequestedZoom}×")
+    }
+
+    private fun changeLiveZoom() {
+        val session = zoomSession ?: return
+        val requestId = startRequest.get()
+        val ratio = zooms[(zooms.indexOfFirst { it == liveRequestedZoom } + 1) % zooms.size]
+        val command = zoomCommand.incrementAndGet()
+        io {
+            if (!previewStarted || session !== zoomSession || command != zoomCommand.get()) return@io
+            val code = session.setZoom(ratio)
+            showStatus(if (code == 0) label("已请求 ${ratio}×，等待实际画面确认。", "Requested ${ratio}×; waiting for frame confirmation.") + "\n${cameraApiState(session.state)}"
+                else label("倍率未更新（返回码 $code），请等待预览就绪后重试。", "Zoom was not updated (code $code). Wait for preview readiness and retry."))
+            if (code == 0) ui { if (foreground && startRequest.get() == requestId && session === zoomSession && command == zoomCommand.get()) {
+                liveRequestedZoom = ratio
+                requestedZoom = ratio
+                followingShared = false
+                appliedRequest = appliedRequest.copy(camera = appliedRequest.camera.copy(zoom = ratio), followShared = false)
+                zoomButton.text = getString(R.string.camera_zoom_selected, ratio.toString())
+                updateLiveZoomLabel()
+            } }
+            updateActualZoom()
+        }
+    }
+
+    private fun followLiveZoom() {
+        val session = zoomSession ?: return
+        val requestId = startRequest.get()
+        val command = zoomCommand.incrementAndGet()
+        io {
+            if (!previewStarted || session !== zoomSession || command != zoomCommand.get()) return@io
+            val code = session.followShared()
+            showStatus(if (code == 0) label("已撤销本页指定倍率，跟随共享相机；不保证回到 1×。", "This preview now follows the shared camera zoom; it may not be 1×.") + "\n${cameraApiState(session.state)}"
+                else label("跟随请求未接受（返回码 $code），请稍后重试。", "Follow request was not accepted (code $code). Please retry."))
+            if (code == 0) ui { if (foreground && startRequest.get() == requestId && session === zoomSession && command == zoomCommand.get()) {
+                followingShared = true
+                appliedRequest = appliedRequest.copy(followShared = true)
+                updateLiveZoomLabel()
+            } }
+            updateActualZoom()
+        }
+    }
+
+    private fun queryCameraState() {
+        val result = beginQueryResult(label("设备能力与预览状态", "Device capabilities and preview state"))
+        io {
+            try {
+                val service = checkNotNull(GlassSdk.getGlassMediaService()) { label("媒体服务未连接", "Media service is not connected") }
+                val capabilities = service.mediaCapabilities
+                val session = zoomSession
+                val state = session?.refreshState() ?: service.cameraZoomState
+                val sizes = CameraShareHelper().getSupportedPreviewSizes().map { it.first to it.second }.distinct()
+                fun supported(bit: Int) = if (capabilities and bit != 0) label("支持", "Supported") else label("不支持", "Unsupported")
+                val running = previewStarted && session != null
+                val text = buildString {
+                    appendLine(label("本页预览：", "This preview: ") + if (running) label("已启动", "Started") else label("未开启", "Not started"))
+                    appendLine(label("查询时机：", "Query timing: ") + if (running)
+                        label("预览运行中，读取本页会话状态", "Preview running; reading this page's session")
+                    else label("预览未开启，读取共享相机状态", "Preview stopped; reading shared camera state"))
+                    appendLine(label("小数倍率共享：", "Fractional zoom sharing: ") + supported(CameraZoomSession.CAPABILITY_SHARE))
+                    appendLine(label("小数倍率录像：", "Fractional zoom recording: ") + supported(CameraZoomSession.CAPABILITY_RECORD))
+                    appendLine(label("小数倍率拍照：", "Fractional zoom photos: ") + supported(CameraZoomSession.CAPABILITY_PHOTO))
+                    if (running) {
+                        appendLine(label("本页倍率：", "This preview zoom: ") + if (followingShared) label("跟随共享", "Follow shared") else "${liveRequestedZoom}×")
+                        appendLine(cameraActualZoomText(state))
+                        appendLine(runtimeState())
+                    } else appendLine(label("尚无本页预览状态；以下为共享相机状态。", "No active preview on this page; shared camera state follows."))
+                    appendLine(cameraApiState(state))
+                    appendLine(label("支持的输出尺寸：", "Supported output sizes: ") + if (sizes.isEmpty()) label("未获取到", "Unavailable") else sizes.joinToString { "${it.first}×${it.second}" })
+                }
+                L.i("CameraDemo", "Surface query capabilities=$capabilities; $text")
+                result(text)
+                updateActualZoom()
+                if (sizes.isNotEmpty()) ui { resolutions = sizes }
+            } catch (error: Exception) {
+                val text = label("查询失败：", "Query failed: ") + (error.message ?: error.javaClass.simpleName)
+                showStatus(text)
+                result(text)
             }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        foreground = true
+        if (previewWanted) {
+            setPreviewLoading(true)
+            setPanelVisible(false)
+            showStatus(label("正在启动 Surface 预览…", "Starting Surface preview…"))
+            maybeStartPreview()
         } else {
-            ""
-        }
-        tvInfo.text = demoString(R.string.demo_connected_x_nconfiguration, displayWidth, displayHeight, currentConfigText, fpsText)
-    }
-
-    /**
-     * 第一次配置切换：15秒后切换到 1080P@15fps, zoom=2
-     * First configuration switch: after 15 seconds, switch to 1080P at 15 fps with zoom=2.
-     */
-    private fun scheduleFirstConfigSwitch() {
-        firstSwitchRunnable?.let { mainHandler.removeCallbacks(it) }
-        val switchRunnable = Runnable {
-            if (!isAdded || view == null) return@Runnable
-            Log.d(TAG, "First config switch: 1080P@15fps, zoom=2")
-            val config = CameraShareConfig(
-                previewWidth = 1920,
-                previewHeight = 1080,
-                previewTargetFps = 15,
-                enableVideoStabilization = false,
-                zoomLevel = 2,
-            )
-            currentConfigText =
-                demoString(R.string.demo_1920x1080_15fps_eis_off_zoom_2_ndemo_switched)
-            currentZoomLevel = 2
-            switchToNewConfig(config)
-
-            // 再过15秒进行第二次切换
-            // Perform the second switch after another 15 seconds.
-            scheduleSecondConfigSwitch()
-        }
-        firstSwitchRunnable = switchRunnable
-        mainHandler.postDelayed(switchRunnable, FIRST_SWITCH_DELAY_MS)
-    }
-
-    /**
-     * 第二次配置切换：再过15秒后切换到 1080P@24fps, zoom=1
-     * Second configuration switch: after another 15 seconds, switch to 1080P at 24 fps with zoom=1.
-     */
-    private fun scheduleSecondConfigSwitch() {
-        secondSwitchRunnable?.let { mainHandler.removeCallbacks(it) }
-        val switchRunnable = Runnable {
-            if (!isAdded || view == null) return@Runnable
-            Log.d(TAG, "Second config switch: 1080P@24fps, zoom=1")
-            val config = CameraShareConfig(
-                previewWidth = 1920,
-                previewHeight = 1080,
-                previewTargetFps = 24,
-                enableVideoStabilization = false,
-                zoomLevel = 1,
-            )
-            currentConfigText =
-                demoString(R.string.demo_1920x1080_24fps_eis_off_zoom_1_ndemo_automatic)
-            currentZoomLevel = 1
-            switchToNewConfig(config)
-        }
-        secondSwitchRunnable = switchRunnable
-        mainHandler.postDelayed(switchRunnable, SECOND_SWITCH_DELAY_MS)
-    }
-
-    /**
-     * 切换到新配置
-     * Switch to the new configuration.
-     */
-    private fun switchToNewConfig(config: CameraShareConfig) {
-        if (!::glSurfaceView.isInitialized) return
-        glSurfaceView.queueEvent {
-            if (!isAdded) return@queueEvent
-            Log.d(TAG, "switchToNewConfig: ${config.previewWidth}x${config.previewHeight}@${config.previewTargetFps}fps, zoom=${config.zoomLevel}")
-            configSwitchInFlight = true
-            surfaceHelper.restartSurfaceWithConfig(config, createSurfaceCallback())
-            glSurfaceView.requestRender()
+            setPreviewLoading(false)
+            setPreviewActionsEnabled(false)
         }
     }
 
-    private inner class SurfaceShareRenderer : GLSurfaceView.Renderer {
+    override fun onStop() {
+        foreground = false
+        invalidateStart()
+        setPreviewLoading(false)
+        setPreviewActionsEnabled(false)
+        cleanup { stopProducer() }
+        super.onStop()
+    }
 
-        private var program = 0
-        private var positionHandle = 0
-        private var texCoordHandle = 0
-        private var textureHandle = 0
-        private var matrixHandle = 0
-        private lateinit var vertexBuffer: FloatBuffer
-        private lateinit var texCoordBuffer: FloatBuffer
-        private var surfaceWidth = 0
-        private var surfaceHeight = 0
-        private var cameraWidth = 0
-        private var cameraHeight = 0
+    private fun alive(token: Long) = foreground && generation.get() == token
 
-        private val vertexData = floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)
-        private val texCoordData = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f, 1f, 1f)
+    private fun canStart(texture: SurfaceTexture, requestId: Long) =
+        foreground && texture === availableTexture && startRequest.get() == requestId
 
-        private val vertexShaderCode = """
-            attribute vec4 aPosition;
-            attribute vec2 aTexCoord;
-            uniform mat4 uMatrix;
-            varying vec2 vTexCoord;
-            void main() {
-                gl_Position = aPosition;
-                vTexCoord = (uMatrix * vec4(aTexCoord, 0.0, 1.0)).xy;
-            }
-        """.trimIndent()
-
-        private val fragmentShaderCode = """
-            #extension GL_OES_EGL_image_external : require
-            precision highp float;
-            varying vec2 vTexCoord;
-            uniform samplerExternalOES uTexture;
-            void main() {
-                gl_FragColor = texture2D(uTexture, vTexCoord);
-            }
-        """.trimIndent()
-
-        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            GLES20.glClearColor(0f, 0f, 0f, 1f)
-            initShaderProgram()
-            initBuffers()
-            startSurfaceShare()
+    private fun startProducer(texture: SurfaceTexture, configuration: PreviewRequest, requestId: Long): Long? {
+        val request = configuration.camera
+        check(producerCallback == null) { "Stop the current Surface before starting another" }
+        if (!canStart(texture, requestId)) return null
+        // Keep the existing NV21 demo's firmware handoff grace when replacing a producer.
+        // The Binder stop returns before camera/GL cleanup has finished; never force-close peers.
+        val waitMs = 1500 - (SystemClock.elapsedRealtime() - producerStoppedAt)
+        if (waitMs > 0) Thread.sleep(waitMs)
+        if (!canStart(texture, requestId)) return null
+        val service = checkNotNull(GlassSdk.getGlassMediaService()) { "Media service is not connected" }
+        CameraZoomSession.requireCapability(service, CameraZoomSession.CAPABILITY_SHARE)
+        val mark = configuration.watermark
+        val config = request.options().let {
+            if (configuration.followShared) it.copy(zoom = CameraZoomConfig(CameraZoomConfig.FOLLOW_SHARED)) else it
         }
-
-        override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-            surfaceWidth = width
-            surfaceHeight = height
-            GLES20.glViewport(0, 0, width, height)
-            updateCenterCropVertices()
-        }
-
-        override fun onDrawFrame(gl: GL10?) {
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-            if (!surfaceHelper.isSurfaceActive()) return
-            val texId = surfaceHelper.getTextureId()
-            if (texId == -1) return
-
-            surfaceHelper.updateTexture()
-
-            GLES20.glUseProgram(program)
-
-            vertexBuffer.position(0)
-            GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer)
-            GLES20.glEnableVertexAttribArray(positionHandle)
-
-            texCoordBuffer.position(0)
-            GLES20.glVertexAttribPointer(texCoordHandle, 2, GLES20.GL_FLOAT, false, 0, texCoordBuffer)
-            GLES20.glEnableVertexAttribArray(texCoordHandle)
-
-            GLES20.glUniformMatrix4fv(matrixHandle, 1, false, surfaceHelper.getTransformMatrix(), 0)
-
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texId)
-            GLES20.glUniform1i(textureHandle, 0)
-
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-
-            GLES20.glDisableVertexAttribArray(positionHandle)
-            GLES20.glDisableVertexAttribArray(texCoordHandle)
-            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0)
-        }
-
-        fun onCameraSizeChanged(width: Int, height: Int) {
-            Log.d(TAG, "Renderer camera size changed: ${width}x${height}, surface=${surfaceWidth}x${surfaceHeight}")
-            cameraWidth = width
-            cameraHeight = height
-            if (surfaceWidth > 0 && surfaceHeight > 0) {
-                GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight)
-                updateCenterCropVertices()
+        // Only unknown transaction returns zero. IPC failures propagate, and nonzero malformed
+        // contracts fail validation; neither condition is silently downgraded to Options.
+        val contract = SurfaceShareContractProbe.read(service, config, false, mark?.hasWatermark() == true)
+        val plan = CameraSurfaceBufferPlan.resolve(contract, request.width, request.height, mark != null)
+        if (!canStart(texture, requestId)) return null
+        // Install exactly the negotiated size BEFORE constructing and submitting the Surface.
+        preview.setCameraBufferSize(plan.width, plan.height, texture)
+        val surface = Surface(texture)
+        val token = generation.incrementAndGet()
+        appliedEis = null; appliedFps = null; producerRequestedEis = request.eis
+        ui {
+            if (alive(token) && texture === availableTexture) {
+                displayWidth = if (plan.path == CameraSurfaceContract.PATH_DIRECT_CAMERA) plan.height else plan.width
+                displayHeight = if (plan.path == CameraSurfaceContract.PATH_DIRECT_CAMERA) plan.width else plan.height
+                fitPreview()
             }
         }
-
-        /**
-         * SDK 的 SurfaceTexture 变换矩阵负责相机纹理的 90° 旋转；这里按旋转后的
-         * The SDK's SurfaceTexture transform matrix handles the camera texture's 90-degree rotation; use the rotated
-         * 宽高比缩放顶点做 FIT_CENTER，完整显示预览帧并避免非等比拉伸。
-         * aspect ratio to scale vertices for FIT_CENTER, displaying the entire preview frame without non-uniform stretching.
-         */
-        private fun updateCenterCropVertices() {
-            if (!::vertexBuffer.isInitialized ||
-                surfaceWidth <= 0 || surfaceHeight <= 0 ||
-                cameraWidth <= 0 || cameraHeight <= 0
-            ) {
-                return
+        showStatus("Surface negotiated=${plan.negotiated}; buffer=${plan.width}×${plan.height}; path=${plan.path}; callbackSource=${plan.callbackUsesCameraSourceSize}")
+        val session = CameraZoomSession()
+        val callback = object : ICameraSurfaceCallback.Stub() {
+            override fun getCallbackId() = "sdk222-surface-${System.identityHashCode(this)}-$token"
+            override fun onCameraOpened(width: Int, height: Int) {
+                if (alive(token)) {
+                    applyActualOutputSize(texture, token, width, height, plan)
+                    L.i("CameraDemo", surfaceDimensions(request, plan, width, height) + "\n${cameraApiState(session.state)}\n${runtimeState()}")
+                    showLiveStatus()
+                }
             }
-
-            val rotatedCameraWidth = cameraHeight.toFloat()
-            val rotatedCameraHeight = cameraWidth.toFloat()
-            val cameraAspect = rotatedCameraWidth / rotatedCameraHeight
-            val surfaceAspect = surfaceWidth.toFloat() / surfaceHeight.toFloat()
-
-            var scaleX = 1f
-            var scaleY = 1f
-            if (cameraAspect > surfaceAspect) {
-                scaleY = surfaceAspect / cameraAspect
+            override fun onCameraClosed() { failProducer(token, requestId, label("相机已关闭，请重新开始预览。", "Camera closed. Start preview again.")) }
+            override fun onError(code: Int, msg: String?) { failProducer(token, requestId, "Surface error=$code") }
+            override fun onSurfaceShareConfigChanged(width: Int, height: Int, appliedPreviewFps: Int, videoStabilizationEnabled: Boolean) {
+                if (alive(token)) {
+                    appliedEis = videoStabilizationEnabled
+                    appliedFps = appliedPreviewFps
+                    applyActualOutputSize(texture, token, width, height, plan)
+                    L.i("CameraDemo", surfaceDimensions(request, plan, width, height) + "\n${runtimeState()}\n${cameraApiState(session.state)}")
+                    showLiveStatus()
+                }
+            }
+            override fun onZoomLevelChanged(zoomLevel: Int) {
+                // Legacy integer notification is not proof of the requested fractional zoom.
+            }
+        }
+        session.listener = object : CameraZoomSession.Listener {
+            override fun onStateChanged(state: CameraZoomState) {
+                if (alive(token)) {
+                    updateActualZoom()
+                    L.i("CameraDemo", "Surface: ${cameraApiState(state)}\n${runtimeState()}")
+                    showLiveStatus()
+                }
+            }
+            override fun onError(code: Int, reason: String) {
+                failProducer(token, requestId, "Surface session error=$code")
+            }
+        }
+        producerWatermark = mark
+        producerService = service; producerCallback = callback
+        producerSurface = surface; producerTexture = texture; zoomSession = session
+        previewStarted = true
+        observing.set(false)
+        try {
+            if (plan.negotiated) {
+                service.startCameraShareWithContract(surface, callback, false, config, mark, session.callback(), plan.contract)
             } else {
-                scaleX = cameraAspect / surfaceAspect
+                service.startCameraShareWithOptions(surface, callback, false, config, mark, session.callback())
             }
-
-            vertexData[0] = -scaleX
-            vertexData[1] = -scaleY
-            vertexData[2] = scaleX
-            vertexData[3] = -scaleY
-            vertexData[4] = -scaleX
-            vertexData[5] = scaleY
-            vertexData[6] = scaleX
-            vertexData[7] = scaleY
-            vertexBuffer.clear()
-            vertexBuffer.put(vertexData)
-            vertexBuffer.position(0)
-
-            Log.d(
-                TAG,
-                "FIT_CENTER camera=${cameraWidth}x${cameraHeight}, " +
-                    "rotated=${cameraHeight}x${cameraWidth}, surface=${surfaceWidth}x${surfaceHeight}, " +
-                    "scale=${scaleX}x${scaleY}",
-            )
+        } catch (error: Exception) {
+            stopProducer(); throw error
         }
-
-        fun initShaderProgram() {
-            val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
-            val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
-            program = GLES20.glCreateProgram().also {
-                GLES20.glAttachShader(it, vertexShader)
-                GLES20.glAttachShader(it, fragmentShader)
-                GLES20.glLinkProgram(it)
-            }
-            positionHandle = GLES20.glGetAttribLocation(program, "aPosition")
-            texCoordHandle = GLES20.glGetAttribLocation(program, "aTexCoord")
-            textureHandle = GLES20.glGetUniformLocation(program, "uTexture")
-            matrixHandle = GLES20.glGetUniformLocation(program, "uMatrix")
+        if (!canStart(texture, requestId)) {
+            stopProducer()
+            return null
         }
+        return token
+    }
 
-        fun initBuffers() {
-            vertexBuffer = ByteBuffer.allocateDirect(vertexData.size * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(vertexData)
-            texCoordBuffer = ByteBuffer.allocateDirect(texCoordData.size * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(texCoordData)
-            updateCenterCropVertices()
-        }
-
-        private fun loadShader(type: Int, shaderCode: String): Int {
-            return GLES20.glCreateShader(type).also { shader ->
-                GLES20.glShaderSource(shader, shaderCode)
-                GLES20.glCompileShader(shader)
+    private fun failProducer(token: Long, requestId: Long, message: String) {
+        cleanup {
+            if (!alive(token) || startRequest.get() != requestId) return@cleanup
+            try { stopProducer() } finally {
+                ui { if (foreground && startRequest.get() == requestId) {
+                    previewWanted = false
+                    requestedTexture = null
+                    setPreviewLoading(false)
+                    setPreviewActionsEnabled(false)
+                    showStatus(message)
+                    beginQueryResult(label("预览已结束", "Preview ended"))(message)
+                } }
             }
         }
+    }
 
-        fun release() {
-            if (program != 0) {
-                GLES20.glDeleteProgram(program)
-                program = 0
+    private fun stopProducer() {
+        val stoppedGeneration = generation.incrementAndGet()
+        previewStarted = false
+        ui { if (generation.get() == stoppedGeneration) {
+            setPreviewActionsEnabled(false)
+        } }
+        appliedEis = null; appliedFps = null
+        val service = producerService
+        val callback = producerCallback
+        val surface = producerSurface
+        producerWatermark = null
+        producerService = null; producerCallback = null; producerSurface = null; producerTexture = null
+        val session = zoomSession
+        zoomSession = null
+        updateActualZoom()
+        session?.listener = null
+        try {
+            // Stop only this callback's producer, before releasing the local BufferQueue endpoint.
+            session?.close()
+            if (callback != null) service?.stopCameraShare(callback)
+        } finally {
+            surface?.release()
+            if (callback != null) {
+                producerStoppedAt = SystemClock.elapsedRealtime()
+                showStatus("Surface cleanup complete")
             }
         }
+    }
+
+    override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+        availableTexture = surface
+        fitPreview()
+        maybeStartPreview()
+    }
+
+    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) { fitPreview() }
+
+    override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+        if (availableTexture === surface) {
+            availableTexture = null
+            invalidateStart()
+            setPreviewLoading(foreground && previewWanted)
+            setPreviewActionsEnabled(false)
+        }
+        cleanup {
+            try { if (producerTexture === surface) stopProducer() } finally { surface.release() }
+        }
+        // We own the asynchronous release so the remote producer is detached first.
+        return false
+    }
+
+    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+        val now = SystemClock.elapsedRealtime()
+        measuredFrames++
+        if (measuredSince == 0L) measuredSince = now
+        if (now - measuredSince >= 1000) {
+            L.i("CameraDemo", "Surface frames=$measuredFrames fps=${measuredFrames * 1000 / (now - measuredSince)} display=${displayWidth}x${displayHeight}")
+            showLiveStatus()
+            measuredFrames = 0; measuredSince = now
+        }
+        val session = zoomSession ?: return
+        val state = session.state ?: return
+        if (!foreground || state.ready || now - lastObservedAt < 50 || !observing.compareAndSet(false, true)) return
+        val timestampNs = surface.timestamp
+        lastObservedAt = now
+        io {
+            try { if (session === zoomSession) session.observeSurfaceFrame(timestampNs) }
+            finally { observing.set(false) }
+        }
+    }
+
+    private fun fitPreview() {
+        // Fit the view itself, as the original GL renderer fits its content. TextureView must
+        // not first stretch into the controls' remaining area and rely on a second correction.
+        preview.setPreviewAspectRatio(displayWidth, displayHeight)
+    }
+
+    private fun applyActualOutputSize(texture: SurfaceTexture, token: Long, sourceWidth: Int, sourceHeight: Int,
+        plan: CameraSurfaceBufferPlan) {
+        // A negotiated contract describes the output buffer, which may have a different aspect
+        // from the camera source. Otherwise mirror the original page's actual callback geometry,
+        // including direct Camera2 output; requested dimensions alone are not actual dimensions.
+        if (plan.negotiated || sourceWidth <= 0 || sourceHeight <= 0) return
+        val output = if (plan.callbackUsesCameraSourceSize) sourceHeight to sourceWidth
+            else sourceWidth to sourceHeight
+        ui {
+            if (!alive(token) || texture !== availableTexture) return@ui
+            displayWidth = output.first
+            displayHeight = output.second
+            // Updating display geometry must NOT resize a direct Camera2 producer after start.
+            plan.legacyWatermarkResize(sourceWidth, sourceHeight)?.let { (width, height) ->
+                preview.setCameraBufferSize(width, height, texture)
+            }
+            fitPreview()
+        }
+    }
+
+    private fun surfaceDimensions(request: CameraApiRequest, plan: CameraSurfaceBufferPlan, width: Int, height: Int): String {
+        val callbackMeaning = if (plan.callbackUsesCameraSourceSize) "camera source" else "output"
+        val buffer = if (plan.negotiated) "${plan.width}×${plan.height} (contract)" else if (plan.path == CameraSurfaceContract.PATH_COMPOSED) "$height×$width (legacy watermark)" else "${plan.width}×${plan.height} (legacy direct)"
+        return "requested=${request.width}×${request.height}; $callbackMeaning=$width×$height; buffer=$buffer"
     }
 }

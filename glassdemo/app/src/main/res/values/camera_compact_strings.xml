@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="camera_zoom_controls">Zoom controls</string>
+    <string name="camera_zoom_and_status">Zoom / status</string>
+    <string name="camera_view_and_zoom">View / zoom</string>
+    <string name="camera_hide_options">Hide options</string>
+    <string name="i420_settings_hint">Preview real exported frames. V2 supports fractional zoom; V1 uses 1× here.</string>
+    <string name="i420_api_v2">API: V2</string>
+    <string name="i420_api_v1">API: V1</string>
+    <string name="i420_processing_sync">Sync (in callback)</string>
+    <string name="i420_processing_async">Async (worker)</string>
+    <string name="i420_processing_hint">Sync copies preview data in the callback; async uses a worker and returns the frame after processing. Hiding the image keeps export running. API and processing changes apply on start.</string>
+    <string name="i420_live_processing">I420 · %1$s</string>
+    <string name="i420_live_received">Received: %1$d frames</string>
+    <string name="i420_live_returns">Returned: %1$d · Pending: %2$d</string>
+    <string name="i420_live_drops">Dropped: %1$d · Return errors: %2$d</string>
+    <string name="i420_live_strides">Y/U/V strides: %1$d / %2$d / %3$d bytes</string>
+    <string name="i420_live_timestamp">Frame timestamp (ns):\n%1$d</string>
+    <string name="i420_live_age">Last frame: %1$d ms ago</string>
+    <string name="i420_live_returns_hint">Counts this Demo’s frame releases. Pending frames are normal while exporting.</string>
+    <string name="camera_return_preview">Return to preview</string>
+    <string name="camera_zoom_actual_short">Actual: %1$s×</string>
+    <string name="camera_zoom_pending_short">Actual: pending</string>
+    <string name="camera_zoom_confirmed_result">Requested: %1$s×\nActual: %2$s×\nUse the actual value for subsequent work; it may differ from the request.</string>
+    <string name="camera_zoom_unconfirmed_result">Requested: %1$s×\nNo confirmed result (request rejected, session ended, or timed out). Do not use the requested zoom as the actual value.</string>
+</resources>

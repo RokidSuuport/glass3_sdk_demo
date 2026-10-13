@@ -97,6 +97,9 @@
             android:name="com.rokid.glass.CameraShareDemoActivity"
             android:exported="true" />
         <activity
+            android:name="com.rokid.glass.DeviceToolsActivity"
+            android:exported="false" />
+        <activity
             android:name="com.rokid.glass.SendMessageActivity"
             android:exported="true" />
         <activity

@@ -117,6 +117,7 @@ public class BackgroundGLSurfaceView extends GLSurfaceView {
     public void releasePreview(){
         if (mRenderer != null){
             mRenderer.releaseBuf();
+            requestRender(); // Clear the old image as well as pending frame copies.
         }
     }
 

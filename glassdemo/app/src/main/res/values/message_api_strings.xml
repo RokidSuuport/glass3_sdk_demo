@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="message_tts_mode_add">TTS mode: ADD</string>
+    <string name="message_tts_mode_flush">TTS mode: FLUSH</string>
+    <string name="message_tts_stop_online">Stop online TTS</string>
+    <string name="message_tts_stop_offline">Stop offline TTS</string>
+    <string name="message_tts_add_explained">ADD: each playback tap queues another example; online and offline TTS queue separately. Each stop button cancels only this page’s tasks on that engine that existed when tapped. ADD/FLUSH does not change this cancellation scope. ASR is unaffected.</string>
+    <string name="message_tts_flush_explained">FLUSH: each playback tap interrupts existing TTS on the same engine, which can include other apps. Each stop button cancels only this page’s tasks on that engine that existed when tapped. ADD/FLUSH does not change this cancellation scope. ASR is unaffected.</string>
+    <string name="message_tts_session_api_required">%1$s: session API v2 is not confirmed. Playback was not started because safe session cancellation is unavailable. Check the service connection or update firmware.</string>
+    <string name="message_tts_start_canceled">%1$s: the pending playback request was canceled before submission.</string>
+    <string name="message_tts_invalid_session">%1$s: no valid session ID was returned. Playback is unconfirmed and ID-based cancellation is unavailable.</string>
+    <string name="message_tts_listener_failed">%1$s: state listener registration failed; playback was not started. Restore the service connection and retry.</string>
+    <string name="message_tts_session_invalidated">%1$s session=%2$d: service connection invalidated (%3$s). The old control record was cleared; playback may still be running. Start a new request. The old ID will not be sent to the new service.</string>
+    <string name="message_tts_no_owned_session">%1$s: this page has no playback requests to stop.</string>
+    <string name="message_tts_queue_full">Too many pending playback requests. Stop playback or wait for completion before retrying.</string>
+    <string name="message_tts_session_state">%1$s session=%2$d state=%3$s error=%4$d</string>
+    <string name="message_tts_query_state">%1$s session=%2$d current=%3$s lastKnown=%4$s. UNKNOWN means unavailable or expired.</string>
+    <string name="message_tts_cancel_result">%1$s session=%2$d cancelAccepted=%3$s. Wait for CANCELED to confirm.</string>
+    <string name="message_tts_operation_failed">TTS operation failed (%1$s). Check SDK connection and service authorization.</string>
+    <string name="message_tts_offline_route">Online TTS: the direct glasses route has no network. Connect Wi-Fi and try again.</string>
+</resources>

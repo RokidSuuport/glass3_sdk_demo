@@ -1,357 +1,99 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" ?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black">
-
-    <ScrollView
-        android:id="@+id/controlsScrollView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:fillViewport="true"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/scrollView"
-        app:layout_constraintVertical_weight="3">
-        <LinearLayout
-            android:id="@+id/clMedia"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:focusable="false">
-
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mediaMainPage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <ScrollView
+            android:id="@+id/controlsScrollView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:fillViewport="true"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/scrollView"
+            app:layout_constraintVertical_weight="3">
             <LinearLayout
+                android:id="@+id/clMedia"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto480P"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_select_bg"
-                    android:text="@string/demo_photo_480p"
-                    android:textColor="@color/green"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto720P"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_photo_720p"
-                    android:textColor="@color/btn_text_selector"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto1080P"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_photo_1080p"
-                    android:textColor="@color/btn_text_selector"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
+                android:padding="6dp"
+                android:orientation="vertical">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp" android:padding="4dp" android:orientation="vertical"
+                    android:background="@drawable/round_unselect_bg">
+                    <TextView android:id="@+id/tvPhotoSummary"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:padding="4dp" android:text="@string/media_photo_summary_default"
+                        android:textColor="@color/green_70" android:textSize="13sp" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:baselineAligned="false">
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btPhoto"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_take_photo" />
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnPhotoSettings"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_photo_settings" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp" android:padding="4dp" android:orientation="vertical"
+                    android:background="@drawable/round_unselect_bg">
+                    <TextView android:id="@+id/tvVideoSummary"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:padding="4dp" android:text="@string/media_video_summary_default"
+                        android:textColor="@color/green_70" android:textSize="13sp" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:baselineAligned="false">
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btStartRecord"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_record_video" />
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btStopRecord"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/demo_stop_recording" />
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnVideoSettings"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_video_settings" />
+                    </LinearLayout>
+                </LinearLayout>
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/btCameraShare"
+                    style="@style/MediaSettingButton" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="@string/demo_share_camera" />
             </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto1080PLand"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_photo_1080p_landscape"
-                    android:textColor="@color/btn_text_selector"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btPhoto4K"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_photo_4k"
-                    android:textColor="@color/btn_text_selector"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStartRecord720P"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_record_720p"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStartRecord1080P"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_record_1080p"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStartRecord1080PLand"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_record_1080p_landscape"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStopRecord"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_stop_recording"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btSendVideo"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_send_video"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btStopSendVideo"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_stop_sending_video"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnSetZoom"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_set_zoom"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnRecordAudio"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_capture_audio"
-                    android:textColor="@color/btn_text_selector"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnStopRecordAudio"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_stop_audio_capture"
-                    android:textColor="@color/btn_text_selector"
-                    android:textAllCaps="false"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnAiChat"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_ai_chat"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnStopAiChat"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp"
-                    android:layout_height="match_parent"
-                    android:minHeight="36dp"
-                    android:background="@drawable/round_unselect_bg"
-                    android:text="@string/demo_stop_ai_chat"
-                    android:textAllCaps="false"
-                    android:textColor="@color/btn_text_selector"
-                    android:textSize="10sp"
-                    android:paddingHorizontal="4dp"
-                    android:paddingVertical="4dp"
-                    android:ellipsize="none" />
-                <!-- Keep the final action in the same three-column grid. -->
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp" />
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="3dp" />
-            </LinearLayout>
-        </LinearLayout>
-    </ScrollView>
-
-    <ScrollView
-        android:id="@+id/scrollView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/controlsScrollView"
-        app:layout_constraintHeight_min="64dp"
-        app:layout_constraintVertical_weight="1">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
+        </ScrollView>
+        <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintHeight_min="64dp"
+            app:layout_constraintVertical_weight="1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/controlsScrollView"
+            app:layout_constraintBottom_toBottomOf="parent">
             <TextView
                 android:id="@+id/tvLog"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text=""
-                android:textColor="@color/green"
-                android:textSize="12sp" />
-
-        </LinearLayout>
-
-    </ScrollView>
-
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+                android:layout_height="wrap_content"
+                android:padding="6dp"
+                android:textColor="@color/green_normal_60"
+                android:textSize="11sp"/>
+        </ScrollView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <FrameLayout
+        android:id="@+id/mediaSettingsHost"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"/>
+</FrameLayout>

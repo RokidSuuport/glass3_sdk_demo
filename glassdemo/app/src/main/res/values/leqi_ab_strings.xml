@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="leqi_ab_title">Leqi interceptor A/B test</string>
+    <string name="leqi_ab_register_a">1. Register A</string>
+    <string name="leqi_ab_register_b">2. Register B</string>
+    <string name="leqi_ab_unregister_a">3. Unregister A</string>
+    <string name="leqi_ab_unregister_b">4. Unregister B</string>
+    <string name="leqi_ab_none">None</string>
+    <string name="leqi_ab_expected">Expected owner on this page: %1$s</string>
+    <string name="leqi_ab_counts">Callbacks: A=%1$d · B=%2$d</string>
+    <string name="leqi_ab_hint">Send a Leqi command after each step. Expected callbacks: A → B → B → neither.\nSwipe to select, click to run. Keep this page in the foreground.</string>
+    <string name="leqi_ab_log_hint">[Guide] Only one interceptor can be active. Register B replaces A. Unregister A must preserve B. The expected owner reflects local operations, not an SDK status query. Use actual callbacks (eventCode=11000) to verify; silence alone does not prove an event was generated.</string>
+    <string name="leqi_ab_resume">[Page] Foreground; press Register A or B to start. Returning does not restore registration. Leaving unregisters both objects; counters last for this page instance.</string>
+    <string name="leqi_ab_register">Register %1$s</string>
+    <string name="leqi_ab_unregister">Unregister %1$s</string>
+    <string name="leqi_ab_operation">[Operation %1$s] %2$s (%3$s) returned; expected=%4$s. Verify with a new command.</string>
+    <string name="leqi_ab_callback">[Callback %1$s] count=%2$d; expected at arrival=%3$s; page foreground=%4$s; extra=%5$s</string>
+    <string name="leqi_ab_error">[Error] %1$s: %2$s</string>
+</resources>

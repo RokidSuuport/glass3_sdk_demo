@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/black" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp">
+        <TextView android:id="@+id/tvMediaSettingsTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:padding="4dp" android:text="@string/media_photo_settings" android:textColor="@color/green" android:textSize="16sp" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaSettingsBack" style="@style/MediaSettingButton" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/media_settings_back" android:layout_weight="1" android:layout_marginHorizontal="2dp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaApiMode" style="@style/MediaSettingButton" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/media_api_options" android:layout_weight="1" android:layout_marginHorizontal="2dp" />
+        </LinearLayout>
+        <TextView android:id="@+id/tvMediaSettingsHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="6dp" android:text="@string/media_photo_settings_hint" android:textColor="@color/green_70" android:textSize="12sp" />
+        <TextView android:id="@+id/tvMediaSettingsStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="6dp" android:visibility="gone" android:textColor="@color/green" android:textSize="12sp" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:baselineAligned="false">
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaSize"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_photo_size_title" />
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaOptionsZoom"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_options_zoom_default" />
+                    </LinearLayout>
+        <LinearLayout android:id="@+id/mediaPhotoOptionsRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaPhotoQuality" style="@style/MediaSettingButton" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/media_photo_quality_default" android:layout_weight="1" android:layout_marginHorizontal="2dp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaReuseResolution" style="@style/MediaSettingButton" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/media_reuse_off" android:layout_weight="1" android:layout_marginHorizontal="2dp" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/mediaVideoOptionsRow" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaRecordWatermark" style="@style/MediaSettingButton" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/media_watermark_off" android:layout_weight="1" android:layout_marginHorizontal="2dp" />
+            <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnSetZoom" style="@style/MediaSettingButton" android:layout_width="0dp" android:layout_height="match_parent" android:text="@string/media_zoom_apply" android:layout_weight="1" android:layout_marginHorizontal="2dp" />
+        </LinearLayout>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:baselineAligned="false">
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaFollowShared"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_follow_shared" />
+                        <androidx.appcompat.widget.AppCompatButton android:id="@+id/btnMediaResetDefaults"
+                            style="@style/MediaSettingButton" android:layout_width="0dp"
+                            android:layout_height="match_parent" android:layout_weight="1"
+                            android:layout_marginHorizontal="2dp" android:text="@string/media_reset_defaults" />
+                    </LinearLayout>
+    </LinearLayout>
+</ScrollView>

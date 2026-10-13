@@ -17,7 +17,8 @@ public interface MenuConfigType {
         // 发送消息
         // Send messages.
         String SEND_MSG = "send_msg";
-        String ONLINE_ASR_TTS = "online_asr_tts";   // Online-Speech ASR/TTS Demo
+        String DEVICE_TOOLS = "device_tools";
+        String ONLINE_ASR_TTS = "online_asr_tts";
         // sdk拍照录像界面
         // SDK photo and video capture screen.
         String SDK_TAKE_PHOTO = "sdk_take_photo";

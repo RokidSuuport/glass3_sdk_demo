@@ -8,6 +8,8 @@ import com.rokid.glass.camera.CameraShareGestureHandler
 import com.rokid.glass.camera.MixRecordFragment
 import com.rokid.glass.camera.Nv21ExportFragment
 import com.rokid.glass.camera.SurfaceShareFragment
+import com.rokid.glass.camera.LegacySurfaceShareFragment
+import com.rokid.glass.camera.I420ExportFragment
 
 /**
  * Camera Share Demo 主 Activity
@@ -38,6 +40,8 @@ class CameraShareDemoActivity : BaseGlassActivity() {
             MODE_SURFACE -> SurfaceShareFragment.newInstance()
             MODE_NV21 -> Nv21ExportFragment.newInstance()
             MODE_MIX -> MixRecordFragment.newInstance()
+            "i420" -> I420ExportFragment.newInstance()
+            "surface_legacy" -> LegacySurfaceShareFragment.newInstance()
             else -> SurfaceShareFragment.newInstance()
         }
 

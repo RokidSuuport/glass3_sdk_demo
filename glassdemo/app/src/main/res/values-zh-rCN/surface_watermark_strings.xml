@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="camera_zoom_confirm">设置并确认倍率\n后续处理需实际倍率时</string>
+    <string name="watermark_summary_on">水印：开启</string>
+    <string name="watermark_summary_off">水印：关闭</string>
+    <string name="watermark_explanation">水印叠加文字和时间；SDK 支持自定义文字。</string>
+    <string name="watermark_default_text">任务进行中</string>
+</resources>

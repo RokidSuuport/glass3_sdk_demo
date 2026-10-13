@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="leqi_ab_title">乐奇拦截器 A/B 测试</string>
+    <string name="leqi_ab_register_a">1. 注册 A</string>
+    <string name="leqi_ab_register_b">2. 注册 B</string>
+    <string name="leqi_ab_unregister_a">3. 注销 A</string>
+    <string name="leqi_ab_unregister_b">4. 注销 B</string>
+    <string name="leqi_ab_none">无</string>
+    <string name="leqi_ab_expected">本页预期拦截器：%1$s</string>
+    <string name="leqi_ab_counts">回调次数：A=%1$d · B=%2$d</string>
+    <string name="leqi_ab_hint">每步操作后发一次乐奇指令，预期回调依次为 A → B → B → 均无。\n前后滑动选择，单击执行，测试期间保持本页前台。</string>
+    <string name="leqi_ab_log_hint">[说明] 同时只能有一个拦截器，注册 B 替换 A，注销 A 应保留 B。“本页预期”根据本地操作推算，并非 SDK 状态查询。请以真实回调（eventCode=11000）验证；没有回调不能单独证明指令已产生。</string>
+    <string name="leqi_ab_resume">[页面] 已到前台，请点击注册 A 或 B 开始；返回本页不自动恢复注册。离开时按对象注销 A、B；次数仅在本页实例内累计。</string>
+    <string name="leqi_ab_register">注册 %1$s</string>
+    <string name="leqi_ab_unregister">注销 %1$s</string>
+    <string name="leqi_ab_operation">[操作 %1$s] %2$s（%3$s）调用已返回；预期=%4$s，请发新指令验证。</string>
+    <string name="leqi_ab_callback">[回调 %1$s] 第 %2$d 次；到达时预期=%3$s；本页前台=%4$s；extra=%5$s</string>
+    <string name="leqi_ab_error">[错误] %1$s：%2$s</string>
+</resources>
