@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sdk222_phone_zoom_label">Camera zoom</string>
+    <string name="sdk222_phone_zoom_follow">Follow shared camera</string>
+    <string name="sdk222_phone_zoom_unknown">Zoom support unconfirmed. Start preview once to query the glasses, then return to select a zoom.</string>
+    <string name="sdk222_phone_zoom_unsupported">The glasses did not advertise decimal zoom support. The existing stream request is used.</string>
+    <string name="sdk222_phone_zoom_supported">Decimal zoom supported. The selected ratio is requested on the next preview start.</string>
+    <string name="sdk222_phone_zoom_actual_unknown">Actual zoom: awaiting glasses status</string>
+    <string name="sdk222_phone_zoom_actual">Last reported camera zoom: %1$.3f×</string>
+    <string name="sdk222_phone_zoom_requested">Requested zoom: %1$.3f×\n%2$s</string>
+</resources>

@@ -28,10 +28,14 @@ import com.rokid.phone.video.H264SurfaceDecoder
 import com.rokid.phone.video.DecodedVideoGeometry
 import com.rokid.phone.video.VideoFrameRecoveryGate
 import com.rokid.phone.video.VideoStreamRecoveryPolicy
+import com.rokid.phone.video.Sdk222ZoomControls
 import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
 import com.rokid.security.phone.sdk.base.utils.other.mainScope
 import com.rokid.security.sdk.base.common.GlassVideoStreamParam
+import com.rokid.security.sdk.ability.message.ICommonMessage
+import com.rokid.security.sdk.ability.message.MessageReceiver
+import com.rokid.security.sdk.ability.message.MessageType
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +43,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -53,6 +59,10 @@ class VideoReceiveActivity : ComponentActivity() {
     private val VIDEO_TAG = "VIDEO_TAG"
     private val AUDIO_TAG = "AUDIO_TAG"
     private var startTime = 0L
+    private val zoomControls = Sdk222ZoomControls()
+    @Volatile private var zoomConnectionEpoch = 0
+    @Volatile private var zoomStatusRequestVersion = -1
+    private val zoomPresets = listOf<Float?>(null, 1f, 1.575f, 2f, 3f)
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +72,18 @@ class VideoReceiveActivity : ComponentActivity() {
         initView()
         switchPage(PageState.CONFIG)
         PSecuritySDK.getMessageService()?.addMessageListener(nv21Listener)
+        // Public shared-message bus retains the transport envelope, including capability presence.
+        MessageReceiver.getMessageAction().injectIMessage(zoomStatusListener)
+        lifecycleScope.launch {
+            combine(GlobalData.btConnectState, GlobalData.p2pConnectState) { bt, p2p -> bt to p2p }
+                .collect {
+                    zoomConnectionEpoch++
+                    zoomControls.resetConnection()
+                    currentConfig = currentConfig?.copy(zoomRatio = null)
+                    binding.spinnerSdk222Zoom.setSelection(0)
+                    renderZoomState()
+                }
+        }
     }
 
     private val audioTrack = AudioTrack(
@@ -168,7 +190,8 @@ class VideoReceiveActivity : ComponentActivity() {
         val bitrate: Int,
         val resolution: ResolutionOption,
         val isARMixEnabled: Boolean,
-        val previewMode: PreviewMode
+        val previewMode: PreviewMode,
+        val zoomRatio: Float?
     )
 
     private var currentConfig: PreviewConfig? = null
@@ -199,6 +222,11 @@ class VideoReceiveActivity : ComponentActivity() {
     private fun initView() {
         initResolutionSpinner()
         initPreviewModeSpinner()
+        binding.spinnerSdk222Zoom.adapter = ArrayAdapter(
+            this, R.layout.item_video_resolution_spinner,
+            zoomPresets.map { it?.let { ratio -> "${ratio}×" } ?: getString(R.string.sdk222_phone_zoom_follow) }
+        ).apply { setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown) }
+        renderZoomState()
         initH264Surface()
         binding.btnStartPreview.setOnClickListener {
             validateAndStartPreview()
@@ -286,6 +314,7 @@ class VideoReceiveActivity : ComponentActivity() {
                 binding.glsurfaceview.visibility = View.GONE
                 binding.h264SurfaceContainer.visibility = View.GONE
                 binding.tvFps.visibility = View.GONE
+                binding.tvSdk222ZoomActual.visibility = View.GONE
             }
 
             PageState.PREVIEW -> {
@@ -294,6 +323,7 @@ class VideoReceiveActivity : ComponentActivity() {
                 binding.glsurfaceview.visibility = if (mode == PreviewMode.NV21) View.VISIBLE else View.GONE
                 binding.h264SurfaceContainer.visibility = if (mode == PreviewMode.H264) View.VISIBLE else View.GONE
                 binding.tvFps.visibility = View.VISIBLE
+                binding.tvSdk222ZoomActual.visibility = View.VISIBLE
             }
         }
     }
@@ -435,7 +465,10 @@ class VideoReceiveActivity : ComponentActivity() {
             Log.d(TAG, "startPreview ignored: waiting first video frame")
             return
         }
-        currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled, previewMode)
+        val zoomRatio = zoomControls.requestRatio(zoomPresets.getOrNull(binding.spinnerSdk222Zoom.selectedItemPosition))
+        currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled, previewMode, zoomRatio)
+        zoomControls.clearAppliedRatio()
+        renderZoomState()
         PSecuritySDK.getWifiP2PClientService()?.setAutoDecodeH264ToNv21(previewMode == PreviewMode.NV21)
         resetFps()
         updateStreamState(demoString(R.string.demo_waiting_for_first_frame))
@@ -472,6 +505,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private suspend fun startStreamRequest(reason: String) {
         val config = currentConfig ?: return
         val requestVersion = ++streamRequestVersion
+        zoomStatusRequestVersion = -1
         videoRequestCount = 0
         audioRequestCount = 0
         isAudioRequestedForCurrentStream = false
@@ -533,6 +567,7 @@ class VideoReceiveActivity : ComponentActivity() {
         isGetVideo = false
         val attempt = videoRequestCount
         val param = buildVideoStreamParam(config)
+        zoomStatusRequestVersion = requestVersion
         Log.d(TAG, "requestVideoStream: attempt=$attempt, reason=$reason, config=$config")
         deviceInfoService.requestVideoStream(VIDEO_TAG, videoStreamParam = param) callback@{ isSuccess ->
             Log.d(TAG, "requestVideoStream callback: success=$isSuccess, attempt=$attempt, version=$requestVersion")
@@ -575,6 +610,8 @@ class VideoReceiveActivity : ComponentActivity() {
             fps = config.fps
             bitrate = config.bitrate
             isARMixEnabled = config.isARMixEnabled
+            // Leave null for old/unknown peers. Never infer support from local DTO defaults.
+            zoomRatio = zoomControls.requestRatio(config.zoomRatio)
         }
     }
 
@@ -823,6 +860,9 @@ class VideoReceiveActivity : ComponentActivity() {
     @SuppressLint("SetTextI18n")
     private fun stopPreview() {
         isPreviewStarted = false
+        zoomStatusRequestVersion = -1
+        zoomControls.clearAppliedRatio()
+        renderZoomState()
         streamRequestVersion++
         startPreviewJob?.cancel()
         videoWatchdogJob?.cancel()
@@ -857,6 +897,38 @@ class VideoReceiveActivity : ComponentActivity() {
     }
 
     /* ================= NV21 → GLSurfaceView ================= */
+    private val zoomStatusListener = object : ICommonMessage {
+        override fun onMessage(message: String, type: Int) {
+            if (type != MessageType.BT && type != MessageType.P2P) return
+            if (!isPreviewStarted || !GlobalData.isGlassConnect()) return
+            val epoch = zoomConnectionEpoch
+            val requestVersion = zoomStatusRequestVersion
+            if (requestVersion < 0) return
+            val state = Sdk222ZoomControls.parsePeerState(message) ?: return
+            runOnUiThread {
+                if (isDestroyed || epoch != zoomConnectionEpoch || !isPreviewStarted || !GlobalData.isGlassConnect()) return@runOnUiThread
+                if (requestVersion != streamRequestVersion || requestVersion != zoomStatusRequestVersion) return@runOnUiThread
+                zoomControls.update(state)
+                renderZoomState()
+            }
+        }
+    }
+
+    private fun renderZoomState() {
+        val state = zoomControls.peerState
+        binding.spinnerSdk222Zoom.isEnabled = state.supportsFloatZoom
+        binding.tvSdk222ZoomCapability.setText(when {
+            state.capabilities == null -> R.string.sdk222_phone_zoom_unknown
+            state.supportsFloatZoom -> R.string.sdk222_phone_zoom_supported
+            else -> R.string.sdk222_phone_zoom_unsupported
+        })
+        val actual = state.appliedRatio?.let { getString(R.string.sdk222_phone_zoom_actual, it) }
+            ?: getString(R.string.sdk222_phone_zoom_actual_unknown)
+        binding.tvSdk222ZoomActual.text = currentConfig?.zoomRatio?.let {
+            getString(R.string.sdk222_phone_zoom_requested, it, actual)
+        } ?: actual
+    }
+
     private val nv21Listener = object : IMessageListener {
         override fun onNv21Data(data: ByteArray, width: Int, height: Int) {
             if (currentState != PageState.PREVIEW || !isPreviewStarted) return
@@ -1044,6 +1116,7 @@ class VideoReceiveActivity : ComponentActivity() {
         audioTrack.stop()
         audioTrack.release()
         PSecuritySDK.getMessageService()?.removeMessageListener(nv21Listener)
+        MessageReceiver.getMessageAction().unInjectIMessage(zoomStatusListener)
     }
 
     override fun onResume() {

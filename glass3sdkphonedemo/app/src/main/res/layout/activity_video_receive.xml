@@ -297,6 +297,30 @@
                             android:textColor="#FFFFFF" />
                     </LinearLayout>
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sdk222_phone_zoom_label"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp" />
+
+                    <Spinner
+                        android:id="@+id/spinner_sdk222_zoom"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
+                        android:enabled="false"
+                        android:backgroundTint="#66FFFFFF"
+                        android:popupBackground="#FFFFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tv_sdk222_zoom_capability"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sdk222_phone_zoom_unknown"
+                        android:textColor="#AAAAAA"
+                        android:textSize="13sp" />
+
                     <Button
                         android:id="@+id/btn_start_preview"
                         android:layout_width="match_parent"
@@ -319,6 +343,21 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </ScrollView>
+
+    <TextView
+        android:id="@+id/tv_sdk222_zoom_actual"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:background="#99000000"
+        android:padding="8dp"
+        android:text="@string/sdk222_phone_zoom_actual_unknown"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
         android:id="@+id/tvDuration"
