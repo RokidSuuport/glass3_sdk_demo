@@ -4,7 +4,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 
 /** Camera capability evidence from the peer, never from a model's default values. */
-internal class Sdk222ZoomControls {
+internal class VideoStreamZoomControls {
     data class PeerState(val capabilities: Int?, val appliedRatio: Float?) {
         val supportsFloatZoom: Boolean get() = capabilities?.let { it and 1 != 0 } == true
     }

@@ -8,4 +8,5 @@
     <string name="sdk222_phone_zoom_actual_unknown">实际倍率：等待眼镜状态</string>
     <string name="sdk222_phone_zoom_actual">眼镜最近上报的实际倍率：%1$.3f×</string>
     <string name="sdk222_phone_zoom_requested">请求倍率：%1$.3f×\n%2$s</string>
+    <string name="sdk222_phone_file_progress_bytes">对端接收进度：%1$.1f%% · %2$s / %3$s</string>
 </resources>

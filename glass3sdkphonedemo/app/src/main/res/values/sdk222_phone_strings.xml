@@ -8,4 +8,5 @@
     <string name="sdk222_phone_zoom_actual_unknown">Actual zoom: awaiting glasses status</string>
     <string name="sdk222_phone_zoom_actual">Last reported camera zoom: %1$.3f×</string>
     <string name="sdk222_phone_zoom_requested">Requested zoom: %1$.3f×\n%2$s</string>
+    <string name="sdk222_phone_file_progress_bytes">Receiver progress: %1$.1f%% · %2$s / %3$s</string>
 </resources>

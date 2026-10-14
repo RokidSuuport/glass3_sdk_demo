@@ -55,13 +55,31 @@ class SendMessageActivity : ComponentActivity() {
     }
 
     private val fileReceiveListener = object : FileReceiveListener {
+        private var lastByteProgressTime = 0L
+
         override fun onStart() {
             startTime = System.currentTimeMillis()
+            lastByteProgressTime = 0L
             log(demoString(R.string.demo_started_sending_file))
         }
 
         override fun onProgressChanged(progress: Float) {
             log(demoString(R.string.demo_file_transfer_progress, progress))
+        }
+
+        override fun onProgressChanged(progress: Float, transferredBytes: Long, totalBytes: Long) {
+            if (totalBytes <= 0L) {
+                onProgressChanged(progress)
+                return
+            }
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (transferredBytes < totalBytes && now - lastByteProgressTime < 500L) return
+            lastByteProgressTime = now
+            log(demoString(
+                R.string.sdk222_phone_file_progress_bytes, progress,
+                FileSizeUtil.formatFileSize(transferredBytes.coerceAtLeast(0L).toDouble()),
+                FileSizeUtil.formatFileSize(totalBytes.toDouble())
+            ))
         }
 
         /**

@@ -28,7 +28,7 @@ import com.rokid.phone.video.H264SurfaceDecoder
 import com.rokid.phone.video.DecodedVideoGeometry
 import com.rokid.phone.video.VideoFrameRecoveryGate
 import com.rokid.phone.video.VideoStreamRecoveryPolicy
-import com.rokid.phone.video.Sdk222ZoomControls
+import com.rokid.phone.video.VideoStreamZoomControls
 import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
 import com.rokid.security.phone.sdk.base.utils.other.mainScope
@@ -59,7 +59,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private val VIDEO_TAG = "VIDEO_TAG"
     private val AUDIO_TAG = "AUDIO_TAG"
     private var startTime = 0L
-    private val zoomControls = Sdk222ZoomControls()
+    private val zoomControls = VideoStreamZoomControls()
     @Volatile private var zoomConnectionEpoch = 0
     @Volatile private var zoomStatusRequestVersion = -1
     private val zoomPresets = listOf<Float?>(null, 1f, 1.575f, 2f, 3f)
@@ -904,7 +904,7 @@ class VideoReceiveActivity : ComponentActivity() {
             val epoch = zoomConnectionEpoch
             val requestVersion = zoomStatusRequestVersion
             if (requestVersion < 0) return
-            val state = Sdk222ZoomControls.parsePeerState(message) ?: return
+            val state = VideoStreamZoomControls.parsePeerState(message) ?: return
             runOnUiThread {
                 if (isDestroyed || epoch != zoomConnectionEpoch || !isPreviewStarted || !GlobalData.isGlassConnect()) return@runOnUiThread
                 if (requestVersion != streamRequestVersion || requestVersion != zoomStatusRequestVersion) return@runOnUiThread
