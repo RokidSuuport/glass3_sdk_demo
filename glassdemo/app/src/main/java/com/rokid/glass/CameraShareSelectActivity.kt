@@ -4,7 +4,6 @@ import android.content.Intent
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import com.rokid.glass.base.BaseGlassActivity
@@ -101,26 +100,6 @@ class CameraShareSelectActivity : BaseGlassActivity() {
             }
         }
         return super.onGlassKeyEvent(keyEvent)
-    }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) {
-            when (event.keyCode) {
-                KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    if (event.repeatCount == 0) GlassKeyEvent(GlassKeyEvent.KEYCODE_FRONT)
-                    return true
-                }
-                KeyEvent.KEYCODE_DPAD_LEFT -> {
-                    if (event.repeatCount == 0) GlassKeyEvent(GlassKeyEvent.KEYCODE_BEHIND)
-                    return true
-                }
-                KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> {
-                    if (event.repeatCount == 0) GlassKeyEvent(GlassKeyEvent.KEYCODE_CLICK)
-                    return true
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event)
     }
 
     private fun moveSelection(offset: Int) {

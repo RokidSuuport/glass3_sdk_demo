@@ -149,6 +149,10 @@
             android:exported="true"
             android:foregroundServiceType="connectedDevice|location|microphone|dataSync|camera"
             tools:ignore="ForegroundServicePermission" />
+        <service
+            android:name="com.rokid.glass.event.CusEventReceiverService"
+            android:exported="false"
+            android:process=":cus_event_receiver" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

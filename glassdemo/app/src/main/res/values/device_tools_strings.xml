@@ -16,4 +16,7 @@
     <string name="device_leqi_unregister_returned">[Leqi] unregisterLeqiInterceptor(this page object) returned; source: %1$s.</string>
     <string name="device_leqi_callback">[Leqi callback] Count on this page: %1$d; consumed; content: %2$s</string>
     <string name="device_leqi_error">[Leqi] %1$s failed: %2$s</string>
+    <string name="device_send_cus_event">Send custom event</string>
+    <string name="device_cus_event_sent">[Custom event] Sent: code=%1$d, extra=%2$s. Check CusEventReceiver log for the callback.</string>
+    <string name="device_cus_event_failed">[Custom event] Send failed: %1$s</string>
 </resources>

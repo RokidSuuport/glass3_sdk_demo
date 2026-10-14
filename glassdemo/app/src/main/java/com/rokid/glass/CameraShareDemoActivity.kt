@@ -3,7 +3,6 @@ package com.rokid.glass
 import android.os.Bundle
 import android.view.KeyEvent
 import com.rokid.glass.base.BaseGlassActivity
-import com.rokid.glass.base.GlassKeyEvent
 import com.rokid.glass.camera.CameraShareGestureHandler
 import com.rokid.glass.camera.MixRecordFragment
 import com.rokid.glass.camera.Nv21ExportFragment
@@ -61,20 +60,14 @@ class CameraShareDemoActivity : BaseGlassActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
-                KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    if (event.repeatCount == 0) GlassKeyEvent(GlassKeyEvent.KEYCODE_FRONT)
-                    return true
-                }
-                KeyEvent.KEYCODE_DPAD_LEFT -> {
-                    if (event.repeatCount == 0) GlassKeyEvent(GlassKeyEvent.KEYCODE_BEHIND)
-                    return true
-                }
                 KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> {
                     if (event.repeatCount == 0) ringHomeClick()
                     return true
                 }
             }
         }
+        if (event.action == KeyEvent.ACTION_UP &&
+            (event.keyCode == KeyEvent.KEYCODE_ENTER || event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER)) return true
         return super.dispatchKeyEvent(event)
     }
 }

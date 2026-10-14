@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.app.ActivityCompat
@@ -14,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.rokid.glass.base.BaseGlassActivity
 import com.rokid.glass.base.GlassKeyEvent
+import com.rokid.glass.event.CusEventReceiverService
 import com.rokid.glass.media.DeviceAudioCapture
 import com.rokid.glass.utils.FileUtils
 import com.rokid.glass.utils.demoString
@@ -72,6 +72,8 @@ class DeviceToolsActivity : BaseGlassActivity() {
     private var startAudioOnResume = false
     private var touchStartX = 0f
     private var touchStartY = 0f
+    private var touchSwipeConsumed = false
+    private var touchSwipeDirection = GlassKeyEvent.KEYCODE_FRONT
     @Volatile private var pageResumed = false
     private val leqiCallbackCount = AtomicInteger()
 
@@ -93,7 +95,7 @@ class DeviceToolsActivity : BaseGlassActivity() {
             binding.btQRCodeImage, binding.btQRCode, binding.btQRCodeXml,
             binding.btConnectWifi, binding.btDisconnectWifi, binding.btConfigureAppVisibility,
             binding.btnAiChat, binding.btnStopAiChat, binding.btnRegisterLeqi,
-            binding.btnRecordAudio, binding.btnStopRecordAudio
+            binding.btnSendCusEvent, binding.btnRecordAudio, binding.btnStopRecordAudio
         )
         buttons.forEachIndexed { index, button ->
             button.setOnClickListener {
@@ -155,6 +157,7 @@ class DeviceToolsActivity : BaseGlassActivity() {
                 log(getString(R.string.demo_stopping_ai_chat))
             }
             R.id.btnRegisterLeqi -> registerLeqi()
+            R.id.btnSendCusEvent -> sendCusEvent()
             R.id.btnRecordAudio -> startAudioCapture()
             R.id.btnStopRecordAudio -> worker.execute {
                 if (pageResumed) runCatching { audioCapture.value.stop() }
@@ -266,9 +269,32 @@ class DeviceToolsActivity : BaseGlassActivity() {
         }
     }
 
+    private fun sendCusEvent() {
+        val service = GlassSdk.getGlassDeviceService() ?: run {
+            log(getString(R.string.demo_device_service_unavailable_check_the_glasses_system_service))
+            return
+        }
+        val eventCode = 12345
+        val extra = "glassdemo"
+        runCatching {
+            service.sendCusEvent(eventCode, extra)
+            Log.d(TAG, "sendCusEvent code=$eventCode extra=$extra returned")
+            log(getString(R.string.device_cus_event_sent, eventCode, extra))
+        }.onFailure { error ->
+            Log.e(TAG, "sendCusEvent failed: ${error.message}", error)
+            log(getString(R.string.device_cus_event_failed, error.message ?: error.javaClass.simpleName))
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         pageResumed = true
+        binding.root.post {
+            if (pageResumed && !isFinishing && !isDestroyed) {
+                runCatching { startService(Intent(this, CusEventReceiverService::class.java)) }
+                    .onFailure { Log.w(TAG, "Unable to start custom event receiver", it) }
+            }
+        }
         if (startAudioOnResume) {
             startAudioOnResume = false
             startAudioCapture()
@@ -277,6 +303,7 @@ class DeviceToolsActivity : BaseGlassActivity() {
 
     override fun onPause() {
         pageResumed = false
+        stopService(Intent(this, CusEventReceiverService::class.java))
         chatRequest.set(null)
         worker.execute { runCatching { stopAi() }.onFailure(::logAiError) }
         worker.execute {
@@ -494,33 +521,36 @@ class DeviceToolsActivity : BaseGlassActivity() {
 
     override fun dispatchTouchEvent(event: MotionEvent?): Boolean {
         if (event == null) return super.dispatchTouchEvent(null)
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-            touchStartX = event.x
-            touchStartY = event.y
-        }
-        val handled = super.dispatchTouchEvent(event)
-        if (event.actionMasked == MotionEvent.ACTION_UP) {
-            val dx = event.x - touchStartX
-            val dy = event.y - touchStartY
-            val threshold = 24f * resources.displayMetrics.density
-            if (abs(dy) >= threshold && abs(dy) > abs(dx)) {
-                onGlassKeyEvent(if (dy > 0f) GlassKeyEvent.KEYCODE_FRONT else GlassKeyEvent.KEYCODE_BEHIND)
-                return true
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                touchStartX = event.x
+                touchStartY = event.y
+                touchSwipeConsumed = false
             }
+            MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP -> {
+                val dx = event.x - touchStartX
+                val dy = event.y - touchStartY
+                val threshold = 24f * resources.displayMetrics.density
+                if (!touchSwipeConsumed && abs(dy) >= threshold && abs(dy) > abs(dx)) {
+                    touchSwipeConsumed = true
+                    touchSwipeDirection = if (dy > 0f) GlassKeyEvent.KEYCODE_FRONT else GlassKeyEvent.KEYCODE_BEHIND
+                    // Cancel the child's press before moving selection so a swipe cannot click a button.
+                    // 移动选中项前取消子控件按压，避免滑动同时点击按钮。
+                    val cancel = MotionEvent.obtain(event)
+                    cancel.action = MotionEvent.ACTION_CANCEL
+                    super.dispatchTouchEvent(cancel)
+                    cancel.recycle()
+                }
+                if (touchSwipeConsumed) {
+                    if (event.actionMasked == MotionEvent.ACTION_UP) {
+                        GlassKeyEvent(touchSwipeDirection)
+                    }
+                    return true
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> touchSwipeConsumed = false
         }
-        return handled
-    }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val action = when (event.keyCode) {
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> GlassKeyEvent.KEYCODE_CLICK
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_DOWN -> GlassKeyEvent.KEYCODE_FRONT
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_UP -> GlassKeyEvent.KEYCODE_BEHIND
-            KeyEvent.KEYCODE_BACK -> GlassKeyEvent.KEYCODE_BACK
-            else -> return super.dispatchKeyEvent(event)
-        }
-        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) onGlassKeyEvent(action)
-        return true
+        return super.dispatchTouchEvent(event)
     }
 
     override fun onGlassKeyEvent(keyEvent: Int): Boolean {
@@ -545,7 +575,7 @@ class DeviceToolsActivity : BaseGlassActivity() {
             button.setBackgroundResource(if (focused) R.drawable.round_select_bg else R.drawable.round_unselect_bg)
         }
         buttons[index].apply {
-            requestFocus()
+            requestFocusFromTouch()
             post {
                 if (isShown && buttons[selected] === this) {
                     requestRectangleOnScreen(Rect(0, 0, width, height), true)

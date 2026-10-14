@@ -91,6 +91,8 @@
     <string name="demo_recognition_ended_2">已结束识别</string>
     <string name="demo_photo_capture_timed_out">拍照超时</string>
     <string name="demo_audio_stream_received_bytes">收到音频流，大小=%1$s</string>
+    <string name="demo_audio_stream_playback_stats">实时音频：收到 %1$d 包、%2$d 字节，已写入播放器 %3$d 字节，丢弃 %4$d 包（16 kHz 单声道 PCM16）</string>
+    <string name="demo_audio_stream_playback_error">播放失败：%1$d</string>
     <string name="demo_stream_data_received_bytes_tag">onStreamDataReceived，大小=%1$s,tag=%2$s</string>
     <string name="demo_tts_playback_complete">TTS 播放完成</string>
     <string name="demo_tts_playback_service_connected">TTS 播放服务连接状态：%1$s</string>

@@ -1,17 +1,17 @@
 package com.rokid.glass
 
-import com.rokid.glass.utils.demoString
-import com.rokid.glesse.R
-
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.rokid.glass.base.BaseActivity
 import com.rokid.glass.utils.ImageFileUtils
+import com.rokid.glass.utils.demoString
+import com.rokid.glesse.R
 import com.rokid.glesse.databinding.ActivityMessageReceiveBinding
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.sdk.base.data.notification.bean.NotificationMessage
@@ -20,6 +20,8 @@ import com.rokid.security.system.server.message.listener.IMessageListener
 import com.rokid.security.system.server.notification.listener.NotificationListener
 import com.rokid.security.system.server.tts.listener.SpeechCompleteListener
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -28,6 +30,15 @@ class MessageReceiveActivity : BaseActivity() {
     private lateinit var binding: ActivityMessageReceiveBinding
     private val TAG = "MessageActivity"
     private val isTtsPlaying = AtomicBoolean(false)
+    private val audioLock = Any()
+    private val audioQueue = Channel<ByteArray>(capacity = 16)
+    private var audioPlaybackJob: Job? = null
+    private var audioPackets = 0L
+    private var audioReceivedBytes = 0L
+    private var audioPlayedBytes = 0L
+    private var audioDroppedPackets = 0L
+    private var lastAudioLogMs = 0L
+    private var audioTrackReleased = false
 
     private val audioTrack = AudioTrack(
         // 音频流类型
@@ -42,12 +53,15 @@ class MessageReceiveActivity : BaseActivity() {
         // 编码格式（必须一致）
         // Encoding format, which must match.
         AudioFormat.ENCODING_PCM_16BIT,
-        // 合理的缓冲区大小
-        // An appropriate buffer size.
-        AudioTrack.getMinBufferSize(
-            16000,
-            AudioFormat.CHANNEL_OUT_MONO,
-            AudioFormat.ENCODING_PCM_16BIT
+        // 为实时链路保留约 200 毫秒播放缓冲，吸收分包到达抖动。
+        // Keep about 200 ms of playback buffering for packet arrival jitter.
+        maxOf(
+            AudioTrack.getMinBufferSize(
+                16000,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            ),
+            16000 * 2 / 5
         ),
         // 流式模式（适合实时播放）
         // Streaming mode, suitable for real-time playback.
@@ -64,13 +78,27 @@ class MessageReceiveActivity : BaseActivity() {
         }
 
         override fun onAudioStream(buffer: ByteArray) {
-            // doSpeechTts 会自行播放；TTS 期间回调的 PCM 不再通过 AudioTrack 重复播放。
-            // The doSpeechTts call plays audio itself; do not play the PCM callbacks again through AudioTrack during TTS.
-            if (isTtsPlaying.get()) {
-                return
+            if (buffer.isEmpty() || isTtsPlaying.get()) return
+            // Binder 回调只复制并入队，避免实时播放阻塞后续 PCM 包。
+            // Copy and enqueue on the Binder callback so playback cannot block incoming PCM.
+            val queued = audioQueue.trySend(buffer.copyOf()).isSuccess
+            val message = synchronized(audioLock) {
+                if (audioTrackReleased) return@synchronized null
+                audioPackets++
+                audioReceivedBytes += buffer.size
+                if (!queued) audioDroppedPackets++
+                val now = SystemClock.elapsedRealtime()
+                if (audioPackets == 1L || now - lastAudioLogMs >= 1000L) {
+                    lastAudioLogMs = now
+                    demoString(
+                        R.string.demo_audio_stream_playback_stats,
+                        audioPackets, audioReceivedBytes, audioPlayedBytes, audioDroppedPackets
+                    )
+                } else {
+                    null
+                }
             }
-            log(demoString(R.string.demo_audio_stream_received_bytes, buffer.size))
-            audioTrack.write(buffer, 0, buffer.size)
+            message?.let(::log)
         }
 
         override fun onStreamDataReceived(tag: String, data: ByteArray) {
@@ -102,7 +130,32 @@ class MessageReceiveActivity : BaseActivity() {
         GlassSdk.getGlassMessageService()?.glassFileOperater?.setFileReceiveListener(mFileReceiveListener)
         GlassSdk.getGlassMessageService()?.glassBtFileOperater?.setFileReceiveListener(mBtFileReceiveListener)
         GlassSdk.getGlassNotificationService()?.setNotificationListener(mNotificationListener)
-        audioTrack.play()
+        if (audioTrack.state == AudioTrack.STATE_INITIALIZED) {
+            audioTrack.play()
+            audioPlaybackJob = lifecycleScope.launch(Dispatchers.IO) {
+                for (packet in audioQueue) {
+                    // TTS 自行播放；排队中的麦克风包不应与 TTS 重叠。
+                    // TTS plays itself; queued microphone packets must not overlap it.
+                    if (isTtsPlaying.get()) continue
+                    val error = synchronized(audioLock) {
+                        if (audioTrackReleased) return@synchronized null
+                        var offset = 0
+                        while (offset < packet.size) {
+                            val written = audioTrack.write(
+                                packet, offset, packet.size - offset, AudioTrack.WRITE_BLOCKING
+                            )
+                            if (written <= 0) return@synchronized written
+                            offset += written
+                            audioPlayedBytes += written
+                        }
+                        null
+                    }
+                    if (error != null) log(demoString(R.string.demo_audio_stream_playback_error, error))
+                }
+            }
+        } else {
+            log(demoString(R.string.demo_audio_stream_playback_error, AudioTrack.ERROR_INVALID_OPERATION))
+        }
         binding.scrollView.requestFocus()
     }
 
@@ -113,10 +166,15 @@ class MessageReceiveActivity : BaseActivity() {
         GlassSdk.getGlassTtsService()?.doCancelTts()
         GlassSdk.getGlassMessageService()?.removeMessageListener(mMessageListener)
         GlassSdk.getGlassMessageService()?.glassFileOperater?.removeFileReceiveListener(mFileReceiveListener)
-        GlassSdk.getGlassMessageService()?.glassBtFileOperater?.removeFileReceiveListener(mFileReceiveListener)
+        GlassSdk.getGlassMessageService()?.glassBtFileOperater?.removeFileReceiveListener(mBtFileReceiveListener)
         GlassSdk.getGlassNotificationService()?.removeNotificationListener()
-        audioTrack.stop()
-        audioTrack.release()
+        audioQueue.close()
+        audioPlaybackJob?.cancel()
+        synchronized(audioLock) {
+            audioTrackReleased = true
+            if (audioTrack.state == AudioTrack.STATE_INITIALIZED) audioTrack.stop()
+            audioTrack.release()
+        }
     }
 
     private var mNotificationListener = object : NotificationListener.Stub() {
@@ -154,14 +212,15 @@ class MessageReceiveActivity : BaseActivity() {
 
     private val logBuilder = StringBuilder()
     private fun log(msg: String) {
-        if (logBuilder.length > 5000) {
-            logBuilder.clear()
-        }
-        logBuilder.insert(0, "$msg\n")
-        lifecycleScope.launch(Dispatchers.Main) {
-            binding.tvLog.text = logBuilder.toString()
-        }
         Log.e(TAG, msg)
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (logBuilder.length > 5000) {
+                logBuilder.clear()
+            }
+            logBuilder.insert(0, "$msg\n")
+            binding.tvLog.text = logBuilder.toString()
+            binding.scrollView.scrollTo(0, 0)
+        }
     }
 
     private val mFileReceiveListener = object : FileReceiveListener.Stub() {

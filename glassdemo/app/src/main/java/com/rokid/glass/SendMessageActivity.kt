@@ -14,7 +14,6 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.KeyEvent
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -565,18 +564,6 @@ class SendMessageActivity : BaseGlassActivity() {
             startAsrAfterPermissionGranted = false
             log(demoString(R.string.demo_microphone_permission_denied_speech_recognition_is_unavailable))
         }
-    }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val action = when (event.keyCode) {
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> GlassKeyEvent.KEYCODE_CLICK
-            KeyEvent.KEYCODE_DPAD_RIGHT -> GlassKeyEvent.KEYCODE_FRONT
-            KeyEvent.KEYCODE_DPAD_LEFT -> GlassKeyEvent.KEYCODE_BEHIND
-            KeyEvent.KEYCODE_BACK -> GlassKeyEvent.KEYCODE_BACK
-            else -> return super.dispatchKeyEvent(event)
-        }
-        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) GlassKeyEvent(action)
-        return true
     }
 
     override fun onGlassKeyEvent(keyEvent: Int): Boolean {

@@ -94,6 +94,8 @@
     <string name="demo_recognition_ended_2">Recognition ended</string>
     <string name="demo_photo_capture_timed_out">Photo capture timed out</string>
     <string name="demo_audio_stream_received_bytes">Audio stream received: %1$s bytes</string>
+    <string name="demo_audio_stream_playback_stats">Live audio: %1$d packets, %2$d bytes received, %3$d bytes written to player, %4$d packets dropped (16 kHz mono PCM16)</string>
+    <string name="demo_audio_stream_playback_error">Playback error: %1$d</string>
     <string name="demo_stream_data_received_bytes_tag">Stream data received: %1$s bytes, tag=%2$s</string>
     <string name="demo_tts_playback_complete">TTS playback complete</string>
     <string name="demo_tts_playback_service_connected">TTS playback service connected: %1$s</string>

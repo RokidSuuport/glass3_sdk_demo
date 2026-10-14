@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.CheckedTextView
@@ -17,6 +16,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.rokid.glass.SdkMediaActivity
 import com.rokid.glass.base.GlassKeyEvent
+import com.rokid.glass.base.GlassKeyInput
 import com.rokid.glesse.R
 import com.rokid.glesse.databinding.FragmentMediaSettingsBinding
 import com.rokid.security.glass3.open.sdk.camera.CameraShareHelper
@@ -248,17 +248,8 @@ class MediaSettingsFragment : Fragment(R.layout.fragment_media_settings) {
 
     private fun bindDialogKeys(dialog: AlertDialog, handler: (Int) -> Boolean) {
         dialogKeys = handler
-        dialog.setOnKeyListener { _, code, event ->
-            val key = when (code) {
-                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_DOWN -> GlassKeyEvent.KEYCODE_FRONT
-                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_UP -> GlassKeyEvent.KEYCODE_BEHIND
-                KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> GlassKeyEvent.KEYCODE_CLICK
-                KeyEvent.KEYCODE_BACK -> GlassKeyEvent.KEYCODE_BACK
-                else -> return@setOnKeyListener false
-            }
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) handler(key)
-            true
-        }
+        val input = GlassKeyInput(handler)
+        dialog.setOnKeyListener { _, _, event -> input.dispatch(event) }
         dialog.setOnDismissListener { if (choiceDialog === dialog) { choiceDialog = null; dialogKeys = null } }
     }
 

@@ -3,7 +3,6 @@ package com.rokid.glass
 import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
-import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.widget.AppCompatButton
 import com.rokid.glass.base.BaseGlassActivity
@@ -167,16 +166,4 @@ class TestLeqiActivity : BaseGlassActivity() {
         return true
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val gesture = when (event.keyCode) {
-            KeyEvent.KEYCODE_DPAD_RIGHT -> GlassKeyEvent.KEYCODE_FRONT
-            KeyEvent.KEYCODE_DPAD_LEFT -> GlassKeyEvent.KEYCODE_BEHIND
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> GlassKeyEvent.KEYCODE_CLICK
-            else -> return super.dispatchKeyEvent(event)
-        }
-        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-            GlassKeyEvent(gesture)
-        }
-        return true
-    }
 }

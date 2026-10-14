@@ -218,8 +218,9 @@ class OfflineCmdTestActivity : BaseGlassActivity() {
                 val selectedView = findSelectedView(binding.llMain)
                 selectedView?.performClick()
             }
+            else -> return super.onGlassKeyEvent(keyEvent)
         }
-        return super.onGlassKeyEvent(keyEvent)
+        return true
     }
 
     private fun findSelectedView(viewGroup: ViewGroup): View? {

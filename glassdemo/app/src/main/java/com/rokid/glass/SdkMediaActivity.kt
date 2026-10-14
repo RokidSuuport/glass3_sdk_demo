@@ -5,7 +5,6 @@ import android.graphics.Rect
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
-import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.widget.AppCompatButton
 import androidx.core.content.ContextCompat
@@ -153,20 +152,6 @@ class SdkMediaActivity : BaseGlassActivity() {
                 if (isShown && isSelected) requestRectangleOnScreen(Rect(0, 0, width, height), true)
             }
         }
-    }
-
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val action = when (event.keyCode) {
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_DOWN -> GlassKeyEvent.KEYCODE_FRONT
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_UP -> GlassKeyEvent.KEYCODE_BEHIND
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> GlassKeyEvent.KEYCODE_CLICK
-            KeyEvent.KEYCODE_BACK -> GlassKeyEvent.KEYCODE_BACK
-            else -> return super.dispatchKeyEvent(event)
-        }
-        // 在原生焦点导航之前分发镜腿按键，按下/抬起只执行一次。
-        // Route temple keys before native focus navigation; act once per down/up pair.
-        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) GlassKeyEvent(action)
-        return true
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

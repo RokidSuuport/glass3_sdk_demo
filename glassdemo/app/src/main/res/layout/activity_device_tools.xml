@@ -197,6 +197,22 @@
                     android:text="@string/device_leqi_register"
                     android:textColor="@color/green_70"
                     android:textSize="12sp" />
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/btnSendCusEvent"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="@drawable/round_unselect_bg"
+                    android:gravity="center"
+                    android:minHeight="28dp"
+                    android:minLines="1"
+                    android:paddingHorizontal="3dp"
+                    android:paddingVertical="2dp"
+                    android:singleLine="false"
+                    android:text="@string/device_send_cus_event"
+                    android:textColor="@color/green_70"
+                    android:textSize="12sp" />
             </LinearLayout>
             <LinearLayout
                 android:layout_width="match_parent"

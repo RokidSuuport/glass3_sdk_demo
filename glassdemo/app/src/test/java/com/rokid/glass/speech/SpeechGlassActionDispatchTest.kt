@@ -36,14 +36,17 @@ class SpeechGlassActionDispatchTest {
     }
 
     @Test
-    fun speechGestureActivityMapsGlassCenterKeysToClick() {
-        val source = source("SpeechGestureActivity.kt")
+    fun speechGestureActivityUsesSharedGlassCenterKeyDispatch() {
+        val speech = source("SpeechGestureActivity.kt")
+        val input = File("src/main/java/com/rokid/glass/base/GlassKeyInput.kt").readText()
+        val base = File("src/main/java/com/rokid/glass/base/BaseActivity.kt").readText()
 
-        assertTrue(source.contains("override fun dispatchKeyEvent"))
-        assertTrue(source.contains("KeyEvent.KEYCODE_DPAD_CENTER"))
-        assertTrue(source.contains("KeyEvent.KEYCODE_ENTER"))
-        assertTrue(source.contains("KeyEvent.KEYCODE_NUMPAD_ENTER"))
-        assertTrue(source.contains("onGlassKeyEvent(GlassKeyEvent.KEYCODE_CLICK)"))
+        assertFalse(speech.contains("override fun dispatchKeyEvent"))
+        assertTrue(speech.contains("GlassKeyEvent(GlassKeyEvent.KEYCODE_CLICK)"))
+        assertTrue(input.contains("KeyEvent.KEYCODE_DPAD_CENTER"))
+        assertTrue(input.contains("KeyEvent.KEYCODE_ENTER"))
+        assertTrue(input.contains("KeyEvent.KEYCODE_NUMPAD_ENTER"))
+        assertTrue(base.contains("glassKeyInput.dispatch(event)"))
     }
 
     private fun source(relativePath: String): String {

@@ -16,4 +16,7 @@
     <string name="device_leqi_unregister_returned">[乐奇] 已调用 unregisterLeqiInterceptor(本页对象)，调用已返回；来源：%1$s。</string>
     <string name="device_leqi_callback">[乐奇回调] 本页第 %1$d 次，已拦截；内容：%2$s</string>
     <string name="device_leqi_error">[乐奇] %1$s失败：%2$s</string>
+    <string name="device_send_cus_event">发送自定义事件</string>
+    <string name="device_cus_event_sent">[自定义事件] 已发送：code=%1$d，extra=%2$s。请查看 CusEventReceiver 回调日志。</string>
+    <string name="device_cus_event_failed">[自定义事件] 发送失败：%1$s</string>
 </resources>

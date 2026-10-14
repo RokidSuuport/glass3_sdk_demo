@@ -38,6 +38,22 @@ object GlassSdkUtils {
     var mGlassCommonService: ICommonInfoServer? = null
     var mGlassDeviceService: IDeviceService? = null
 
+    // Keep one listener instance so registration, callbacks, and removal use the same Binder object.
+    // 保存同一个 listener 实例，确保注册、回调和移除使用同一个 Binder 对象。
+    private val mCommonInfoListener = object : ICommonInfoListener.Stub() {
+        override fun onUserInfo(info: UserInfo?) {
+            Log.d(TAG, "onUserInfo->${info?.userName}")
+        }
+
+        override fun onCompanionAppInfo(info: CompanionAppInfo?) {
+            Log.d(TAG, "onPhoneAppInfo->${info?.envType}")
+        }
+
+        override fun onConfig(config: String?) {
+            Log.d(TAG, "onCommonInfoConfig->$config")
+        }
+    }
+
     private var mClientMessageCallback = object : IClientCallback.Stub() {
         override fun onReady() {
             mBTService = GlassSdk.getClassicBluetoothService()
@@ -63,23 +79,7 @@ object GlassSdkUtils {
             mMessageService?.setMessageListener(mMessageListener)
             mGlassBluetoothRingService?.setBluetoothRingState(mIBluetoothRingConnectListener)
 
-            mGlassCommonService?.setCommonInfoListener(object : ICommonInfoListener.Stub() {
-                override fun onUserInfo(info: UserInfo?) {
-                    Log.d(TAG, "onUserInfo->" + info?.userName)
-                }
-
-                /**
-                 * 更新伴生端 App 信息
-                 * Update the companion app information.
-                 * @param info
-                 */
-                override fun onCompanionAppInfo(info: CompanionAppInfo?) {
-                    Log.d(TAG, "onPhoneAppInfo->" + info?.envType)
-                }
-
-                override fun onConfig(p0: String?) {
-                }
-            })
+            registerCommonInfoListener()
         }
     }
 
@@ -230,11 +230,13 @@ object GlassSdkUtils {
 
             override fun onServiceDisconnected() {
                 L.w(TAG, "----服务意外断开：onServiceDisconnected（可能服务端异常退出）")
+                removeCommonInfoListener()
                 GlobalData.setSdkInitState(false)
             }
 
             override fun onBindingDied() {
                 L.e(TAG, "----服务绑定死亡：onBindingDied（服务端进程崩溃）")
+                removeCommonInfoListener()
                 GlobalData.reset()
                 mBTService = null
                 mP2PGoService = null
@@ -254,9 +256,39 @@ object GlassSdkUtils {
         })
     }
 
+    private fun registerCommonInfoListener() {
+        val service = mGlassCommonService ?: run {
+            Log.w(TAG, "common info service unavailable")
+            return
+        }
+        runCatching {
+            service.setCommonInfoListener(mCommonInfoListener)
+            Log.d(TAG, "setCommonInfoListener success")
+
+            val userInfo = service.getUserInfo()
+            Log.d(TAG, "getUserInfo success userName=${userInfo?.userName}")
+
+            val companionInfo = service.getCompanionAppInfo()
+            Log.d(TAG, "getCompanionAppInfo success envType=${companionInfo?.envType}")
+        }.onFailure { error ->
+            Log.e(TAG, "common info API failed: ${error.message}", error)
+        }
+    }
+
+    private fun removeCommonInfoListener() {
+        val service = mGlassCommonService ?: return
+        runCatching {
+            service.removeCommonInfoListener(mCommonInfoListener)
+            Log.d(TAG, "removeCommonInfoListener success")
+        }.onFailure { error ->
+            Log.w(TAG, "removeCommonInfoListener failed: ${error.message}", error)
+        }
+    }
+
     fun destroySdk() {
         // release 内部会 unbindSecurityService()
         // Calling release internally calls unbindSecurityService().
+        removeCommonInfoListener()
         GlassSdk.release()
         mIWifiP2PGoListeners.clear()
         mIClassicBTListeners.clear()
