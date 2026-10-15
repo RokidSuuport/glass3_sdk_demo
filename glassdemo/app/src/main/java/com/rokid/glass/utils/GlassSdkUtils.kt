@@ -31,6 +31,8 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 object GlassSdkUtils {
     private const val TAG = "GlassSdkUtils"
+    /** 绑定是否在途：Application 与页面可能同时调用 initSdk()，避免重复绑定/重复注册。 */
+    @Volatile private var bindingInFlight = false
     var mBTService: IBTService? = null
     var mP2PGoService: IWifiP2PGoService? = null
     var mMessageService: IMessageServer? = null
@@ -219,8 +221,16 @@ object GlassSdkUtils {
             Log.d(TAG, "sdk已经初始化了")
             return
         }
+        synchronized(this) {
+            if (bindingInFlight) {
+                Log.d(TAG, "sdk 正在绑定中，忽略重复初始化")
+                return
+            }
+            bindingInFlight = true
+        }
         GlassSdk.bindSecurityService(Utils.getApp(), object : IServiceConnectionCallback {
             override fun onServiceConnected() {
+                bindingInFlight = false
                 // 眼镜端的clientId与手机端注册的clientId要相同,
                 // The glasses clientId must match the clientId registered on the phone,
                 // 这样手机端就知道把数据发给眼镜端那个应用程序了
@@ -229,12 +239,14 @@ object GlassSdkUtils {
             }
 
             override fun onServiceDisconnected() {
+                bindingInFlight = false
                 L.w(TAG, "----服务意外断开：onServiceDisconnected（可能服务端异常退出）")
                 removeCommonInfoListener()
                 GlobalData.setSdkInitState(false)
             }
 
             override fun onBindingDied() {
+                bindingInFlight = false
                 L.e(TAG, "----服务绑定死亡：onBindingDied（服务端进程崩溃）")
                 removeCommonInfoListener()
                 GlobalData.reset()

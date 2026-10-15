@@ -36,6 +36,8 @@ import kotlinx.coroutines.withContext
 class I420ExportFragment : CameraControlsFragment() {
     companion object { fun newInstance() = I420ExportFragment() }
     override val previewRequiresStart = true
+    private var previewWanted = true
+    override val previewStartsAutomatically get() = previewWanted
     override val previewSettingsText get() = label("设置", "Settings")
     private val helper = CameraShareHelper()
     private val epoch = AtomicLong()
@@ -77,7 +79,7 @@ class I420ExportFragment : CameraControlsFragment() {
     }
     private var restartAfter = 0L
     private var ratio = 1.575f
-    private var fps = 24
+    private var fps = 15
     private var width = 640
     private var height = 480
     private lateinit var apiButton: Button
@@ -102,7 +104,7 @@ class I420ExportFragment : CameraControlsFragment() {
             addView(exportInfo)
         }
         previewHost.addView(exportInfoScroll, FrameLayout.LayoutParams(-1, -1))
-        note(label("I420 导出设置", "I420 export settings"))
+        note(label("I420 设置 · 修改后点击应用", "I420 settings · Apply changes below"))
         note(getString(R.string.i420_settings_hint))
         sizeButton = action(label("分辨率：", "Resolution: ") + "$width×$height") {
             val sizes = listOf(640 to 480, 1280 to 720, 1920 to 1080)
@@ -111,9 +113,10 @@ class I420ExportFragment : CameraControlsFragment() {
             sizeButton.text = label("分辨率：", "Resolution: ") + "$width×$height"
         }.apply { tag = "i420_size" }
         fpsButton = action(label("帧率：$fps 帧/秒", "Frame rate: $fps fps")) {
-            fps = if (fps == 24) 30 else 24
+            val values = listOf(15, 20, 24, 30)
+            fps = values[(values.indexOf(fps) + 1) % values.size]
             fpsButton.text = label("帧率：$fps 帧/秒", "Frame rate: $fps fps")
-        }
+        }.apply { tag = "i420_fps" }
         settingRow(sizeButton, fpsButton)
         // API choice and processing strategy are normal integration options, visible by default.
         apiButton = action(getString(R.string.i420_api_v2)) {
@@ -191,32 +194,34 @@ class I420ExportFragment : CameraControlsFragment() {
         for (index in firstExtra until content.childCount) extraViews.add(content.getChildAt(index))
         extraViews.forEach { it.visibility = View.GONE }
 
-        startButton = action(label("开始导出", "Start export")) {
-            val config = CameraApiRequest(width, height, fps, ratio)
-            val options = version2
-            val async = asyncConsumer
-            startButton.isEnabled = false
-            setPreviewLoading(true)
-            setPreviewActionsEnabled(false)
-            setPanelVisible(false)
-            io {
-                try { startExport(config, options, async) }
-                catch (error: Exception) { showStatus(label("启动失败：", "Start failed: ") + error.message) }
-                finally { ui {
-                    startButton.isEnabled = true
-                    setPreviewLoading(false)
-                    setPreviewActionsEnabled(exporting)
-                    startButton.text = if (exporting) label("应用设置并重新导出", "Apply settings and restart") else label("开始导出", "Start export")
-                } }
-            }
+        startButton = action(label("应用并预览", "Apply and preview")) {
+            previewWanted = true
+            applyExport(CameraApiRequest(width, height, fps, ratio), version2, asyncConsumer)
         }.apply { tag = "i420_start" }
         // The same status page is reachable before starting and after stopping; no separate
         // lease query with a fixed string, and no global zoom cache presented as output evidence.
         val exportStatus = action(label("查看导出状态", "Export status")) { queryExportState() }
             .apply { tag = "i420_status" }
         settingRow(startButton, exportStatus)
-        previewAction(label("停止导出", "Stop export")) { io { stopExport() } }.tag = "i420_stop"
+        previewAction(label("停止导出", "Stop export")) { previewWanted = false; io { stopExport() } }.tag = "i420_stop"
         previewAction(label("查看导出状态", "Export status")) { queryExportState() }.tag = "i420_preview_status"
+    }
+
+    private fun applyExport(config: CameraApiRequest, options: Boolean, async: Boolean) {
+        startButton.isEnabled = false
+        setPreviewLoading(true)
+        setPreviewActionsEnabled(false)
+        setPanelVisible(false)
+        io {
+            try { startExport(config, options, async) }
+            catch (error: Exception) { showStatus(label("启动失败：", "Start failed: ") + error.message) }
+            finally { ui {
+                startButton.isEnabled = true
+                setPreviewLoading(false)
+                setPreviewActionsEnabled(exporting)
+                startButton.text = label("应用并预览", "Apply and preview")
+            } }
+        }
     }
 
     private fun zoomResult(code: Int) = when (code) {
@@ -247,7 +252,9 @@ class I420ExportFragment : CameraControlsFragment() {
         val info = frameInfo
         val image = if (info == null) label("等待首帧", "Waiting for first frame") else "${info.width}×${info.height} · ${measuredFps ?: "—"} " + label("帧/秒", "fps")
         val zoom = if (activeOptions) cameraActualZoomText(helper.i420ZoomSession.state) else label("V1 旧接口 · 请求 1×", "Legacy V1 · requested 1×")
-        showStatus(label("I420 导出中 · ", "I420 exporting · ") + image + "\n" + zoom +
+        val requestText = lastRequest?.let { label("请求：", "Requested: ") + "${it.width}×${it.height} · ${it.fps} FPS" }.orEmpty()
+        showStatus(label("I420 预览", "I420 preview") + "\n" + requestText + "\n" +
+            label("当前画面：", "Current frames: ") + image + "\n" + zoom +
             (if (previewEnabled) "" else "\n" + label("画面显示已关闭，数据仍在导出", "Image hidden; data export continues")),
             showInSettings = false)
         exportInfoScroll.visibility = if (previewEnabled) View.GONE else View.VISIBLE
@@ -318,13 +325,16 @@ class I420ExportFragment : CameraControlsFragment() {
         super.onStart()
         foreground = true
         exportInfo.post(refreshExportInfo)
+        if (previewWanted) applyExport(lastRequest ?: CameraApiRequest(width, height, fps, ratio),
+            if (lastRequest != null) lastOptions else version2,
+            if (lastRequest != null) lastAsync else asyncConsumer)
     }
     override fun onResume() { super.onResume(); preview.onResume() }
     override fun onPause() { preview.onPause(); super.onPause() }
     override fun onStop() {
         exportInfo.removeCallbacks(refreshExportInfo)
         synchronized(previewLock) { foreground = false; epoch.incrementAndGet(); preview.clear() }
-        cleanup { stopExport() }
+        cleanup { stopExport(report = false) }
         super.onStop()
     }
     private fun stopExport(report: Boolean = true) {
@@ -344,7 +354,7 @@ class I420ExportFragment : CameraControlsFragment() {
                 setPreviewLoading(false)
                 setPreviewActionsEnabled(false)
                 startButton.isEnabled = true
-                startButton.text = label("开始导出", "Start export")
+                startButton.text = label("应用并预览", "Apply and preview")
             }
         }
         if (report) showStatus(label("导出已停止。可查看本轮帧归还统计。", "Export stopped. This run's frame returns remain available."))
@@ -407,7 +417,6 @@ class I420ExportFragment : CameraControlsFragment() {
             ui { if (foreground && token == epoch.get()) {
                 setPreviewLoading(false)
                 setPreviewActionsEnabled(true)
-                setPanelVisible(false)
             } }
         } catch (error: Exception) { stopExport(report = false); throw error }
     }

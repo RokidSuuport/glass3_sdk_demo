@@ -5,4 +5,7 @@
     <string name="watermark_summary_off">Watermark: off</string>
     <string name="watermark_explanation">Watermark adds text and time; the SDK supports custom text.</string>
     <string name="watermark_default_text">Task in progress</string>
+    <string name="surface_zoom_actual">Actual zoom: %1$s×</string>
+    <string name="surface_zoom_loading">Actual zoom: loading…</string>
+    <string name="surface_zoom_unavailable">Actual zoom: temporarily unavailable</string>
 </resources>

@@ -3,6 +3,8 @@ package com.rokid.glass
 import android.app.Application
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import com.rokid.glass.utils.GlassSdkUtils
 import com.rokid.glass.utils.ToastUtil
 
 /**
@@ -11,6 +13,8 @@ import com.rokid.glass.utils.ToastUtil
  */
 class MyApplication : Application() {
     companion object {
+        private const val TAG = "MyApplication"
+
         // 仅保存 Application Context，避免持有 Activity 引用。
         // Keep only the Application Context to avoid retaining an Activity reference.
         @Volatile
@@ -44,6 +48,14 @@ class MyApplication : Application() {
         mContext = this
         gMainHandler = Handler(Looper.getMainLooper())
         ToastUtil.init(this)
+        // SDK 初始化放到 Application：进程被系统重启（例如直接恢复到某个 Activity）时也会执行，
+        // 否则服务池不会建立，所有 Media 调用都会报 media_service_unavailable。
+        // Keep SDK init in Application so it also runs when the process is restarted straight
+        // into another activity; otherwise no service pool is created and media calls fail.
+        if (Application.getProcessName() == packageName) {
+            runCatching { GlassSdkUtils.initSdk() }
+                .onFailure { Log.w(TAG, "initSdk failed: ${it.javaClass.simpleName}: ${it.message}") }
+        }
     }
 
 }

@@ -49,6 +49,7 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
     private lateinit var watermarkConfig: TextWatermarkConfig
     private var producerWatermark: TextWatermarkConfig? = null
     @Volatile private var liveRequestedZoom = 1f
+    @Volatile private var requestedFollowShared = false
     @Volatile private var followingShared = false
     private data class PreviewRequest(val camera: CameraApiRequest, val watermark: TextWatermarkConfig?, val followShared: Boolean = false)
     // Keep applied settings separate from edits that have not been applied yet.
@@ -98,12 +99,40 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
     private fun watermarkButtonText() = getString(if (enableWatermark)
         R.string.watermark_summary_on else R.string.watermark_summary_off)
 
-    private fun updateActualZoom() = ui {
-        val state = zoomSession?.state
-        actualZoom.text = if (state?.ready == true && state.appliedZoom.isFinite())
-            getString(R.string.camera_zoom_actual_short, state.appliedZoom.toString())
-        else getString(R.string.camera_zoom_pending_short)
+    private var zoomDisplay = ZoomDisplayStatus()
+    private var displayedSession: CameraZoomSession? = null
+    private var zoomDisplayTimeout: kotlinx.coroutines.Job? = null
+
+    private fun updateActualZoom(): Unit = ui {
+        zoomDisplayTimeout?.cancel()
+        val session = zoomSession
+        if (session !== displayedSession) {
+            displayedSession = session
+            zoomDisplay = ZoomDisplayStatus()
+        }
+        val state = session?.state
+        zoomDisplay.update(state?.desiredRevision, state?.ready == true,
+            state?.appliedZoom ?: Float.NaN, SystemClock.elapsedRealtime())
+        actualZoom.text = actualZoomText(state)
+        // 无帧时也能结束等待；仅安排一次界面超时，不轮询或修改相机。
+        // End the UI wait even without frames; schedule a timeout, never poll or change the camera.
+        if (foreground && previewStarted && session != null &&
+            zoomDisplay.status == ZoomDisplayStatus.Status.LOADING) {
+            zoomDisplayTimeout = viewLifecycleOwner.lifecycleScope.launch {
+                kotlinx.coroutines.delay(zoomDisplay.remainingMs)
+                if (foreground && session === zoomSession) {
+                    updateActualZoom()
+                    showLiveStatus()
+                }
+            }
+        }
     }
+
+    private fun actualZoomText(state: CameraZoomState?): String =
+        if (state?.ready == true && state.appliedZoom.isFinite())
+            getString(R.string.surface_zoom_actual, state.appliedZoom.toString())
+        else getString(if (zoomDisplay.status == ZoomDisplayStatus.Status.UNAVAILABLE)
+            R.string.surface_zoom_unavailable else R.string.surface_zoom_loading)
 
     private fun showLiveStatus() = ui {
         if (foreground && previewStarted) {
@@ -111,8 +140,12 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
                 else label("本页请求倍率：${liveRequestedZoom}×", "Requested zoom: ${liveRequestedZoom}×")
             // Read the latest cache on the UI thread: older Binder callbacks must not paint
             // an outdated ready=false snapshot over the already confirmed state.
-            showStatus(label("Surface 预览", "Surface preview") + " · ${displayWidth}×${displayHeight}\n" +
-                intent + "\n" + cameraActualZoomText(zoomSession?.state), showInSettings = false)
+            val request = appliedRequest.camera
+            showStatus(label("Surface 预览", "Surface preview") + "\n" +
+                label("请求：${request.width}×${request.height} · ${request.fps} FPS",
+                    "Requested: ${request.width}×${request.height} · ${request.fps} FPS") + "\n" +
+                label("当前画面：${displayWidth}×${displayHeight}", "Current image: ${displayWidth}×${displayHeight}") + "\n" +
+                intent + "\n" + actualZoomText(zoomSession?.state), showInSettings = false)
         }
     }
 
@@ -133,15 +166,23 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         }
         settingRow(resolutionButton, fpsButton)
         zoomButton = action(getString(R.string.camera_zoom_selected, requestedZoom.toString())) {
-            requestedZoom = zooms[(zooms.indexOfFirst { it == requestedZoom } + 1) % zooms.size]
-            zoomButton.text = getString(R.string.camera_zoom_selected, requestedZoom.toString())
+            if (requestedFollowShared) {
+                requestedFollowShared = false
+                requestedZoom = zooms.first()
+            } else if (requestedZoom == zooms.last()) {
+                requestedFollowShared = true
+            } else {
+                requestedZoom = zooms[(zooms.indexOfFirst { it == requestedZoom } + 1) % zooms.size]
+            }
+            updateSelectedZoomLabel()
         }
+        updateSelectedZoomLabel()
         actualZoom = TextView(requireContext()).apply {
             setTextColor(Color.WHITE)
             textSize = 12f
             gravity = Gravity.CENTER
             setPadding(4, 4, 4, 4)
-            text = getString(R.string.camera_zoom_pending_short)
+            text = getString(R.string.surface_zoom_loading)
         }
         content.addView(actualZoom)
         settingRow(zoomButton, actualZoom)
@@ -169,9 +210,13 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         val query = action(label("能力与状态", "Capabilities / status")) { queryCameraState() }
             .apply { tag = "surface_query_capabilities" }
         settingRow(more, query)
+        runningAction(label("跟随共享倍率", "Follow shared zoom")) { followLiveZoom() }.apply { tag = "surface_follow_zoom" }
         val firstExtra = content.childCount
-        val follow = runningAction(label("跟随共享倍率", "Follow shared zoom")) { followLiveZoom() }.apply { tag = "surface_follow_zoom" }
-        val confirm = runningAction(getString(R.string.camera_zoom_confirm)) {
+        runningAction(getString(R.string.camera_zoom_confirm)) {
+            if (requestedFollowShared) {
+                followLiveZoom()
+                return@runningAction
+            }
             val session = zoomSession ?: return@runningAction
             val requestId = startRequest.get()
             val ratio = requestedZoom
@@ -188,6 +233,7 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
                     if (session === zoomSession && requestId == startRequest.get() && command == zoomCommand.get()) {
                         // The request re-establishes this output's explicit intent, even if it times out.
                         liveRequestedZoom = ratio
+                        requestedFollowShared = false
                         followingShared = false
                         appliedRequest = appliedRequest.copy(camera = appliedRequest.camera.copy(zoom = ratio), followShared = false)
                         updateLiveZoomLabel()
@@ -198,13 +244,13 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
                 } catch (error: Exception) { result(error.message.orEmpty()) }
             }
         }.apply { tag = "surface_await_zoom" }
-        settingRow(follow, confirm)
         for (index in firstExtra until content.childCount) extras.add(content.getChildAt(index))
         extras.forEach { it.visibility = View.GONE }
         applyButton = action(label("应用并预览", "Apply and preview")) {
             startPreview(PreviewRequest(
                 CameraApiRequest(requestedWidth, requestedHeight, requestedFps, requestedZoom, requestedEis),
                 if (enableWatermark) watermarkConfig else null,
+                followShared = requestedFollowShared,
             ))
         }.apply { tag = "surface_apply" }
 
@@ -289,6 +335,11 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         applyButton.text = label("应用并预览", "Apply and preview")
     }
 
+    private fun updateSelectedZoomLabel() {
+        zoomButton.text = if (requestedFollowShared) label("倍率：跟随共享", "Zoom: follow shared")
+            else getString(R.string.camera_zoom_selected, requestedZoom.toString())
+    }
+
     private fun updateLiveZoomLabel() {
         liveZoomButton.text = if (followingShared) label("切换倍率\n当前跟随共享", "Change zoom\nFollowing shared")
             else label("切换倍率\n已请求 ${liveRequestedZoom}×", "Change zoom\nRequested ${liveRequestedZoom}×")
@@ -297,22 +348,28 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
     private fun changeLiveZoom() {
         val session = zoomSession ?: return
         val requestId = startRequest.get()
-        val ratio = zooms[(zooms.indexOfFirst { it == liveRequestedZoom } + 1) % zooms.size]
+        if (!followingShared && liveRequestedZoom == zooms.last()) {
+            followLiveZoom()
+            return
+        }
+        val ratio = if (followingShared) zooms.first()
+            else zooms[(zooms.indexOfFirst { it == liveRequestedZoom } + 1) % zooms.size]
         val command = zoomCommand.incrementAndGet()
         io {
             if (!previewStarted || session !== zoomSession || command != zoomCommand.get()) return@io
             val code = session.setZoom(ratio)
-            showStatus(if (code == 0) label("已请求 ${ratio}×，等待实际画面确认。", "Requested ${ratio}×; waiting for frame confirmation.") + "\n${cameraApiState(session.state)}"
-                else label("倍率未更新（返回码 $code），请等待预览就绪后重试。", "Zoom was not updated (code $code). Wait for preview readiness and retry."))
+            if (code != 0) showStatus(label("倍率未更新（返回码 $code），请等待预览就绪后重试。", "Zoom was not updated (code $code). Wait for preview readiness and retry."))
             if (code == 0) ui { if (foreground && startRequest.get() == requestId && session === zoomSession && command == zoomCommand.get()) {
                 liveRequestedZoom = ratio
                 requestedZoom = ratio
+                requestedFollowShared = false
                 followingShared = false
                 appliedRequest = appliedRequest.copy(camera = appliedRequest.camera.copy(zoom = ratio), followShared = false)
                 zoomButton.text = getString(R.string.camera_zoom_selected, ratio.toString())
                 updateLiveZoomLabel()
             } }
             updateActualZoom()
+            if (code == 0) showLiveStatus()
         }
     }
 
@@ -323,14 +380,16 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         io {
             if (!previewStarted || session !== zoomSession || command != zoomCommand.get()) return@io
             val code = session.followShared()
-            showStatus(if (code == 0) label("已撤销本页指定倍率，跟随共享相机；不保证回到 1×。", "This preview now follows the shared camera zoom; it may not be 1×.") + "\n${cameraApiState(session.state)}"
-                else label("跟随请求未接受（返回码 $code），请稍后重试。", "Follow request was not accepted (code $code). Please retry."))
+            if (code != 0) showStatus(label("跟随请求未接受（返回码 $code），请稍后重试。", "Follow request was not accepted (code $code). Please retry."))
             if (code == 0) ui { if (foreground && startRequest.get() == requestId && session === zoomSession && command == zoomCommand.get()) {
+                requestedFollowShared = true
+                updateSelectedZoomLabel()
                 followingShared = true
                 appliedRequest = appliedRequest.copy(followShared = true)
                 updateLiveZoomLabel()
             } }
             updateActualZoom()
+            if (code == 0) showLiveStatus()
         }
     }
 
@@ -355,7 +414,9 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
                     appendLine(label("小数倍率拍照：", "Fractional zoom photos: ") + supported(CameraZoomSession.CAPABILITY_PHOTO))
                     if (running) {
                         appendLine(label("本页倍率：", "This preview zoom: ") + if (followingShared) label("跟随共享", "Follow shared") else "${liveRequestedZoom}×")
-                        appendLine(cameraActualZoomText(state))
+                        appendLine(if (state?.ready == true && state.appliedZoom.isFinite())
+                            getString(R.string.camera_zoom_actual, state.appliedZoom.toString())
+                        else getString(R.string.camera_zoom_pending))
                         appendLine(runtimeState())
                     } else appendLine(label("尚无本页预览状态；以下为共享相机状态。", "No active preview on this page; shared camera state follows."))
                     appendLine(cameraApiState(state))
@@ -389,6 +450,7 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
 
     override fun onStop() {
         foreground = false
+        zoomDisplayTimeout?.cancel()
         invalidateStart()
         setPreviewLoading(false)
         setPreviewActionsEnabled(false)
@@ -475,6 +537,7 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         producerService = service; producerCallback = callback
         producerSurface = surface; producerTexture = texture; zoomSession = session
         previewStarted = true
+        updateActualZoom()
         observing.set(false)
         try {
             if (plan.negotiated) {

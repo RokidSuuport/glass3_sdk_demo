@@ -5,4 +5,7 @@
     <string name="watermark_summary_off">水印：关闭</string>
     <string name="watermark_explanation">水印叠加文字和时间；SDK 支持自定义文字。</string>
     <string name="watermark_default_text">任务进行中</string>
+    <string name="surface_zoom_actual">实际倍率：%1$s×</string>
+    <string name="surface_zoom_loading">实际倍率：获取中…</string>
+    <string name="surface_zoom_unavailable">实际倍率：暂不可用</string>
 </resources>

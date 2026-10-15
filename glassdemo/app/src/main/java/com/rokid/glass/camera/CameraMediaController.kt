@@ -2,6 +2,8 @@ package com.rokid.glass.camera
 
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import com.rokid.glass.utils.GlassSdkUtils
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.camera.CameraZoomSession
 import com.rokid.security.glass3.open.sdk.uitls.log.L
@@ -9,6 +11,7 @@ import com.rokid.security.glass3.sdk.base.data.media.CameraZoomState
 import com.rokid.security.glass3.sdk.base.data.media.PhotoResolution
 import com.rokid.security.glass3.sdk.base.data.media.RecordConfig
 import com.rokid.security.system.server.media.ICameraPhotoCallback
+import com.rokid.security.system.server.media.IMediaServer
 import com.rokid.security.system.server.media.MediaCapabilityProbe
 import com.rokid.security.system.server.media.callback.VideoCallback
 import java.util.concurrent.Executors
@@ -30,6 +33,18 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
     private class RecordingRequest(val pageEpoch: Long)
     private var recordRequest: RecordingRequest? = null
     private val stoppingRequests = linkedSetOf<RecordingRequest>()
+    /** 终止回调先到、onNewFile 后到是常态（SDK 在异步 publish 之后才回调路径），保留短窗口避免丢路径。 */
+    private val finishedRequests = linkedSetOf<RecordingRequest>()
+    @Volatile private var lastRecordPath: String? = null
+    @Volatile private var lastRecordDirectory: String? = null
+    /**
+     * 已发起录像请求、但还没收到 onStart 的窗口。
+     * 该窗口内不发送停止请求：否则 stop 会赶在 onStarted 之前，SDK 既不作废启动也不停止它，
+     * 结果留下孤儿编码器（.tmp 一直增长、永不 publish）。
+     */
+    @Volatile private var recordStartPending = false
+    /** 页面用它把「停止录制」置灰；回调切到主线程。 */
+    internal var onRecordStartPendingChanged: ((Boolean) -> Unit)? = null
     private var photoPath: String? = null
     private var photoApi: Api? = null
     private var pendingPhotoToken = 0L
@@ -103,7 +118,22 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
         L.i("CameraDemo", text)
         if (active) main.post { if (active) show(text) }
     }
-    private fun service() = checkNotNull(GlassSdk.getGlassMediaService()) { "Media service not connected" }
+    /**
+     * 进程被系统回收后重启（例如直接从某个 Activity 恢复）时，SDK 的服务绑定可能还没建立。
+     * 这里先触发一次初始化，再短暂等待绑定完成，避免直接抛 media_service_unavailable。
+     */
+    private fun awaitMediaService(): IMediaServer {
+        GlassSdk.getGlassMediaService()?.let { return it }
+        main.post { runCatching { GlassSdkUtils.initSdk() } }
+        val deadline = SystemClock.elapsedRealtime() + SERVICE_READY_TIMEOUT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            Thread.sleep(SERVICE_READY_POLL_MS)
+            GlassSdk.getGlassMediaService()?.let { return it }
+        }
+        throw IllegalStateException("media service not ready (not bound yet); retry later")
+    }
+
+    private fun service(): IMediaServer = awaitMediaService()
 
     /** Optional diagnostics must never turn a supported legacy operation into a failed request. */
     private fun diagnose(operation: String, phase: String) {
@@ -128,6 +158,7 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
     /** V2 accepts the requested output width/height directly, including custom sizes. */
     fun photo(api: Api, outputWidth: Int, outputHeight: Int, path: String, zoom: Float, quality: Int, reuse: Boolean) = submit {
         check(photoPath == null) { "Photo request is pending" }
+        service()
         if (api == Api.OPTIONS_V2) require(quality in 1..100)
         val size = CaptureSize(outputWidth, outputHeight)
         val resolution = if (api == Api.LEGACY) checkNotNull(MediaCaptureSettings.legacyPhotoType(size)) {
@@ -201,12 +232,20 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
 
     fun startRecord(api: Api, config: RecordConfig, zoom: Float, watermark: Boolean, callback: VideoCallback) = submit {
         check(record == null && !legacyRecording) { "Recording is already active" }
+        service()
+        markRecordStartPending(true)
         val request = RecordingRequest(epoch.get())
         recordRequest = request
         val ownedCallback = object : VideoCallback.Stub() {
-            override fun onStart() = recordingEvent(request) { callback.onStart() }
-            override fun onNewFile(startTime: Long, endTime: Long, path: String, isLast: Boolean) =
+            override fun onStart() {
+                markRecordStartPending(false)
+                recordingEvent(request) { callback.onStart() }
+            }
+            override fun onNewFile(startTime: Long, endTime: Long, path: String, isLast: Boolean) {
+                lastRecordPath = path
+                emit("Recording file path=$path start=$startTime end=$endTime isLast=$isLast")
                 recordingEvent(request) { callback.onNewFile(startTime, endTime, path, isLast) }
+            }
             override fun onFinish() = recordingEvent(request, true) { callback.onFinish() }
             override fun onError() = recordingEvent(request, true) { callback.onError() }
             override fun onErrorWithDetail(code: Int, errorMsg: String) =
@@ -216,7 +255,10 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
             Api.LEGACY -> "method=IMediaServer.startRecord"
             Api.OPTIONS_V2 -> "method=CameraMediaOptions.startRecord/IMediaServer.startRecordWithOptions requestedZoom=$zoom watermark=$watermark"
         }
+        lastRecordPath = null
+        lastRecordDirectory = config.path
         emit("Recording request api=$api $parameters config=$config")
+        emit("Recording output directory=${config.path} (the SDK names the file inside this directory)")
         diagnose("record.start", "before")
         when (api) {
             Api.LEGACY -> {
@@ -225,7 +267,11 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
                     service().zoomCamera(zoom.toInt())
                     CameraMediaCalls.startLegacyRecord(ownedCallback, config)
                 }
-                catch (error: Exception) { legacyRecording = false; recordRequest = null; throw error }
+                catch (error: Exception) {
+                    legacyRecording = false; recordRequest = null
+                    markRecordStartPending(false)
+                    throw error
+                }
                 finally { diagnose("record.start", "after_call") }
             }
             Api.OPTIONS_V2 -> {
@@ -238,6 +284,7 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
                 try { CameraMediaCalls.startOptionsRecord(ownedCallback, config, zoom, watermark, session) }
                 catch (error: Exception) {
                     record = null; recordRequest = null; session.listener = null
+                    markRecordStartPending(false)
                     runCatching { session.close() }
                     throw error
                 } finally { diagnose("record.start", "after_call") }
@@ -248,9 +295,12 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
         try { worker.execute {
             // A terminal event from an older recording must never clear the next recording.
             val isCurrent = recordRequest === request
-            if (!isCurrent && request !in stoppingRequests) return@execute
+            val known = synchronized(submissionLock) { request in stoppingRequests || request in finishedRequests }
+            if (!isCurrent && !known) return@execute
             if (terminal) {
                 stoppingRequests.remove(request)
+                keepFinishedRequest(request)
+                markRecordStartPending(false)
                 if (isCurrent) {
                     recordRequest = null; legacyRecording = false
                     val finished = record; record = null
@@ -259,11 +309,77 @@ internal class CameraMediaController(private val show: (String) -> Unit) {
                         .onFailure { L.w("CameraDemo", "finished recording cleanup error=${it.javaClass.simpleName}") }
                 }
                 diagnose("record", "terminal_callback")
+                reportSavedFile()
             }
             if (active) main.post { if (active && request.pageEpoch == epoch.get()) callback() }
         } } catch (_: RejectedExecutionException) { /* Callback arrived after page disposal. */ }
     }
+
+    /**
+     * onFinish 常常先于 onNewFile 到达（SDK 在异步 publish 之后才回调文件路径），
+     * 因此终止后保留一小段窗口，避免把真正的文件回调当成过期事件丢掉。
+     */
+    private fun keepFinishedRequest(request: RecordingRequest) {
+        synchronized(submissionLock) {
+            finishedRequests.add(request)
+            if (finishedRequests.size > 4) finishedRequests.remove(finishedRequests.first())
+        }
+        main.postDelayed({ synchronized(submissionLock) { finishedRequests.remove(request) } }, FINISHED_GRACE_MS)
+    }
+
+    /** 录像结束后补一条含文件路径的状态；文件回调没给出路径时退化为输出目录，便于定位文件。 */
+    private fun reportSavedFile() {
+        main.postDelayed({
+            val path = lastRecordPath
+            emit(
+                if (path.isNullOrEmpty()) {
+                    "Recording saved path=not reported by the file callback; outputDirectory=${lastRecordDirectory.orEmpty()}"
+                } else {
+                    "Recording saved path=$path"
+                },
+            )
+        }, SAVED_FILE_REPORT_DELAY_MS)
+    }
+
+    private companion object {
+        private const val FINISHED_GRACE_MS = 3_000L
+        private const val SAVED_FILE_REPORT_DELAY_MS = 1_500L
+        private const val SERVICE_READY_TIMEOUT_MS = 3_000L
+        private const val SERVICE_READY_POLL_MS = 100L
+        /** 启动回调迟迟不来时的兜底，避免「停止录制」一直不可用。 */
+        private const val RECORD_START_PENDING_TIMEOUT_MS = 12_000L
+    }
+
+    /**
+     * 维护「录像启动中」窗口：窗口内不发送停止请求，并把状态同步给页面（置灰「停止录制」）。
+     * Application 里初始化 + 页面可能同时触发，这里只做状态标记，不做串行化。
+     */
+    private fun markRecordStartPending(pending: Boolean) {
+        if (recordStartPending == pending) return
+        recordStartPending = pending
+        if (pending) {
+            main.postDelayed(recordStartPendingTimeout, RECORD_START_PENDING_TIMEOUT_MS)
+        } else {
+            main.removeCallbacks(recordStartPendingTimeout)
+        }
+        main.post { onRecordStartPendingChanged?.invoke(pending) }
+    }
+
+    private val recordStartPendingTimeout = Runnable {
+        if (recordStartPending) {
+            emit("Recording start callback did not arrive; stop becomes available again")
+            markRecordStartPending(false)
+        }
+    }
+
     fun stopRecord() = submit {
+        if (recordStartPending) {
+            emit(
+                "Recording is still starting; stop ignored until the start callback " +
+                    "(prevents the start/stop race that leaks an orphan .tmp)",
+            )
+            return@submit
+        }
         if (stopOwnedRecord()) emit("Recording stop requested; waiting for the final file callback")
         else emit("No active recording to stop")
     }

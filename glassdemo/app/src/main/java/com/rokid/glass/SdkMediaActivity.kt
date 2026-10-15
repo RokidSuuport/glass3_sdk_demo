@@ -78,6 +78,10 @@ class SdkMediaActivity : BaseGlassActivity() {
             optionsController.startRecord(request.videoApi, config, request.videoZoom, request.recordWatermark, videoCallback)
         }
         bindAction(binding.btStopRecord) { optionsController.stopRecord() }
+        // 录像启动回调（onStart）到达前禁用「停止录制」：停止若赶在启动之前，SDK 不会作废这次启动，
+        // 会留下孤儿编码器（.tmp 一直增长、永不 publish）。
+        // Disable "stop" until the start callback arrives so a stop can never overtake the start.
+        optionsController.onRecordStartPendingChanged = ::onRecordStartPending
         bindAction(binding.btCameraShare) {
             startActivity(Intent(this, CameraShareSelectActivity::class.java))
         }
@@ -95,6 +99,33 @@ class SdkMediaActivity : BaseGlassActivity() {
         button.setOnClickListener {
             select(mediaButtons.indexOf(button))
             action()
+        }
+    }
+
+    /**
+     * 录像启动中（已请求、还没收到 onStart）：把「停止录制」置灰，避免停止请求赶在启动之前。
+     * 同时把选中项挪回「录像」，因为禁用的按钮收不到点击、焦点停在上面会让人以为按键失灵。
+     */
+    private fun onRecordStartPending(pending: Boolean) {
+        val stop = binding.btStopRecord
+        stop.isEnabled = !pending
+        stop.alpha = if (pending) 0.5f else 1f
+        if (pending) {
+            val stopIndex = mediaButtons.indexOf(stop)
+            if (selected == stopIndex) select(mediaButtons.indexOf(binding.btStartRecord))
+        }
+    }
+
+    /** 焦点移动时跳过被禁用的按钮（例如录像启动中的「停止录制」）。 */
+    private fun selectNext(step: Int) {
+        var next = selected
+        repeat(mediaButtons.size) {
+            next = (next + step + mediaButtons.size) % mediaButtons.size
+            val button = mediaButtons[next]
+            if (button.isEnabled) {
+                select(next)
+                return
+            }
         }
     }
 
@@ -166,9 +197,9 @@ class SdkMediaActivity : BaseGlassActivity() {
     override fun onGlassKeyEvent(keyEvent: Int): Boolean {
         settingsPage?.let { return it.onGlassKeyEvent(keyEvent) }
         when (keyEvent) {
-            GlassKeyEvent.KEYCODE_FRONT -> select((selected + 1) % mediaButtons.size)
-            GlassKeyEvent.KEYCODE_BEHIND -> select((selected - 1 + mediaButtons.size) % mediaButtons.size)
-            GlassKeyEvent.KEYCODE_CLICK -> mediaButtons[selected].performClick()
+            GlassKeyEvent.KEYCODE_FRONT -> selectNext(1)
+            GlassKeyEvent.KEYCODE_BEHIND -> selectNext(-1)
+            GlassKeyEvent.KEYCODE_CLICK -> mediaButtons[selected].takeIf { it.isEnabled }?.performClick()
             GlassKeyEvent.KEYCODE_BACK, GlassKeyEvent.KEYCODE_DOUBLE_CLICK -> onBackPressed()
             else -> return super.onGlassKeyEvent(keyEvent)
         }
