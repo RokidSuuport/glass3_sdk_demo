@@ -23,10 +23,12 @@ android {
     buildTypes {
         debug {
             // 保留默认调试配置，便于安装和断点调试。
+            // Retain the default debug configuration for installation and breakpoint debugging.
         }
 
         release {
             // Demo 默认关闭代码压缩；集成到正式应用时可按需启用 R8。
+            // Code shrinking is disabled by default in the Demo; enable R8 as needed when integrating into a production application.
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -52,21 +54,12 @@ android {
     }
     packagingOptions {
         // 确保只保留第一个遇到的so文件
+        // Keep only the first occurrence of each shared library file.
         pickFirst 'lib/arm64-v8a/libc++_shared.so'
     }
 }
 
 dependencies {
-    // 离线版本需要的配置,agp 7.4.2
-//    implementation files('libs/phone.sdk-2.2.0-E.aar')
-//    implementation "com.blankj:utilcodex:1.31.0"
-//    implementation "com.google.code.gson:gson:2.8.6"
-//    implementation "com.github.bumptech.glide:glide:4.11.0"
-//    implementation "com.github.bumptech.glide:compiler:4.11.0"
-//    implementation('com.squareup.okhttp3:logging-interceptor:3.12.3') {
-//        transitive = false
-//    }
-
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'com.google.android.material:material:1.5.0'
@@ -80,11 +73,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     implementation 'com.auth0:java-jwt:4.5.0'
     implementation("io.github.cymchad:BaseRecyclerViewAdapterHelper:4.0.0")
-//    implementation platform(libs.androidx.compose.bom)
-//    implementation libs.androidx.ui
-//    implementation libs.androidx.ui.graphics
-//    implementation libs.androidx.ui.tooling.preview
-//    implementation libs.androidx.material3
     implementation("com.google.android.exoplayer:exoplayer:2.19.1")
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
@@ -94,42 +82,16 @@ dependencies {
     implementation 'pub.devrel:easypermissions:2.0.1'
     implementation ("com.rokid.security:phone.sdk:2.2.2-E-SNAPSHOT") {
         // SDK 依赖链中 rklogger 已包含 slf4j 相关类，排除外部 slf4j 避免重复类冲突。
+        // The SDK dependency chain already includes SLF4J classes in rklogger; exclude external SLF4J to avoid duplicate classes.
         exclude group: "org.slf4j"
     }
-//    implementation ("com.rokid.security:phone.sdk:2.1.9-E") {
-//         SDK 依赖链中 rklogger 已包含 slf4j 相关类，排除外部 slf4j 避免重复类冲突。
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ("com.rokid.security:phone.sdk:2.1.8-E") {
-//        // SDK 依赖链中 rklogger 已包含 slf4j 相关类，排除外部 slf4j 避免重复类冲突。
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ('com.rokid.security:phone.sdk:2.1.7-E'){
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ('com.rokid.security:phone.sdk:2.1.6-E'){
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ('com.rokid.security:phone.sdk:2.1.5-E'){
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ('com.rokid.security:phone.sdk:2.1.04-E'){
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ('com.rokid.security:phone.sdk:2.1.2-E'){
-//        exclude group: "org.slf4j"
-//    }
-//    implementation ('com.rokid.security:phone.sdk:2.1.0-E'){
-//        exclude group: "org.slf4j"
-//    }
-//    implementation files('libs/Glass3_Phone_SDK_V2.1.0-E.aar')
-//    implementation "com.google.mlkit:barcode-scanning:17.3.0"
     implementation 'com.arthenica:ffmpeg-kit-full:6.0'
     implementation("com.github.promeg:tinypinyin:2.0.3")
-    implementation "androidx.datastore:datastore-preferences:1.1.7"   // 偏好设置型（key-value）
+    // 偏好设置型（key-value）
+    // Preference storage (key-value).
+    implementation "androidx.datastore:datastore-preferences:1.1.7"
     implementation "androidx.datastore:datastore-core-android:1.1.7"
     implementation 'com.kyleduo.switchbutton:library:2.1.0'
-//    implementation 'com.qmuiteam:qmui:2.0.0-alpha10'
     implementation "com.qmuiteam:qmui:2.0.1"
     implementation libs.androidx.appcompat
     implementation libs.material
@@ -137,13 +99,4 @@ dependencies {
     implementation libs.androidx.constraintlayout
     androidTestImplementation libs.androidx.junit
     testImplementation libs.junit
-//    implementation "com.squareup.okhttp3:okhttp:4.9.1,"
-//    implementation "com.squareup.okhttp3:logging-interceptor:4.9.3"
-//    implementation "com.squareup.retrofit2:retrofit:2.9.0"
-//    implementation  "com.squareup.retrofit2:converter-gson:2.9.0"
-//    androidTestImplementation libs.androidx.espresso.core
-//    androidTestImplementation platform(libs.androidx.compose.bom)
-//    androidTestImplementation libs.androidx.ui.test.junit4
-//    debugImplementation libs.androidx.ui.tooling
-//    debugImplementation libs.androidx.ui.test.manifest
 }
