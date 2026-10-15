@@ -10,10 +10,6 @@ Demonstrates photo and video capture, camera sharing and NV21 frame export, mess
 
 [View the Glass Demo documentation](glassdemo/README.en.md)
 
-[SDK 2.2.2 integration notes and version differences](SDK_2_2_2_APIS.md): new capabilities are integrated into the existing message sending, camera sharing, and SDK photo/video pages; the tool task example is in the last panel of the message sending page.
-
-[SDK 2.2.2 method and callback reference](SDK_2_2_2_API_REFERENCE.md): signatures, data models, I420 frame consumption, TTS/tool callbacks, and new phone-side methods are documented according to `c2b9677`.
-
 ## Phone Demo · glass3sdkphonedemo
 
 Demonstrates connecting an Android phone to the glasses, two-way messaging and file transfer, real-time audio/video reception, notifications, and device management.

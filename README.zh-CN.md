@@ -10,10 +10,6 @@
 
 [查看眼镜端 Demo 说明](glassdemo/README.zh-CN.md)
 
-[SDK 2.2.2 接入说明与版本差异](SDK_2_2_2_APIS.md)：新增能力整合在原消息发送、相机共享及 SDK 拍照录像页面，工具任务示例位于消息发送页最后一框。
-
-[SDK 2.2.2 方法与回调接入参考](SDK_2_2_2_API_REFERENCE.md)：按 `c2b9677` 补全签名、数据模型、I420 帧消费、TTS/工具回调及手机端新增方法。
-
 ## 手机端 Demo · glass3sdkphonedemo
 
 演示 Android 手机连接眼镜、双端消息与文件传输、实时音视频接收，以及通知和设备管理。
