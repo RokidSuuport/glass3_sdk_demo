@@ -4,18 +4,11 @@
     <string name="message_tts_mode_flush">TTS：替换 FLUSH</string>
     <string name="message_tts_stop_online">停止在线 TTS</string>
     <string name="message_tts_stop_offline">停止离线 TTS</string>
-    <string name="message_tts_add_explained">ADD：每次点击播放追加一条示例，可重复点击排队，在线和离线分别排队。独立停止按钮只取消点击前属于本页同引擎的任务；追加/替换模式不改变取消范围。ASR 不受影响。</string>
-    <string name="message_tts_flush_explained">FLUSH：每次点击播放打断同引擎已有 TTS，可能包括其他应用的播报。独立停止按钮只取消点击前属于本页同引擎的任务；追加/替换模式不改变取消范围。ASR 不受影响。</string>
-    <string name="message_tts_session_api_required">%1$s：未确认会话 API v2，无法安全按会话停止，本次不开始播报。请检查服务连接或升级固件。</string>
-    <string name="message_tts_start_canceled">%1$s：已取消尚未提交的播报请求。</string>
-    <string name="message_tts_invalid_session">%1$s：未取得有效会话 ID，无法确认播报，也不能按 ID 取消。</string>
-    <string name="message_tts_listener_failed">%1$s：状态监听注册失败，本次未开始播报。请恢复服务连接后重试。</string>
-    <string name="message_tts_session_invalidated">%1$s 会话=%2$d：服务连接已失效（%3$s），已清除旧会话控制记录；无法确认播报是否停止，请重新发起。旧会话 ID 不会用于新服务。</string>
-    <string name="message_tts_no_owned_session">%1$s：本页没有可停止的播报请求。</string>
-    <string name="message_tts_queue_full">本页待处理播报过多，请停止或等待完成后重试。</string>
+    <string name="message_tts_add_explained">ADD：每次点击播放追加一条示例，在线和离线分别排队。停止按钮取消本应用在对应引擎中的全部会话；退出页面时取消两端播报并移除监听。ASR 不受影响。</string>
+    <string name="message_tts_flush_explained">FLUSH：每次点击播放替换同引擎已有 TTS，可能打断其他应用的播报。停止按钮取消本应用在对应引擎中的全部会话；退出页面时取消两端播报并移除监听。ASR 不受影响。</string>
+    <string name="message_tts_invalid_session">%1$s：Manager 未返回有效会话 ID，可能提交失败或已回退旧接口。旧接口不保证按会话查询或取消，请使用配套系统版本。</string>
     <string name="message_tts_session_state">%1$s 会话=%2$d 状态=%3$s 错误码=%4$d</string>
-    <string name="message_tts_query_state">%1$s 会话=%2$d 当前查询=%3$s 最后已知=%4$s。UNKNOWN 表示不可查询或已过期。</string>
-    <string name="message_tts_cancel_result">%1$s 会话=%2$d 取消请求接受=%3$s，最终以 CANCELED 回调为准。</string>
     <string name="message_tts_operation_failed">TTS 操作失败（%1$s），请检查 SDK 连接及服务授权。</string>
     <string name="message_tts_offline_route">在线 TTS：眼镜直连模式下网络不可用，请连接 Wi-Fi 后重试。</string>
+    <string name="message_tts_cancel_all_requested">%1$s：已请求取消本应用在该引擎中的全部会话，最终状态以回调为准。</string>
 </resources>

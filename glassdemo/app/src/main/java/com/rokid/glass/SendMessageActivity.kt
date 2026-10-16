@@ -587,7 +587,7 @@ class SendMessageActivity : BaseGlassActivity() {
 
     private fun stopTts(online: Boolean) {
         logTtsQueueMode()
-        messageTts.cancelOwned(online)
+        messageTts.cancelAll(online)
     }
 
     private fun toggleTtsQueueMode() {

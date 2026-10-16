@@ -31,7 +31,7 @@ class SendMessageLayoutInstrumentedTest {
     private val buttonIds = listOf(
         R.id.btnTtsQueueMode, R.id.btnOnlineAsr, R.id.btnOnlineTts, R.id.btnStopOnlineTts,
         R.id.btnOfflineTts, R.id.btnStopOfflineTts, R.id.wfSendTextBtn,
-        R.id.wfSendFileBtn, R.id.btSendTextBtn, R.id.btSendFileBtn,
+        R.id.wfSendFileBtn, R.id.wfStopFileBtn, R.id.btSendTextBtn, R.id.btSendFileBtn, R.id.btStopFileBtn,
         R.id.btSendAudioStream, R.id.btStopSendAudioStream,
         R.id.btSendVideo, R.id.btStopSendVideo
     )
@@ -154,7 +154,7 @@ class SendMessageLayoutInstrumentedTest {
                 offlineRow.getChildAt(0).id == R.id.btnOfflineTts && offlineRow.getChildAt(1).id == R.id.btnStopOfflineTts
         }
         check(failures, "$name: expected mode, speech and message rows") {
-            rows.map { it.size } == listOf(2, 2, 2, 4, 2, 2)
+            rows.map { it.size } == listOf(2, 2, 2, 3, 3, 2, 2)
         }
         check(failures, "$name: controls need a scrollable viewport") { controls != null }
         if (controls != null) {

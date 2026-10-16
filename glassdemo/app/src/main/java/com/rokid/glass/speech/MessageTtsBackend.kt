@@ -1,89 +1,45 @@
 package com.rokid.glass.speech
 
-import android.os.DeadObjectException
-import android.os.IBinder
 import com.rokid.security.glass3.open.sdk.GlassSdk
-import com.rokid.security.glass3.open.sdk.uitls.log.L
-import com.rokid.security.system.server.tts.listener.ITtsSessionListener
-import com.rokid.security.system.server.tts.offline.IOfflineTtsSessionListener
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import com.rokid.security.glass3.open.sdk.tts.TtsSessionCallback
 
-/** Process-scoped: no Activity, Context or UI callback is strongly owned by this runtime. */
-internal object MessageTtsRuntime {
-    private val worker = Executors.newSingleThreadScheduledExecutor()
-    val bridge = MessageTtsBridge(::endpoint, object : MessageTtsQueue {
-        override fun execute(task: () -> Unit) { worker.execute(task) }
-        override fun schedule(delayMillis: Long, task: () -> Unit): () -> Unit {
-            val future = worker.schedule(task, delayMillis, TimeUnit.MILLISECONDS)
-            return { future.cancel(false); Unit }
-        }
-    }) { event ->
-        L.i("MessageTts", "flow=message_tts event=${event.kind} engine=${if (event.online) "online" else "offline"}" +
-            " owner=${event.owner} session=${event.id} state=${event.state} observed=${event.observed}" +
-            " error=${event.error} accepted=${event.accepted} detail=${event.detail}")
-    }
+/** 仅使用全局监听，避免单次回调在页面退出后仍被 Manager 持有。
+ * Use removable global listeners so Managers do not retain per-request page callbacks.
+ */
+internal class MessageTtsManagerEngine(private val online: Boolean) : MessageTtsLifecycle.Engine {
+    private var listener: TtsSessionCallback? = null
 
-    private fun endpoint(online: Boolean): MessageTtsEndpoint? = if (online) {
-        GlassSdk.getGlassTtsService()?.let { service ->
-            BoundEndpoint(service.asBinder(), { service.ttsApiVersion }, service::speakTts,
-                service::cancelTts, service::getTtsSessionState) { onState ->
-                val listener = object : ITtsSessionListener.Stub() {
-                    override fun onTtsSessionState(id: Long, state: Int, code: Int, message: String?) {
-                        onState(id, state, code)
-                    }
-                    // This is the downstream engine connection, not the system-service Binder epoch.
-                    override fun onServiceConnectState(connect: Boolean) = Unit
-                }
-                try { service.registerTtsSessionListener(listener) } catch (error: Exception) {
-                    runCatching { service.unregisterTtsSessionListener(listener) }
-                    throw error
-                }
-                val unregister: () -> Unit = { service.unregisterTtsSessionListener(listener) }
-                unregister
+    override fun addListener(listener: (Long, Int, Int) -> Unit) {
+        removeListener()
+        val callback = object : TtsSessionCallback() {
+            override fun onStateChanged(sessionId: Long, state: Int, errorCode: Int, errorMessage: String?) {
+                listener(sessionId, state, errorCode)
+            }
+
+            override fun onError(sessionId: Long, code: Int, message: String?) {
+                // 提交失败可能只触发 onError；有效会话的错误已由 onStateChanged 报告。
+                // Submission failures may only call onError; valid session errors arrive above.
+                if (sessionId <= 0L) listener(sessionId, 4, code)
             }
         }
-    } else {
-        GlassSdk.getGlassOfflineTtsService()?.let { service ->
-            BoundEndpoint(service.asBinder(), { service.offlineTtsApiVersion }, service::speak,
-                service::cancel, service::getSessionState) { onState ->
-                val listener = object : IOfflineTtsSessionListener.Stub() {
-                    override fun onSessionState(id: Long, state: Int, code: Int, message: String?) {
-                        onState(id, state, code)
-                    }
-                }
-                try { service.registerSessionListener(listener) } catch (error: Exception) {
-                    // Registration is serialized process-wide, so this cannot remove a newer bridge listener.
-                    runCatching { service.unregisterSessionListener(listener) }
-                    throw error
-                }
-                val unregister: () -> Unit = { service.unregisterSessionListener(listener) }
-                unregister
-            }
-        }
+        this.listener = callback
+        if (online) GlassSdk.getGlassTtsManager().addListener(callback)
+        else GlassSdk.getGlassOfflineTtsManager().addListener(callback)
     }
 
-    private class BoundEndpoint(
-        private val binder: IBinder,
-        private val getVersion: () -> Int,
-        private val submit: (String, Int) -> Long,
-        private val stop: (Long) -> Boolean,
-        private val state: (Long) -> Int,
-        private val subscribe: ((Long, Int, Int) -> Unit) -> (() -> Unit)
-    ) : MessageTtsEndpoint {
-        override val identity: Any get() = binder
-        override fun version() = getVersion()
-        override fun isAlive() = binder.isBinderAlive
-        override fun isDead(error: Throwable) = error is DeadObjectException || !isAlive()
-        override fun watchDeath(onDeath: () -> Unit): () -> Unit {
-            val recipient = IBinder.DeathRecipient(onDeath)
-            binder.linkToDeath(recipient, 0)
-            return { binder.unlinkToDeath(recipient, 0); Unit }
-        }
-        override fun register(onState: (Long, Int, Int) -> Unit) = subscribe(onState)
-        // Always use this Binder. No SDK Manager fallback and no current/global cancellation.
-        override fun speak(text: String, queueMode: Int) = submit(text, queueMode)
-        override fun cancel(id: Long) = stop(id)
-        override fun query(id: Long) = state(id)
+    override fun removeListener() {
+        val callback = listener ?: return
+        if (online) GlassSdk.getGlassTtsManager().removeListener(callback)
+        else GlassSdk.getGlassOfflineTtsManager().removeListener(callback)
+        listener = null
+    }
+
+    override fun speak(text: String, queueMode: Int): Long =
+        if (online) GlassSdk.getGlassTtsManager().speak(text, queueMode)
+        else GlassSdk.getGlassOfflineTtsManager().speak(text, queueMode)
+
+    override fun cancelAll() {
+        if (online) GlassSdk.getGlassTtsManager().cancelAll()
+        else GlassSdk.getGlassOfflineTtsManager().cancelAll()
     }
 }

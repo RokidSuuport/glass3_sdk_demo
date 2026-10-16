@@ -97,18 +97,18 @@ class SendMessageSpeechButtonsContractTest {
         val controller = ttsImplementation()
         assertTrue(source.contains("messageTts.speak(online = true"))
         assertTrue(source.contains("messageTts.speak(online = false"))
-        assertTrue(source.contains("messageTts.cancelOwned(online)"))
+        assertTrue(source.contains("messageTts.cancelAll(online)"))
         assertFalse(source.contains("messageTts.toggle("))
         assertFalse(source.contains("updateTtsPlaybackButton"))
         assertFalse(source.contains("R.id.btnCancelOnlineTts"))
         assertFalse(source.contains("R.id.btnCancelOfflineTts"))
         assertFalse(source.contains("R.id.btnTtsSessionState"))
-        // 两个引擎都使用会话接口，不静默降级到旧播报接口。
-        // Both engines use session APIs without silently falling back to legacy playback.
-        assertTrue(controller.contains("getGlassTtsService()"))
-        assertTrue(controller.contains("getGlassOfflineTtsService()"))
-        assertFalse(controller.contains("getGlassTtsManager().speak"))
-        assertFalse(controller.contains("getGlassOfflineTtsManager().speak"))
+        // 使用 SDK Manager 统一管理在线和离线播报。
+        // Use SDK Managers for both online and offline speech.
+        assertTrue(controller.contains("getGlassTtsManager()"))
+        assertTrue(controller.contains("getGlassOfflineTtsManager()"))
+        assertFalse(controller.contains("getGlassTtsService()"))
+        assertFalse(controller.contains("getGlassOfflineTtsService()"))
         assertFalse(source.contains("doSpeechTts(ONLINE_TTS_DEMO_TEXT)"))
         assertFalse(source.contains("playTtsMsg(OFFLINE_TTS_DEMO_TEXT)"))
     }
@@ -124,9 +124,7 @@ class SendMessageSpeechButtonsContractTest {
         val controller = ttsImplementation()
         assertTrue(controller.contains("R.string.message_tts_session_state"))
         assertTrue(controller.contains("R.string.message_tts_invalid_session"))
-        assertTrue(controller.contains("R.string.message_tts_session_api_required"))
-        assertTrue(controller.contains("R.string.message_tts_query_state"))
-        assertFalse(controller.contains(".cancelAll()"))
+        assertTrue(controller.contains(".cancelAll()"))
         assertFalse(controller.contains(".cancelCurrent()"))
         assertFalse(controller.contains("getGlassTtsManager().release()"))
         assertFalse(controller.contains("getGlassOfflineTtsManager().release()"))
@@ -136,7 +134,7 @@ class SendMessageSpeechButtonsContractTest {
     }
 
     @Test
-    fun ttsRequestsCarrySelectedQueueModeWithoutLegacyPlaybackOrGlobalCancellation() {
+    fun ttsRequestsCarrySelectedQueueModeThroughManagers() {
         val source = File(
             "src/main/java/com/rokid/glass/SendMessageActivity.kt"
         ).readText()
@@ -145,12 +143,12 @@ class SendMessageSpeechButtonsContractTest {
         assertEquals(2, Regex("queueMode = ttsQueueMode").findAll(source).count())
         assertTrue(source.contains("TtsQueueMode.ADD"))
         assertTrue(source.contains("TtsQueueMode.FLUSH"))
-        // 此处检查模式传递和操作范围，会话顺序由 SessionBook 测试覆盖。
-        // Check mode forwarding and operation scope here; SessionBook tests cover session ordering.
+        // 检查队列模式传递；生命周期清理由独立行为测试覆盖。
+        // Check queue mode forwarding; behavioral tests cover lifecycle cleanup.
         val playbackSources = source + controller
         assertFalse(playbackSources.contains(".doSpeechTts("))
         assertFalse(playbackSources.contains(".playTtsMsg("))
-        assertFalse(playbackSources.contains(".cancelAll()"))
+        assertTrue(playbackSources.contains(".cancelAll()"))
         assertFalse(playbackSources.contains(".cancelCurrent()"))
         assertFalse(source.contains("onlineTtsWaitingForConnection"))
         assertFalse(source.contains("dispatchNextOnlineTts"))
