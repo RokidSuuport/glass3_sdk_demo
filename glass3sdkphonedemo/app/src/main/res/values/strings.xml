@@ -256,6 +256,9 @@
     <string name="demo_failed_to_start_audio_go_back_and_try">Failed to start audio. Go back and try again</string>
     <string name="demo_final_duration">Final duration: %1$s</string>
     <string name="demo_receiving_2">Receiving</string>
+    <string name="demo_video_stream_h264_first_frame">Video stream first H.264 frame: %1$d bytes</string>
+    <string name="demo_video_stream_h264_summary">Video stream: %1$s fps, %2$d frames total, %3$s</string>
+    <string name="demo_video_stream_nv21_first_frame">Video stream first NV21 frame: %1$d×%2$d, %3$d bytes</string>
     <string name="demo_frame_rate_fps">Frame rate: -- fps</string>
     <string name="demo_frame_rate_fps_2">Frame rate: %1$s fps</string>
     <string name="demo_connected">Connected</string>

@@ -237,6 +237,9 @@
     <string name="demo_failed_to_start_audio_go_back_and_try">音频流启动失败，可返回后重试</string>
     <string name="demo_final_duration">结束时长:%1$s</string>
     <string name="demo_receiving_2">接收中</string>
+    <string name="demo_video_stream_h264_first_frame">视频流首个 H.264 帧：%1$d 字节</string>
+    <string name="demo_video_stream_h264_summary">视频流：%1$s 帧/秒，累计 %2$d 帧，%3$s</string>
+    <string name="demo_video_stream_nv21_first_frame">视频流首帧 NV21：%1$d×%2$d，%3$d 字节</string>
     <string name="demo_frame_rate_fps">帧率：-- fps</string>
     <string name="demo_frame_rate_fps_2">帧率：%1$s fps</string>
     <string name="demo_connected">已连接</string>

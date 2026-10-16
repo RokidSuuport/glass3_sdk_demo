@@ -10,10 +10,13 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.rokid.phone.databinding.ActivityMessageBinding
 import com.rokid.phone.utils.ExternalAudioPlayer
+import com.rokid.phone.video.FrameRateMeter
+import com.rokid.phone.video.H264NalUnitInspector
 import com.rokid.security.phone.sdk.api.PSecuritySDK
 import com.rokid.security.phone.sdk.api.msg.listener.FileReceiveListener
 import com.rokid.security.phone.sdk.api.msg.listener.FileReceiveV2Listener
 import com.rokid.security.phone.sdk.api.msg.listener.IMessageListener
+import java.nio.ByteBuffer
 import kotlinx.coroutines.launch
 
 class MessageReceiveActivity : ComponentActivity() {
@@ -88,7 +91,63 @@ class MessageReceiveActivity : ComponentActivity() {
             log(demoString(R.string.demo_bluetooth_audio_received_bytes, buffer.size))
             audioPlayer.writeAudioData(buffer)
         }
+
+        /**
+         * 视频流只统计不消费：SDK 会把同一份数据广播给所有监听者，这里只读 remaining 与 NAL 类型，
+         * 不调用 get()/duplicate 后改写位置，避免影响视频接收页自己的解码。
+         * Video frames are counted, never consumed: the SDK broadcasts the same buffer to every
+         * listener, so this page only reads the remaining size and NAL type.
+         */
+        override fun onVideoH264Stream(buffer: ByteBuffer) {
+            logH264Frame(buffer)
+        }
+
+        override fun onNv21Data(data: ByteArray, width: Int, height: Int) {
+            logNv21Frame(data, width, height)
+        }
     }
+
+    private val h264FpsMeter = FrameRateMeter()
+    private var h264FirstFrameLogged = false
+    private var h264TotalFrames = 0L
+    private var h264BytesInWindow = 0L
+    private var h264LastFrameAtMs = 0L
+    private var nv21FirstFrameLogged = false
+    private var nv21TotalFrames = 0L
+
+    /** H.264：首帧单独打一条，之后每秒汇总帧率、累计帧数与数据量，避免逐帧刷屏。 */
+    private fun logH264Frame(buffer: ByteBuffer) {
+        val bytes = buffer.remaining()
+        if (bytes <= 0) return
+        val frameBoundary = H264NalUnitInspector.containsFrame(buffer.duplicate())
+        if (!h264FirstFrameLogged) {
+            h264FirstFrameLogged = true
+            log(demoString(R.string.demo_video_stream_h264_first_frame, bytes))
+        }
+        if (frameBoundary) {
+            h264TotalFrames++
+            h264BytesInWindow += bytes
+        }
+        h264LastFrameAtMs = System.currentTimeMillis()
+        h264FpsMeter.recordFrame(h264LastFrameAtMs)?.let { fps ->
+            val bytesPerSecond = h264BytesInWindow
+            h264BytesInWindow = 0L
+            log(demoString(R.string.demo_video_stream_h264_summary,
+                formatFps(fps), h264TotalFrames, formatKilobytes(bytesPerSecond)))
+        }
+    }
+
+    /** NV21：只报尺寸和累计帧数；像素数据由视频接收页等其它监听者消费。 */
+    private fun logNv21Frame(data: ByteArray, width: Int, height: Int) {
+        nv21TotalFrames++
+        if (nv21FirstFrameLogged) return
+        nv21FirstFrameLogged = true
+        log(demoString(R.string.demo_video_stream_nv21_first_frame, width, height, data.size))
+    }
+
+    private fun formatFps(fps: Float): String = if (fps >= 10f) String.format("%.0f", fps) else String.format("%.1f", fps)
+
+    private fun formatKilobytes(bytes: Long): String = String.format("%.1f KB/s", bytes / 1024f)
 
     override fun onDestroy() {
         DeviceLinkerManager.stopAudioStream()
