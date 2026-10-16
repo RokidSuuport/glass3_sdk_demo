@@ -322,15 +322,30 @@ class DeviceToolsActivity : BaseGlassActivity() {
         }
         val apply = hideApps
         val action = getString(if (apply) R.string.demo_app_display_settings else R.string.device_cancel_app_visibility)
-        // 空配置恢复设备默认显示；指定三方应用时，SDK 将其排在前面。
-        // An empty configuration restores defaults; the SDK places specified third-party apps first.
+        // 隐藏列表是完整列表，不是增量：不在列表里的内置应用会恢复显示；空配置恢复全部默认。
+        // 指定三方应用时，SDK 将其排在 Launcher 前面。
+        // The hide list is complete rather than incremental: built-in apps missing from it become
+        // visible again, and an empty configuration restores every default. Given third-party apps
+        // are placed at the front of the Launcher.
+        //
+        // SCAN / SETTINGS / DUAL_SYSTEM 是后加入的三项，需要眼镜系统镜像里的 system-server 与
+        // Launcher 一并支持；旧镜像可能受理成功但界面不生效，详见 DeviceTools 说明。
+        // SCAN / SETTINGS / DUAL_SYSTEM were added later and require matching system-server and
+        // Launcher support in the glasses system image; older images may accept the request without
+        // changing the Launcher, so verify on the device.
+        val hideList = mutableListOf(
+            GlassAppType.AI_WORK_ASSISTANT, GlassAppType.AI_CHAT,
+            GlassAppType.AI_INSPECTION, GlassAppType.OFFLINE_FACE,
+            GlassAppType.TAKE_PHOTO, GlassAppType.XPERT,
+            GlassAppType.OFFLINE_PLATE, GlassAppType.HG_IDENTIFICATION,
+            GlassAppType.SCAN, GlassAppType.SETTINGS, GlassAppType.DUAL_SYSTEM)
         val config = if (apply) GlassAppConfig(
-            mutableListOf(GlassAppType.AI_WORK_ASSISTANT, GlassAppType.AI_CHAT,
-                GlassAppType.AI_INSPECTION, GlassAppType.OFFLINE_FACE,
-                GlassAppType.TAKE_PHOTO, GlassAppType.XPERT,
-                GlassAppType.OFFLINE_PLATE, GlassAppType.HG_IDENTIFICATION),
+            hideList,
             mutableListOf(ThirdPartyApp("com.rokid.glesse", "glassdemo"))
         ) else GlassAppConfig()
+        if (apply) {
+            log(getString(R.string.device_app_visibility_targets, hideList.joinToString(", ") { it.name }))
+        }
         val service = GlassSdk.getGlassDeviceService() ?: run {
             log(getString(R.string.demo_device_service_unavailable_check_the_glasses_system_service))
             return

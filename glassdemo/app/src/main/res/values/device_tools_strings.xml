@@ -4,6 +4,7 @@
     <string name="device_cancel_app_visibility">Cancel app display settings</string>
     <string name="device_app_visibility_pending">App display settings are still being processed.</string>
     <string name="device_app_visibility_result">%1$s: %2$s</string>
+    <string name="device_app_visibility_targets">Hide list for this request: %1$s</string>
     <string name="device_operation_failed">Device operation failed: %1$s</string>
     <string name="device_ai_operation_failed">AI operation failed: %1$s</string>
     <string name="device_ai_service_unavailable">AI service is not connected. Check the connection on the home page and retry.</string>
