@@ -37,6 +37,7 @@ import com.rokid.security.glass3.sdk.base.data.offlineCmd.bean.VoiceAction
 import com.rokid.security.glass3.sdk.base.data.offlineCmd.listener.IVoiceCallback
 import com.rokid.security.system.server.asr.listener.SpeechCallback
 import com.rokid.security.system.server.message.callback.IResultCallback
+import com.rokid.security.system.server.message.file.IGlassFileOperate
 import com.rokid.security.system.server.message.file.listener.FileReceiveListener
 import com.rokid.security.system.server.message.listener.IMessageListener
 import java.io.File
@@ -180,7 +181,11 @@ class SendMessageActivity : BaseGlassActivity() {
 
         override fun onProgressChanged(progress: Float) {
             Log.i(TAG, "onProgressChanged: 蓝牙本端发送文件的进度 $progress")
-            log(demoString(R.string.demo_bluetooth_file_transfer_progress, progress))
+            if (stoppedFileOperator != null) {
+                log(demoString(R.string.demo_file_progress_after_stop, progress))
+            } else {
+                log(demoString(R.string.demo_bluetooth_file_transfer_progress, progress))
+            }
         }
 
         /**
@@ -191,6 +196,10 @@ class SendMessageActivity : BaseGlassActivity() {
             // 手机端接收文件的路径 /storage/emulated/0/Android/data/com.rokid.phone/files/receiver/gonglu.png
             // Received file path on the phone: /storage/emulated/0/Android/data/com.rokid.phone/files/receiver/gonglu.png
             Log.i(TAG, "onComplete: 蓝牙本端发送文件完成,----$filePath")
+            if (stoppedFileOperator != null) {
+                log(demoString(R.string.demo_file_completed_after_stop, filePath))
+                return
+            }
             var duration = System.currentTimeMillis() - startTime
             val fileSize = FileSizeUtil.formatFileSize(FileSizeUtil.getFileSizeBytes(curFile).toDouble())
             if (duration > 1000) {
@@ -203,7 +212,11 @@ class SendMessageActivity : BaseGlassActivity() {
 
         override fun onFail() {
             Log.i(TAG, "onFail: 蓝牙本端发送文件失败")
-            log(demoString(R.string.demo_failed_to_send_file_via_bluetooth))
+            if (stoppedFileOperator != null) {
+                log(demoString(R.string.demo_file_failed_after_stop))
+            } else {
+                log(demoString(R.string.demo_failed_to_send_file_via_bluetooth))
+            }
         }
 
         override fun onCancel() {
@@ -225,7 +238,11 @@ class SendMessageActivity : BaseGlassActivity() {
 
         override fun onProgressChanged(progress: Float) {
             Log.i(TAG, "onProgressChanged: p2p本端发送文件的进度 $progress")
-            log(demoString(R.string.demo_p2p_file_transfer_progress, progress))
+            if (stoppedFileOperator != null) {
+                log(demoString(R.string.demo_file_progress_after_stop, progress))
+            } else {
+                log(demoString(R.string.demo_p2p_file_transfer_progress, progress))
+            }
         }
 
         /**
@@ -236,6 +253,10 @@ class SendMessageActivity : BaseGlassActivity() {
             // 手机端接收文件的路径 /storage/emulated/0/Android/data/com.rokid.phone/files/receiver/gonglu.png
             // Received file path on the phone: /storage/emulated/0/Android/data/com.rokid.phone/files/receiver/gonglu.png
             Log.i(TAG, "onComplete: p2p本端发送文件完成,----$filePath")
+            if (stoppedFileOperator != null) {
+                log(demoString(R.string.demo_file_completed_after_stop, filePath))
+                return
+            }
             var duration = System.currentTimeMillis() - startTime
             val fileSize = FileSizeUtil.formatFileSize(FileSizeUtil.getFileSizeBytes(curFile).toDouble())
             if (duration > 1000) {
@@ -248,7 +269,11 @@ class SendMessageActivity : BaseGlassActivity() {
 
         override fun onFail() {
             Log.i(TAG, "onFail: p2p本端发送文件失败")
-            log(demoString(R.string.demo_failed_to_send_file_via_p2p))
+            if (stoppedFileOperator != null) {
+                log(demoString(R.string.demo_file_failed_after_stop))
+            } else {
+                log(demoString(R.string.demo_failed_to_send_file_via_p2p))
+            }
         }
 
         override fun onCancel() {
@@ -263,6 +288,16 @@ class SendMessageActivity : BaseGlassActivity() {
     // 当前正在发送的文件，完成回调通过它统计源文件大小。
     // The file currently being sent; the completion callback uses it to determine the source file size.
     var curFile = File("")
+
+    // 当前发送使用的操作器与已请求停止的操作器。
+    // Operator used by the current send, and the operator whose stop was requested.
+    // 蓝牙通道发出停止请求后底层可能继续传输，需要据此标注迟到的进度与终态回调。
+    // The Bluetooth transport may keep running after a stop request, so late callbacks are marked with it.
+    @Volatile
+    private var activeFileOperator: IGlassFileOperate? = null
+
+    @Volatile
+    private var stoppedFileOperator: IGlassFileOperate? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -339,6 +374,8 @@ class SendMessageActivity : BaseGlassActivity() {
                 val fileToSend2 = File(sdDownload, a2File)
                 logBuilder.clear()
                 log(demoString(R.string.demo_preparing_to_send_file_via_p2p))
+                activeFileOperator = mFileOperator
+                stoppedFileOperator = null
                 // 连续操作时交替发送两个文件，方便验证不同大小/格式的传输。
                 // Alternate between the two files on successive operations to verify transfers of different sizes and formats.
                 if (randomFile) {
@@ -364,6 +401,8 @@ class SendMessageActivity : BaseGlassActivity() {
                 val fileToSend2 = File(sdDownload, a2File)
                 logBuilder.clear()
                 log(demoString(R.string.demo_preparing_to_send_file_via_bluetooth))
+                activeFileOperator = mBTFileOperator
+                stoppedFileOperator = null
                 // 与 P2P 示例保持一致，交替发送两个 Assets 示例文件。
                 // As in the P2P example, alternate between the two sample assets.
                 if (randomFile) {
@@ -379,6 +418,10 @@ class SendMessageActivity : BaseGlassActivity() {
                 }
             }
 
+            R.id.wfStopFileBtn -> stopFileSending(mFileOperator, R.string.demo_file_channel_p2p)
+
+            R.id.btStopFileBtn -> stopFileSending(mBTFileOperator, R.string.demo_file_channel_bluetooth)
+
             R.id.btSendAudioStream -> {
                 startAudioStreamRemotely()
             }
@@ -390,6 +433,54 @@ class SendMessageActivity : BaseGlassActivity() {
             R.id.btSendVideo, R.id.btStopSendVideo -> mediaActions.value.perform(currentSelectId)
 
         }
+    }
+
+    /**
+     * 请求停止指定通道的文件发送，并回读 SDK 的本地发送状态。
+     * Request stopping the file transfer on the given channel and read back the SDK's local state.
+     *
+     * 停止请求不等于传输已中断：蓝牙通道的底层写循环可能继续把文件发完，
+     * A stop request does not guarantee the transfer stopped: on the Bluetooth channel the underlying
+     * 因此停止后仍需观察进度与终态回调，并用「请求停止后…」文案区分。
+     * write loop may run to completion, so keep watching progress and terminal callbacks afterwards.
+     */
+    private fun stopFileSending(operator: IGlassFileOperate?, channelRes: Int) {
+        val channel = demoString(channelRes)
+        if (operator == null) {
+            log(demoString(R.string.demo_file_operator_unavailable, channel))
+            return
+        }
+        if (operator === activeFileOperator) {
+            stoppedFileOperator = operator
+        }
+        runCatching { operator.stopSendFile() }
+            .onSuccess {
+                log(demoString(R.string.demo_file_stop_requested, channel))
+                runCatching { operator.isSendingFile() }
+                    .onSuccess { sending ->
+                        val state = demoString(
+                            if (sending) R.string.demo_file_sending else R.string.demo_file_not_sending
+                        )
+                        log(demoString(R.string.demo_file_sending_state, channel, state))
+                    }
+                    .onFailure { error ->
+                        log(demoString(
+                            R.string.demo_file_stop_failed,
+                            channel,
+                            error.message ?: error.javaClass.simpleName
+                        ))
+                    }
+            }
+            .onFailure { error ->
+                if (operator === stoppedFileOperator) {
+                    stoppedFileOperator = null
+                }
+                log(demoString(
+                    R.string.demo_file_stop_failed,
+                    channel,
+                    error.message ?: error.javaClass.simpleName
+                ))
+            }
     }
 
     private val mMessageListener = object : IMessageListener.Stub() {
@@ -596,8 +687,10 @@ class SendMessageActivity : BaseGlassActivity() {
             binding.btnStopOfflineTts,
             binding.wfSendTextBtn,
             binding.wfSendFileBtn,
+            binding.wfStopFileBtn,
             binding.btSendTextBtn,
             binding.btSendFileBtn,
+            binding.btStopFileBtn,
             binding.btSendAudioStream,
             binding.btStopSendAudioStream,
             binding.btSendVideo, binding.btStopSendVideo

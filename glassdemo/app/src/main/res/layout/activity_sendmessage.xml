@@ -202,6 +202,31 @@
                         android:ellipsize="none"
                         android:singleLine="false" />
                     <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/wfStopFileBtn"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="2dp"
+                        android:layout_height="match_parent"
+                        android:minHeight="28dp"
+                        android:minLines="1"
+                        android:background="@drawable/round_unselect_bg"
+                        android:gravity="center"
+                        android:paddingHorizontal="3dp"
+                        android:paddingVertical="2dp"
+                        android:text="@string/demo_stop_p2p_file"
+                        android:textColor="@color/green_normal_40"
+                        android:textSize="12sp"
+                        android:ellipsize="none"
+                        android:singleLine="false" />
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+                    <androidx.appcompat.widget.AppCompatTextView
                         android:id="@+id/btSendTextBtn"
                         android:layout_width="0dp"
                         android:layout_weight="1"
@@ -231,6 +256,23 @@
                         android:paddingHorizontal="3dp"
                         android:paddingVertical="2dp"
                         android:text="@string/demo_send_bluetooth_file"
+                        android:textColor="@color/green_normal_40"
+                        android:textSize="12sp"
+                        android:ellipsize="none"
+                        android:singleLine="false" />
+                    <androidx.appcompat.widget.AppCompatTextView
+                        android:id="@+id/btStopFileBtn"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="2dp"
+                        android:layout_height="match_parent"
+                        android:minHeight="28dp"
+                        android:minLines="1"
+                        android:background="@drawable/round_unselect_bg"
+                        android:gravity="center"
+                        android:paddingHorizontal="3dp"
+                        android:paddingVertical="2dp"
+                        android:text="@string/demo_stop_bluetooth_file"
                         android:textColor="@color/green_normal_40"
                         android:textSize="12sp"
                         android:ellipsize="none"
