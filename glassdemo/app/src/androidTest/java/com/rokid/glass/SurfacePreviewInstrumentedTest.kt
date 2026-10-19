@@ -541,9 +541,14 @@ class SurfacePreviewInstrumentedTest {
             tag(fragment, "camera_preview_actions").isShown)
         assertFalse("No hiding of an unstarted preview", tag(fragment, "camera_preview_return").isShown)
         val panel = tag(fragment, "camera_settings_panel")
-        val labels = descendants(panel).filterIsInstance<Button>().map { it.text.toString() }
-        assertFalse("The watermark text-update control should be removed",
-            labels.any { it.contains("更新水印") || it.contains("Update watermark") })
+        for (watermarkTag in listOf(
+            "surface_watermark_text",
+            "surface_watermark_sample",
+            "surface_update_watermark",
+        )) {
+            assertFalse("Watermark edit controls must be hidden while watermark is off",
+                tag(fragment, watermarkTag).isShown)
+        }
         for (tag in listOf("surface_follow_zoom", "surface_await_zoom")) {
             assertFalse("Session tests must be disabled while stopped", tag(fragment, tag).isEnabled)
         }

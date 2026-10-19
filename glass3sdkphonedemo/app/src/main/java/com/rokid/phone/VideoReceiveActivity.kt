@@ -80,7 +80,7 @@ class VideoReceiveActivity : ComponentActivity() {
                     zoomConnectionEpoch++
                     zoomControls.resetConnection()
                     currentConfig = currentConfig?.copy(zoomRatio = null)
-                    binding.spinnerSdk222Zoom.setSelection(0)
+                    binding.spinnerVideoZoom.setSelection(0)
                     renderZoomState()
                 }
         }
@@ -172,6 +172,14 @@ class VideoReceiveActivity : ComponentActivity() {
     private var h264DisplayWidth = 0
     private var h264DisplayHeight = 0
 
+    // 解码侧真实帧尺寸；两种预览模式都以此为准，与请求参数分开维护。
+    // The real decoded frame size; both preview modes report it separately from the requested parameters.
+    @Volatile
+    private var actualFrameWidth = 0
+
+    @Volatile
+    private var actualFrameHeight = 0
+
     @Volatile
     private var isPreviewStarted = false
 
@@ -222,11 +230,12 @@ class VideoReceiveActivity : ComponentActivity() {
     private fun initView() {
         initResolutionSpinner()
         initPreviewModeSpinner()
-        binding.spinnerSdk222Zoom.adapter = ArrayAdapter(
+        binding.spinnerVideoZoom.adapter = ArrayAdapter(
             this, R.layout.item_video_resolution_spinner,
-            zoomPresets.map { it?.let { ratio -> "${ratio}×" } ?: getString(R.string.sdk222_phone_zoom_follow) }
+            zoomPresets.map { it?.let { ratio -> "${ratio}×" } ?: getString(R.string.video_zoom_follow) }
         ).apply { setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown) }
         renderZoomState()
+        renderActualResolution()
         initH264Surface()
         binding.btnStartPreview.setOnClickListener {
             validateAndStartPreview()
@@ -314,7 +323,8 @@ class VideoReceiveActivity : ComponentActivity() {
                 binding.glsurfaceview.visibility = View.GONE
                 binding.h264SurfaceContainer.visibility = View.GONE
                 binding.tvFps.visibility = View.GONE
-                binding.tvSdk222ZoomActual.visibility = View.GONE
+                binding.tvVideoZoomActual.visibility = View.GONE
+                binding.tvVideoActualResolution.visibility = View.GONE
             }
 
             PageState.PREVIEW -> {
@@ -323,7 +333,8 @@ class VideoReceiveActivity : ComponentActivity() {
                 binding.glsurfaceview.visibility = if (mode == PreviewMode.NV21) View.VISIBLE else View.GONE
                 binding.h264SurfaceContainer.visibility = if (mode == PreviewMode.H264) View.VISIBLE else View.GONE
                 binding.tvFps.visibility = View.VISIBLE
-                binding.tvSdk222ZoomActual.visibility = View.VISIBLE
+                binding.tvVideoZoomActual.visibility = View.VISIBLE
+                binding.tvVideoActualResolution.visibility = View.VISIBLE
             }
         }
     }
@@ -465,7 +476,7 @@ class VideoReceiveActivity : ComponentActivity() {
             Log.d(TAG, "startPreview ignored: waiting first video frame")
             return
         }
-        val zoomRatio = zoomControls.requestRatio(zoomPresets.getOrNull(binding.spinnerSdk222Zoom.selectedItemPosition))
+        val zoomRatio = zoomControls.requestRatio(zoomPresets.getOrNull(binding.spinnerVideoZoom.selectedItemPosition))
         currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled, previewMode, zoomRatio)
         zoomControls.clearAppliedRatio()
         renderZoomState()
@@ -482,6 +493,7 @@ class VideoReceiveActivity : ComponentActivity() {
         hasVideoFrame = false
         hasAudioFrame = false
         hasReportedVideoNoFrames = false
+        clearActualFrameSize()
         isCheckingVideoRecovery = false
         remoteVideoRestartCount = 0
         lastRemoteVideoRestartTime = 0L
@@ -732,6 +744,7 @@ class VideoReceiveActivity : ComponentActivity() {
         videoWatchdogJob?.cancel()
         hasVideoFrame = false
         isGetVideo = false
+        clearActualFrameSize()
         when (currentConfig?.previewMode) {
             PreviewMode.H264 -> {
                 h264Decoder.stop()
@@ -875,6 +888,7 @@ class VideoReceiveActivity : ComponentActivity() {
         isGetVideo = false
         hasVideoFrame = false
         hasAudioFrame = false
+        clearActualFrameSize()
         isCheckingVideoRecovery = false
         remoteVideoRestartCount = 0
         lastRemoteVideoRestartTime = 0L
@@ -916,17 +930,65 @@ class VideoReceiveActivity : ComponentActivity() {
 
     private fun renderZoomState() {
         val state = zoomControls.peerState
-        binding.spinnerSdk222Zoom.isEnabled = state.supportsFloatZoom
-        binding.tvSdk222ZoomCapability.setText(when {
-            state.capabilities == null -> R.string.sdk222_phone_zoom_unknown
-            state.supportsFloatZoom -> R.string.sdk222_phone_zoom_supported
-            else -> R.string.sdk222_phone_zoom_unsupported
+        binding.spinnerVideoZoom.isEnabled = state.supportsFloatZoom
+        binding.tvVideoZoomCapability.setText(when {
+            state.capabilities == null -> R.string.video_zoom_unknown
+            state.supportsFloatZoom -> R.string.video_zoom_supported
+            else -> R.string.video_zoom_unsupported
         })
-        val actual = state.appliedRatio?.let { getString(R.string.sdk222_phone_zoom_actual, it) }
-            ?: getString(R.string.sdk222_phone_zoom_actual_unknown)
-        binding.tvSdk222ZoomActual.text = currentConfig?.zoomRatio?.let {
-            getString(R.string.sdk222_phone_zoom_requested, it, actual)
+        val actual = state.appliedRatio?.let { getString(R.string.video_zoom_actual, it) }
+            ?: getString(R.string.video_zoom_actual_unknown)
+        binding.tvVideoZoomActual.text = currentConfig?.zoomRatio?.let {
+            getString(R.string.video_zoom_requested, it, actual)
         } ?: actual
+    }
+
+    /**
+     * 帧尺寸只在变化时刷新叠加文本，避免逐帧更新界面。
+     * Refresh the overlay text only when the frame size changes, so the UI is not updated on every frame.
+     */
+    private fun updateActualFrameSize(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        if (width == actualFrameWidth && height == actualFrameHeight) return
+        actualFrameWidth = width
+        actualFrameHeight = height
+        runOnUiThread { renderActualResolution() }
+    }
+
+    /**
+     * 新流或排空阶段旧尺寸已失效，叠加文本回到等待状态。
+     * The previous size is invalid for a new stream or while draining, so the overlay returns to the waiting state.
+     */
+    private fun clearActualFrameSize() {
+        actualFrameWidth = 0
+        actualFrameHeight = 0
+        renderActualResolution()
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun renderActualResolution() {
+        val requested = currentConfig?.resolution
+        val width = actualFrameWidth
+        val height = actualFrameHeight
+        if (requested == null || width <= 0 || height <= 0) {
+            binding.tvVideoActualResolution.setText(R.string.video_resolution_actual_unknown)
+            return
+        }
+        val text = StringBuilder(
+            getString(
+                R.string.video_resolution_actual,
+                requested.width,
+                requested.height,
+                width,
+                height,
+            )
+        )
+        // 交叉相乘比较宽高比以避开浮点误差；不一致说明眼镜端按其他尺寸重采样过。
+        // Compare aspect ratios by cross-multiplication to avoid float error; a mismatch means the glasses resampled another size.
+        if (requested.width * height != requested.height * width) {
+            text.append('\n').append(getString(R.string.video_resolution_aspect_mismatch))
+        }
+        binding.tvVideoActualResolution.text = text.toString()
     }
 
     private val nv21Listener = object : IMessageListener {
@@ -937,6 +999,7 @@ class VideoReceiveActivity : ComponentActivity() {
             val callbackEpoch = videoFrameEpoch
             val ownedFrame = data.copyOf()
             onVideoFrameReceived("NV21", width, height)
+            updateActualFrameSize(width, height)
             mainScope.launch {
                 if (
                     callbackEpoch == videoFrameEpoch &&
@@ -1023,8 +1086,11 @@ class VideoReceiveActivity : ComponentActivity() {
         if (this == PreviewMode.H264) VideoFrameRecoveryGate.Mode.H264 else VideoFrameRecoveryGate.Mode.NV21
 
     private fun onH264OutputFormatChanged(geometry: DecodedVideoGeometry) {
+        actualFrameWidth = geometry.displayWidth
+        actualFrameHeight = geometry.displayHeight
         runOnUiThread {
             if (currentConfig?.previewMode != PreviewMode.H264) return@runOnUiThread
+            renderActualResolution()
             applyH264SurfaceFitCenter(geometry.displayWidth, geometry.displayHeight)
         }
     }

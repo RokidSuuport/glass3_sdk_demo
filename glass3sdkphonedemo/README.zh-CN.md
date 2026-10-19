@@ -55,6 +55,8 @@
 - `addFileReceiveV2Listener(...)`
 - `removeFileReceiveV2Listener(...)`
 
+带字节数的 `onProgressChanged(progress, transferredBytes, totalBytes)` 重载由 phone-sdk 2.2.2-E 起提供，更早版本只回调百分比。
+
 源码：[文件发送](app/src/main/java/com/rokid/phone/SendMessageActivity.kt)、[相册接收](app/src/main/java/com/rokid/phone/GalleryActivity.kt)
 
 ### 实时音视频接收
@@ -64,6 +66,8 @@
 - `stopVideoStream(...)`
 - `stopAudioStream(...)`
 - `IMessageListener` 回调：<br>  `onNv21Data(...)`<br>  `onVideoH264Stream(...)`<br>  `onAudioStream(...)`
+
+`GlassVideoStreamParam.zoomRatio` 需要 phone-sdk 2.2.2-E 及以上；旧版眼镜会忽略该字段并回报不支持小数倍率。预览页同时叠加请求分辨率与实际解码尺寸、请求倍率与眼镜最近上报的实际倍率，眼镜端未采纳的尺寸或倍率会直接显示出来。
 
 源码：[VideoReceiveActivity.kt](app/src/main/java/com/rokid/phone/VideoReceiveActivity.kt)
 

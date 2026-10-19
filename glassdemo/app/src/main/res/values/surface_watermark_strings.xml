@@ -3,9 +3,17 @@
     <string name="camera_zoom_confirm">Set and confirm zoom\nBefore using actual zoom</string>
     <string name="watermark_summary_on">Watermark: on</string>
     <string name="watermark_summary_off">Watermark: off</string>
-    <string name="watermark_explanation">Watermark adds text and time; the SDK supports custom text.</string>
+    <string name="watermark_explanation">Watermark adds text and time. After turning the watermark on or off, select Apply and preview again for the change to take effect.</string>
     <string name="watermark_default_text">Task in progress</string>
     <string name="surface_zoom_actual">Actual zoom: %1$s×</string>
     <string name="surface_zoom_loading">Actual zoom: loading…</string>
     <string name="surface_zoom_unavailable">Actual zoom: temporarily unavailable</string>
+    <string name="watermark_text_hint">Watermark text (up to 160 characters)</string>
+    <string name="watermark_sample_text">Change sample text</string>
+    <string name="watermark_update_text">Modify watermark dynamically</string>
+    <string name="watermark_updated_text">Task completed</string>
+    <string name="watermark_text_too_long">Watermark text must not exceed 160 characters.</string>
+    <string name="watermark_update_unavailable">Enable the watermark, apply the preview and wait for frames before updating text.</string>
+    <string name="watermark_update_submitted">Watermark text update requested. Check the live preview.</string>
+    <string name="watermark_update_failed">Watermark text update failed (%1$s). Check system support and preview state.</string>
 </resources>

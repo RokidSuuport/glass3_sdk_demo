@@ -55,6 +55,8 @@ Source: [Send example](app/src/main/java/com/rokid/phone/SendMessageActivity.kt)
 - `addFileReceiveV2Listener(...)`
 - `removeFileReceiveV2Listener(...)`
 
+The `onProgressChanged(progress, transferredBytes, totalBytes)` overload is available from phone-sdk 2.2.2-E; earlier versions only report a percentage.
+
 Source: [File sending](app/src/main/java/com/rokid/phone/SendMessageActivity.kt), [gallery reception](app/src/main/java/com/rokid/phone/GalleryActivity.kt)
 
 ### Live Audio and Video Reception
@@ -64,6 +66,8 @@ Source: [File sending](app/src/main/java/com/rokid/phone/SendMessageActivity.kt)
 - `stopVideoStream(...)`
 - `stopAudioStream(...)`
 - `IMessageListener` callbacks:<br>  `onNv21Data(...)`<br>  `onVideoH264Stream(...)`<br>  `onAudioStream(...)`
+
+`GlassVideoStreamParam.zoomRatio` requires phone-sdk 2.2.2-E; older glasses ignore the field and report decimal zoom as unsupported. The preview overlays the requested size together with the actual decoded size, and the requested zoom together with the ratio last reported by the glasses, so a size or ratio the glasses did not honour stays visible.
 
 Source: [VideoReceiveActivity.kt](app/src/main/java/com/rokid/phone/VideoReceiveActivity.kt)
 

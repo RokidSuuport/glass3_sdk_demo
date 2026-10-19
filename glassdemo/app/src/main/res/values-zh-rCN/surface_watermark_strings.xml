@@ -3,9 +3,17 @@
     <string name="camera_zoom_confirm">设置并确认倍率\n后续处理需实际倍率时</string>
     <string name="watermark_summary_on">水印：开启</string>
     <string name="watermark_summary_off">水印：关闭</string>
-    <string name="watermark_explanation">水印叠加文字和时间；SDK 支持自定义文字。</string>
+    <string name="watermark_explanation">水印叠加文字和时间；开启或关闭水印后，需要重新点击“应用并预览”才会生效。</string>
     <string name="watermark_default_text">任务进行中</string>
     <string name="surface_zoom_actual">实际倍率：%1$s×</string>
     <string name="surface_zoom_loading">实际倍率：获取中…</string>
     <string name="surface_zoom_unavailable">实际倍率：暂不可用</string>
+    <string name="watermark_text_hint">水印文字（最多 160 字符）</string>
+    <string name="watermark_sample_text">切换示例文字</string>
+    <string name="watermark_update_text">动态修改水印</string>
+    <string name="watermark_updated_text">任务已完成</string>
+    <string name="watermark_text_too_long">水印文字不能超过 160 字符。</string>
+    <string name="watermark_update_unavailable">请先开启水印并应用预览，等待画面就绪后再更新文字。</string>
+    <string name="watermark_update_submitted">水印文字更新请求已提交，请查看实时画面。</string>
+    <string name="watermark_update_failed">水印文字更新失败（%1$s），请检查系统版本及预览状态。</string>
 </resources>

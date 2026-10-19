@@ -14,6 +14,9 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.Button
 import android.widget.TextView
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.text.InputType
 import com.rokid.glesse.R
 import com.rokid.security.glass3.open.sdk.GlassSdk
 import com.rokid.security.glass3.open.sdk.camera.CameraZoomSession
@@ -34,8 +37,8 @@ import java.util.concurrent.atomic.AtomicLong
  * 若识别算法要求 NV21，使用 NV21 页；若下游要 I420 三平面并异步持帧，使用 I420 页。
  * 先协商 Surface 缓冲尺寸再启动；updateTexImage 后的原始相机时间戳用于确认实际倍率。
  * 文字水印属于本 Surface 输出，不能推断其他 NV21/I420 输出有同样水印。
- * 本页只演示开关与固定示例文字；接入方可配置 TextWatermarkItem.text，或使用原 callback Binder
- * 调用 updateCameraShareWatermarkText 更新已有文本项，无需在 Demo 再设置独立修改按钮。
+ * 动态改字使用启动时的同一个 callback 与已有文本项，不重启预览。
+ * Live text updates reuse the original callback and item without restarting preview.
  */
 class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextureListener {
     companion object { fun newInstance() = SurfaceShareFragment() }
@@ -70,6 +73,8 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
     private lateinit var fpsButton: Button
     private lateinit var eisButton: Button
     private lateinit var watermarkButton: Button
+    private lateinit var watermarkText: EditText
+    private lateinit var watermarkUpdateRow: LinearLayout
     private lateinit var applyButton: Button
     private lateinit var liveZoomButton: Button
     @Volatile private var foreground = false
@@ -195,10 +200,34 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         watermarkButton = action(watermarkButtonText()) {
             enableWatermark = !enableWatermark
             watermarkButton.text = watermarkButtonText()
+            updateWatermarkControlsVisibility()
         }
         watermarkButton.tag = "surface_watermark"
         settingRow(eisButton, watermarkButton)
         note(getString(R.string.watermark_explanation))
+        watermarkText = EditText(requireContext()).apply {
+            tag = "surface_watermark_text"
+            hint = getString(R.string.watermark_text_hint)
+            setText(getString(R.string.watermark_default_text))
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            textSize = 14f
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            setSingleLine(false)
+            minLines = 1
+            maxLines = 3
+        }
+        content.addView(watermarkText, LinearLayout.LayoutParams(-1, -2))
+        val sampleText = action(getString(R.string.watermark_sample_text)) {
+            val next = if (watermarkText.text.toString() == getString(R.string.watermark_updated_text))
+                getString(R.string.watermark_default_text) else getString(R.string.watermark_updated_text)
+            watermarkText.setText(next)
+        }.apply { tag = "surface_watermark_sample" }
+        val updateText = runningAction(getString(R.string.watermark_update_text)) {
+            updateWatermarkText(watermarkText.text.toString())
+        }.apply { tag = "surface_update_watermark" }
+        watermarkUpdateRow = settingRow(sampleText, updateText)
+        updateWatermarkControlsVisibility()
         var expanded = false
         val extras = mutableListOf<View>()
         lateinit var more: Button
@@ -266,6 +295,47 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         }.tag = "surface_stop"
         liveZoomButton = previewAction("") { changeLiveZoom() }.apply { tag = "surface_live_zoom" }
         updateLiveZoomLabel()
+    }
+
+    private fun updateWatermarkText(text: String) {
+        if (text.length > 160) {
+            showStatus(getString(R.string.watermark_text_too_long))
+            return
+        }
+        val token = generation.get()
+        io {
+            val service = producerService
+            val callback = producerCallback
+            val mark = producerWatermark
+            if (!alive(token) || !previewStarted || zoomSession?.state?.ready != true ||
+                service == null || callback == null || mark == null ||
+                !mark.enabled || mark.items.none { it.id == "demo" }) {
+                showStatus(getString(R.string.watermark_update_unavailable))
+                return@io
+            }
+            try {
+                // 使用当前输出原始回调，只修改已有项；不调用任何启动/停止接口。
+                // Reuse the live output callback and existing item; never start or stop here.
+                service.updateCameraShareWatermarkText(callback, "demo", text)
+                val updated = mark.copy(items = mark.items.map { if (it.id == "demo") it.copy(text = text) else it })
+                producerWatermark = updated
+                ui {
+                    if (alive(token) && producerCallback === callback) {
+                        watermarkConfig = updated
+                        appliedRequest = appliedRequest.copy(watermark = updated)
+                        showStatus(getString(R.string.watermark_update_submitted))
+                    }
+                }
+            } catch (error: Exception) {
+                showStatus(getString(R.string.watermark_update_failed, error.javaClass.simpleName))
+            }
+        }
+    }
+
+    private fun updateWatermarkControlsVisibility() {
+        val visibility = if (enableWatermark) View.VISIBLE else View.GONE
+        watermarkText.visibility = visibility
+        watermarkUpdateRow.visibility = visibility
     }
 
     override fun finishSettings(returnButton: Button) { settingRow(applyButton, returnButton) }
@@ -498,7 +568,7 @@ class SurfaceShareFragment : CameraControlsFragment(), TextureView.SurfaceTextur
         showStatus("Surface negotiated=${plan.negotiated}; buffer=${plan.width}×${plan.height}; path=${plan.path}; callbackSource=${plan.callbackUsesCameraSourceSize}")
         val session = CameraZoomSession()
         val callback = object : ICameraSurfaceCallback.Stub() {
-            override fun getCallbackId() = "sdk222-surface-${System.identityHashCode(this)}-$token"
+            override fun getCallbackId() = "surface-share-${System.identityHashCode(this)}-$token"
             override fun onCameraOpened(width: Int, height: Int) {
                 if (alive(token)) {
                     applyActualOutputSize(texture, token, width, height, plan)

@@ -33,6 +33,17 @@ android {
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+
+        // 混淆/裁剪验证专用构建类型：配置与 release 相同，只把 R8 与资源裁剪打开。
+        // Dedicated build type for obfuscation/shrinking verification: same as release but with R8 and resource shrinking enabled.
+        // 用法 / Usage: ./gradlew assembleReleaseObfuscated
+        releaseObfuscated {
+            initWith release
+            matchingFallbacks = ['release']
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

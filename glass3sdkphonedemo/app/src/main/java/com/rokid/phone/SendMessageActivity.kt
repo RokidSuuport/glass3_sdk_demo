@@ -122,7 +122,7 @@ class SendMessageActivity : ComponentActivity() {
             val messageRes = if (stoppedFileOperator != null) {
                 R.string.demo_file_progress_bytes_after_stop
             } else {
-                R.string.sdk222_phone_file_progress_bytes
+                R.string.file_receiver_progress_bytes
             }
             log(demoString(
                 messageRes, progress,
