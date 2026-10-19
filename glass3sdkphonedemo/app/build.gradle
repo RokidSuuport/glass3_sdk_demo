@@ -80,7 +80,7 @@ dependencies {
     implementation("com.guolindev.permissionx:permissionx:1.8.1")
     implementation 'com.googlecode.mp4parser:isoparser:1.1.22'
     implementation 'pub.devrel:easypermissions:2.0.1'
-    implementation ("com.rokid.security:phone.sdk:2.2.2-E-SNAPSHOT") {
+    implementation ("com.rokid.security:phone.sdk:2.2.2-E") {
         // SDK 依赖链中 rklogger 已包含 slf4j 相关类，排除外部 slf4j 避免重复类冲突。
         // The SDK dependency chain already includes SLF4J classes in rklogger; exclude external SLF4J to avoid duplicate classes.
         exclude group: "org.slf4j"

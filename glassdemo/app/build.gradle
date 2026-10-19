@@ -89,7 +89,7 @@ dependencies {
     implementation('com.rokid.security.glass3.qrcode:scanner:1.0.6') {
         exclude group: 'com.rokid.security', module: 'glass3.open.sdk'
     }
-    implementation("com.rokid.security:glass3.open.sdk:2.2.2-E-SNAPSHOT")
+    implementation("com.rokid.security:glass3.open.sdk:2.2.2-E")
     implementation("com.rokid.security.sdk:online-speech:0.1.1") {
         exclude group: "com.rokid.security", module: "glass3.open.sdk"
     }
