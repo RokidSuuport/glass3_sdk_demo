@@ -105,6 +105,7 @@ class VideoReceiveDualModeContractTest {
         assertTrue(activity.contains("params.gravity = Gravity.CENTER"))
         assertTrue(layout.contains("h264_surface_container"))
         assertTrue(!activity.contains("params.dimensionRatio = ratio"))
+        assertTrue(!layout.contains("layout_constraintDimensionRatio=\"16:9\""))
     }
 
     @Test
