@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  视频流页面的能力文案。
+  视频流页面的状态文案。
   小数倍率依赖 phone-sdk 2.2.2-E 起的 GlassVideoStreamParam.zoomRatio，旧版眼镜会忽略该字段；
-  “实际分辨率”来自解码输出的真实宽高，与请求值分开展示，不随 SDK 版本改名。
+  预览层只展示解码后的真实分辨率和眼镜最近确认的实际倍率。
 
-  Capability copy for the video stream page.
+  Status copy for the video stream page.
   Decimal zoom relies on GlassVideoStreamParam.zoomRatio (phone-sdk 2.2.2-E and later); older glasses ignore that field.
-  The actual resolution comes from the decoded output size and is shown separately from the requested size;
-  these names identify the capability, not an SDK version.
+  The preview overlay shows only the decoded frame size and the latest confirmed camera zoom.
 -->
 <resources>
     <string name="video_zoom_label">Camera zoom</string>
     <string name="video_zoom_follow">Follow shared camera</string>
-    <string name="video_zoom_unknown">Zoom support unconfirmed. Start preview once to query the glasses, then return to select a zoom.</string>
-    <string name="video_zoom_unsupported">The glasses did not advertise decimal zoom support. The existing stream request is used.</string>
-    <string name="video_zoom_supported">Decimal zoom supported. The selected ratio is requested on the next preview start.</string>
-    <string name="video_zoom_actual_unknown">Actual zoom: awaiting glasses status</string>
-    <string name="video_zoom_actual">Last reported camera zoom: %1$.3f×</string>
-    <string name="video_zoom_requested">Requested zoom: %1$.3f×\n%2$s</string>
-    <string name="video_resolution_actual_unknown">Actual resolution: waiting for the first decoded frame</string>
-    <string name="video_resolution_actual">Requested %1$d×%2$d · Actual %3$d×%4$d</string>
-    <string name="video_resolution_aspect_mismatch">Aspect ratio differs from the request, so the picture is already resampled on the glasses.</string>
+    <string name="video_zoom_custom">Custom zoom</string>
+    <string name="video_zoom_custom_hint">1.0</string>
+    <string name="video_zoom_custom_invalid">Enter a zoom ratio from 1.0 to 8.0</string>
+    <string name="video_zoom_custom_integer_invalid">Enter an integer zoom ratio from 1 to 8</string>
+    <string name="video_zoom_integer_compat">Integer zoom mode</string>
+    <string name="video_zoom_actual_unknown">Actual resolution: waiting · Actual zoom: waiting</string>
+    <string name="video_preview_status">Actual resolution: %1$d×%2$d · Actual zoom: %3$.3f×</string>
+    <string name="video_preview_status_zoom_waiting">Actual resolution: %1$d×%2$d · Actual zoom: waiting</string>
+    <string name="video_preview_status_resolution_waiting">Actual resolution: waiting · Actual zoom: %1$.3f×</string>
+    <string name="video_preview_status_waiting">Actual resolution: waiting · Actual zoom: waiting</string>
+    <string name="video_preview_resolution_waiting">Actual resolution: waiting</string>
+    <string name="video_preview_resolution">Actual resolution: %1$d×%2$d</string>
 </resources>

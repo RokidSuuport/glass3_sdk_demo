@@ -116,7 +116,7 @@ class SendMessageActivity : ComponentActivity() {
                 onProgressChanged(progress)
                 return
             }
-            val now = android.os.SystemClock.elapsedRealtime()
+            val now = SystemClock.elapsedRealtime()
             if (transferredBytes < totalBytes && now - lastByteProgressTime < 500L) return
             lastByteProgressTime = now
             val messageRes = if (stoppedFileOperator != null) {

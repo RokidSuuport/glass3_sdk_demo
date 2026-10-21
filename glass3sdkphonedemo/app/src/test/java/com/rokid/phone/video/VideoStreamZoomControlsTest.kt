@@ -4,19 +4,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class VideoStreamZoomControlsTest {
-    @Test fun `old peer missing capability does not inherit local default`() {
+    @Test fun `old peer can receive an explicitly selected ratio`() {
         val state = VideoStreamZoomControls.parsePeerState("""{"type":"VIDEO_STREAM_RESOLUTION_CHANGE","extra":"{\"width\":1920,\"height\":1080}"}""")!!
         assertNull(state.capabilities)
         assertFalse(state.supportsFloatZoom)
-        assertNull(VideoStreamZoomControls().apply { update(state) }.requestRatio(1.575f))
+        assertEquals(1.575f, VideoStreamZoomControls().apply { update(state) }.requestRatio(1.575f))
     }
 
     @Test fun `explicit capability enables decimal request and reports actual separately`() {
-        val state = VideoStreamZoomControls.parsePeerState("""{"type":"VIDEO_STREAM_RESOLUTION_CHANGE","extra":{"cameraZoomCapabilities":3,"appliedZoomRatio":1.5}}""")!!
+        val state = VideoStreamZoomControls.parsePeerState(
+            """{"type":"VIDEO_STREAM_RESOLUTION_CHANGE","extra":{"cameraZoomCapabilities":3,"appliedZoomRatio":1.5,"width":2400,"height":1800,"fps":15}}"""
+        )!!
         val controls = VideoStreamZoomControls().apply { update(state) }
         assertTrue(state.supportsFloatZoom)
         assertEquals(1.575f, controls.requestRatio(1.575f))
         assertEquals(1.5f, state.appliedRatio)
+        assertEquals(2400, state.announcedWidth)
+        assertEquals(1800, state.announcedHeight)
+        assertEquals(15, state.announcedFps)
         assertNull(controls.requestRatio(null))
     }
 
@@ -36,7 +41,17 @@ class VideoStreamZoomControlsTest {
         assertTrue(controls.peerState.supportsFloatZoom)
         assertNull(controls.peerState.appliedRatio)
         controls.resetConnection()
-        assertNull(controls.requestRatio(2f))
+        assertEquals(2f, controls.requestRatio(2f))
         assertNull(controls.peerState.capabilities)
+    }
+
+    @Test fun `custom ratio accepts finite values in supported range`() {
+        val controls = VideoStreamZoomControls()
+
+        assertEquals(1.25f, controls.requestRatio(1.25f))
+        assertEquals(7.75f, controls.requestRatio(7.75f))
+        assertNull(controls.requestRatio(0.99f))
+        assertNull(controls.requestRatio(8.01f))
+        assertNull(controls.requestRatio(Float.NaN))
     }
 }

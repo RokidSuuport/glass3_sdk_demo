@@ -1,24 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  视频流页面的能力文案。
+  视频流页面的状态文案。
   小数倍率依赖 phone-sdk 2.2.2-E 起的 GlassVideoStreamParam.zoomRatio，旧版眼镜会忽略该字段；
-  “实际分辨率”来自解码输出的真实宽高，与请求值分开展示，不随 SDK 版本改名。
+  预览层只展示解码后的真实分辨率和眼镜最近确认的实际倍率。
 
-  Capability copy for the video stream page.
+  Status copy for the video stream page.
   Decimal zoom relies on GlassVideoStreamParam.zoomRatio (phone-sdk 2.2.2-E and later); older glasses ignore that field.
-  The actual resolution comes from the decoded output size and is shown separately from the requested size;
-  these names identify the capability, not an SDK version.
+  The preview overlay shows only the decoded frame size and the latest confirmed camera zoom.
 -->
 <resources>
     <string name="video_zoom_label">相机倍率</string>
     <string name="video_zoom_follow">跟随共享相机</string>
-    <string name="video_zoom_unknown">倍率能力待确认。请先启动一次预览，收到眼镜能力后返回选择倍率。</string>
-    <string name="video_zoom_unsupported">眼镜未声明支持小数倍率，继续使用原有视频请求。</string>
-    <string name="video_zoom_supported">支持小数倍率。所选倍率将在下次启动预览时请求。</string>
-    <string name="video_zoom_actual_unknown">实际倍率：等待眼镜状态</string>
-    <string name="video_zoom_actual">眼镜最近上报的实际倍率：%1$.3f×</string>
-    <string name="video_zoom_requested">请求倍率：%1$.3f×\n%2$s</string>
-    <string name="video_resolution_actual_unknown">实际分辨率：等待首帧解码</string>
-    <string name="video_resolution_actual">请求 %1$d×%2$d · 实际 %3$d×%4$d</string>
-    <string name="video_resolution_aspect_mismatch">宽高比与请求不一致，画面已在眼镜端被重采样。</string>
+    <string name="video_zoom_custom">自定义倍率</string>
+    <string name="video_zoom_custom_hint">1.0</string>
+    <string name="video_zoom_custom_invalid">请输入 1.0 到 8.0 之间的倍率</string>
+    <string name="video_zoom_custom_integer_invalid">请输入 1 到 8 之间的整数倍率</string>
+    <string name="video_zoom_integer_compat">整数倍率模式</string>
+    <string name="video_zoom_actual_unknown">实际分辨率：等待首帧 · 实际倍率：等待眼镜状态</string>
+    <string name="video_preview_status">实际分辨率：%1$d×%2$d · 实际倍率：%3$.3f×</string>
+    <string name="video_preview_status_zoom_waiting">实际分辨率：%1$d×%2$d · 实际倍率：等待眼镜状态</string>
+    <string name="video_preview_status_resolution_waiting">实际分辨率：等待首帧 · 实际倍率：%1$.3f×</string>
+    <string name="video_preview_status_waiting">实际分辨率：等待首帧 · 实际倍率：等待眼镜状态</string>
+    <string name="video_preview_resolution_waiting">实际分辨率：等待首帧</string>
+    <string name="video_preview_resolution">实际分辨率：%1$d×%2$d</string>
 </resources>

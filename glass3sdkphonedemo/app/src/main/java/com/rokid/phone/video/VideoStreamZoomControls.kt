@@ -3,9 +3,15 @@ package com.rokid.phone.video
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 
-/** Camera capability evidence from the peer, never from a model's default values. */
+/** Zoom status reported by the glasses, never inferred from local defaults. */
 internal class VideoStreamZoomControls {
-    data class PeerState(val capabilities: Int?, val appliedRatio: Float?) {
+    data class PeerState(
+        val capabilities: Int?,
+        val appliedRatio: Float?,
+        val announcedWidth: Int = 0,
+        val announcedHeight: Int = 0,
+        val announcedFps: Int = 0,
+    ) {
         val supportsFloatZoom: Boolean get() = capabilities?.let { it and 1 != 0 } == true
     }
 
@@ -19,7 +25,7 @@ internal class VideoStreamZoomControls {
     fun update(state: PeerState) { peerState = state }
 
     fun requestRatio(selectedRatio: Float?): Float? = selectedRatio?.takeIf {
-        peerState.supportsFloatZoom && it.isFinite() && it >= 1f
+        it.isFinite() && it in 1f..8f
     }
 
     companion object {
@@ -42,11 +48,21 @@ internal class VideoStreamZoomControls {
                 value.takeIf { it >= 0 && it <= Int.MAX_VALUE && it == it.toInt().toDouble() }?.toInt()
             }
             val ratio = number(body.get("appliedZoomRatio"))?.toFloat()?.takeIf { it.isFinite() && it >= 1f }
-            PeerState(caps, ratio)
+            PeerState(
+                capabilities = caps,
+                appliedRatio = ratio,
+                announcedWidth = positiveInt(body.get("width")),
+                announcedHeight = positiveInt(body.get("height")),
+                announcedFps = positiveInt(body.get("fps")),
+            )
         }.getOrNull()
 
         private fun number(value: JsonElement?): Double? = value
             ?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }
             ?.asDouble?.takeIf { it.isFinite() }
+
+        private fun positiveInt(value: JsonElement?): Int = number(value)
+            ?.takeIf { it > 0 && it <= Int.MAX_VALUE && it == it.toInt().toDouble() }
+            ?.toInt() ?: 0
     }
 }

@@ -118,4 +118,40 @@ class VideoReceiveDualModeContractTest {
             )
         )
     }
+
+    @Test
+    fun `video preview shows one status line and exposes custom zoom options`() {
+        val activity = File("src/main/java/com/rokid/phone/VideoReceiveActivity.kt").readText()
+        val layout = File("src/main/res/layout/activity_video_receive.xml").readText()
+        val strings = File("src/main/res/values/video_stream_strings.xml").readText()
+        val chineseStrings = File("src/main/res/values-zh-rCN/video_stream_strings.xml").readText()
+
+        assertTrue(activity.contains("listOf<Float?>(1f, null, 1.575f, 2f, 3f, 4f, 8f)"))
+        assertTrue(activity.contains("listOf<Float?>(1f, null, 2f, 3f, 4f, 8f)"))
+        assertTrue(activity.contains("customZoomOptionIndex = 0"))
+        assertTrue(activity.contains("add(getString(R.string.video_zoom_custom))"))
+        assertTrue(activity.contains("zoomPresets.getOrNull(position - 1)"))
+        assertTrue(activity.contains("integerMode && ratio % 1f != 0f"))
+        assertTrue(activity.contains("video_preview_status"))
+        assertTrue(activity.contains("config.zoomRatio?.let { zoomRatio = it }"))
+        assertTrue(activity.contains("config.zoomLevel?.let { zoomLevel = it }"))
+        assertTrue(activity.contains("supportsFloatZoom="))
+        assertTrue(layout.contains("@+id/et_custom_video_zoom"))
+        assertTrue(layout.contains("@+id/sw_zoom_integer_compat"))
+        assertTrue(
+            layout.indexOf("@+id/sw_zoom_integer_compat") <
+                layout.indexOf("@+id/spinner_video_zoom")
+        )
+        assertTrue(layout.contains("android:singleLine=\"true\""))
+        assertTrue(
+            layout.indexOf("@+id/spinner_resolution_preset") <
+                layout.indexOf("@+id/spinner_video_zoom")
+        )
+        assertTrue(!layout.contains("@+id/tv_video_actual_resolution"))
+        assertTrue(!layout.contains("@+id/tv_video_zoom_capability"))
+        assertTrue(!strings.contains("video_zoom_unknown"))
+        assertTrue(!strings.contains("video_resolution_aspect_mismatch"))
+        assertTrue(strings.contains(">Integer zoom mode<"))
+        assertTrue(chineseStrings.contains(">整数倍率模式<"))
+    }
 }

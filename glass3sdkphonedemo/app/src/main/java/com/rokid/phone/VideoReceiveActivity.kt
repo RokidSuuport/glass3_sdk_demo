@@ -62,7 +62,10 @@ class VideoReceiveActivity : ComponentActivity() {
     private val zoomControls = VideoStreamZoomControls()
     @Volatile private var zoomConnectionEpoch = 0
     @Volatile private var zoomStatusRequestVersion = -1
-    private val zoomPresets = listOf<Float?>(null, 1f, 1.575f, 2f, 3f)
+    private val modernZoomPresets = listOf<Float?>(1f, null, 1.575f, 2f, 3f, 4f, 8f)
+    private val integerZoomPresets = listOf<Float?>(1f, null, 2f, 3f, 4f, 8f)
+    private var zoomPresets = modernZoomPresets
+    private var customZoomOptionIndex = 0
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,9 +82,9 @@ class VideoReceiveActivity : ComponentActivity() {
                 .collect {
                     zoomConnectionEpoch++
                     zoomControls.resetConnection()
-                    currentConfig = currentConfig?.copy(zoomRatio = null)
-                    binding.spinnerVideoZoom.setSelection(0)
-                    renderZoomState()
+                    currentConfig = currentConfig?.copy(zoomRatio = 1f, zoomLevel = null)
+                    rebuildZoomOptions()
+                    renderPreviewStatus()
                 }
         }
     }
@@ -199,7 +202,13 @@ class VideoReceiveActivity : ComponentActivity() {
         val resolution: ResolutionOption,
         val isARMixEnabled: Boolean,
         val previewMode: PreviewMode,
-        val zoomRatio: Float?
+        val zoomRatio: Float?,
+        val zoomLevel: Int?,
+    )
+
+    private data class ZoomRequest(
+        val ratio: Float?,
+        val level: Int?,
     )
 
     private var currentConfig: PreviewConfig? = null
@@ -230,12 +239,8 @@ class VideoReceiveActivity : ComponentActivity() {
     private fun initView() {
         initResolutionSpinner()
         initPreviewModeSpinner()
-        binding.spinnerVideoZoom.adapter = ArrayAdapter(
-            this, R.layout.item_video_resolution_spinner,
-            zoomPresets.map { it?.let { ratio -> "${ratio}×" } ?: getString(R.string.video_zoom_follow) }
-        ).apply { setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown) }
-        renderZoomState()
-        renderActualResolution()
+        initZoomControls()
+        renderPreviewStatus()
         initH264Surface()
         binding.btnStartPreview.setOnClickListener {
             validateAndStartPreview()
@@ -246,6 +251,44 @@ class VideoReceiveActivity : ComponentActivity() {
             }
         }
         audioTrack.play()
+    }
+
+    private fun initZoomControls() {
+        binding.spinnerVideoZoom.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                updateCustomZoomFieldVisibility(position)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        binding.swZoomIntegerCompat.setOnCheckedChangeListener { _, _ ->
+            rebuildZoomOptions()
+            renderPreviewStatus()
+        }
+        rebuildZoomOptions()
+    }
+
+    private fun rebuildZoomOptions() {
+        val integerCompatibility = binding.swZoomIntegerCompat.isChecked
+        zoomPresets = if (integerCompatibility) integerZoomPresets else modernZoomPresets
+        customZoomOptionIndex = 0
+        val labels = buildList {
+            add(getString(R.string.video_zoom_custom))
+            addAll(zoomPresets.map { ratio ->
+                ratio?.let { "${it}×" } ?: getString(R.string.video_zoom_follow)
+            })
+        }
+        binding.spinnerVideoZoom.adapter = ArrayAdapter(
+            this,
+            R.layout.item_video_resolution_spinner,
+            labels,
+        ).apply {
+            setDropDownViewResource(R.layout.item_video_resolution_spinner_dropdown)
+        }
+        val defaultPresetIndex = zoomPresets.indexOf(1f).coerceAtLeast(0)
+        val defaultPosition = defaultPresetIndex + 1
+        binding.spinnerVideoZoom.setSelection(defaultPosition)
+        updateCustomZoomFieldVisibility(defaultPosition)
     }
 
     private fun initPreviewModeSpinner() {
@@ -308,6 +351,47 @@ class VideoReceiveActivity : ComponentActivity() {
         binding.etResolutionHeight.error = null
     }
 
+    private fun resolveZoomRequest(position: Int): ZoomRequest? {
+        val ratio = when {
+            customZoomOptionIndex >= 0 && position == customZoomOptionIndex ->
+                parseCustomZoomRatio() ?: return null
+
+            else ->
+                zoomControls.requestRatio(zoomPresets.getOrNull(position - 1))
+        }
+        if (binding.swZoomIntegerCompat.isChecked) {
+            return ZoomRequest(ratio = null, level = ratio?.toInt())
+        }
+        val level = ratio?.takeIf { it % 1f == 0f }?.toInt()
+        return ZoomRequest(ratio = ratio, level = level)
+    }
+
+    private fun parseCustomZoomRatio(): Float? {
+        val ratio = binding.etCustomVideoZoom.text.toString().toFloatOrNull()
+        val integerMode = binding.swZoomIntegerCompat.isChecked
+        if (ratio == null ||
+            !ratio.isFinite() ||
+            ratio !in 1f..8f ||
+            (integerMode && ratio % 1f != 0f)
+        ) {
+            binding.etCustomVideoZoom.error = demoString(
+                if (integerMode) {
+                    R.string.video_zoom_custom_integer_invalid
+                } else {
+                    R.string.video_zoom_custom_invalid
+                }
+            )
+            return null
+        }
+        binding.etCustomVideoZoom.error = null
+        return ratio
+    }
+
+    private fun updateCustomZoomFieldVisibility(position: Int) {
+        binding.etCustomVideoZoom.visibility =
+            if (position == customZoomOptionIndex) View.VISIBLE else View.GONE
+    }
+
     private fun formatFps(fps: Float): String {
         return "%.1f".format(fps)
     }
@@ -324,7 +408,6 @@ class VideoReceiveActivity : ComponentActivity() {
                 binding.h264SurfaceContainer.visibility = View.GONE
                 binding.tvFps.visibility = View.GONE
                 binding.tvVideoZoomActual.visibility = View.GONE
-                binding.tvVideoActualResolution.visibility = View.GONE
             }
 
             PageState.PREVIEW -> {
@@ -334,7 +417,6 @@ class VideoReceiveActivity : ComponentActivity() {
                 binding.h264SurfaceContainer.visibility = if (mode == PreviewMode.H264) View.VISIBLE else View.GONE
                 binding.tvFps.visibility = View.VISIBLE
                 binding.tvVideoZoomActual.visibility = View.VISIBLE
-                binding.tvVideoActualResolution.visibility = View.VISIBLE
             }
         }
     }
@@ -476,10 +558,18 @@ class VideoReceiveActivity : ComponentActivity() {
             Log.d(TAG, "startPreview ignored: waiting first video frame")
             return
         }
-        val zoomRatio = zoomControls.requestRatio(zoomPresets.getOrNull(binding.spinnerVideoZoom.selectedItemPosition))
-        currentConfig = PreviewConfig(fps, bitrate, resolution, isARMixEnabled, previewMode, zoomRatio)
+        val zoomRequest = resolveZoomRequest(binding.spinnerVideoZoom.selectedItemPosition) ?: return
+        currentConfig = PreviewConfig(
+            fps,
+            bitrate,
+            resolution,
+            isARMixEnabled,
+            previewMode,
+            zoomRequest.ratio,
+            zoomRequest.level,
+        )
         zoomControls.clearAppliedRatio()
-        renderZoomState()
+        renderPreviewStatus()
         PSecuritySDK.getWifiP2PClientService()?.setAutoDecodeH264ToNv21(previewMode == PreviewMode.NV21)
         resetFps()
         updateStreamState(demoString(R.string.demo_waiting_for_first_frame))
@@ -622,8 +712,8 @@ class VideoReceiveActivity : ComponentActivity() {
             fps = config.fps
             bitrate = config.bitrate
             isARMixEnabled = config.isARMixEnabled
-            // Leave null for old/unknown peers. Never infer support from local DTO defaults.
-            zoomRatio = zoomControls.requestRatio(config.zoomRatio)
+            config.zoomRatio?.let { zoomRatio = it }
+            config.zoomLevel?.let { zoomLevel = it }
         }
     }
 
@@ -875,7 +965,7 @@ class VideoReceiveActivity : ComponentActivity() {
         isPreviewStarted = false
         zoomStatusRequestVersion = -1
         zoomControls.clearAppliedRatio()
-        renderZoomState()
+        renderPreviewStatus()
         streamRequestVersion++
         startPreviewJob?.cancel()
         videoWatchdogJob?.cancel()
@@ -919,28 +1009,57 @@ class VideoReceiveActivity : ComponentActivity() {
             val requestVersion = zoomStatusRequestVersion
             if (requestVersion < 0) return
             val state = VideoStreamZoomControls.parsePeerState(message) ?: return
+            Log.i(
+                TAG,
+                "VIDEO_STREAM_RESOLUTION_CHANGE capabilities=${state.capabilities} " +
+                    "supportsFloatZoom=${state.supportsFloatZoom} " +
+                    "announced=${state.announcedWidth}x${state.announcedHeight}@${state.announcedFps} " +
+                    "requestedRatio=${currentConfig?.zoomRatio} " +
+                    "requestedLevel=${currentConfig?.zoomLevel} " +
+                    "appliedRatio=${state.appliedRatio}",
+            )
             runOnUiThread {
                 if (isDestroyed || epoch != zoomConnectionEpoch || !isPreviewStarted || !GlobalData.isGlassConnect()) return@runOnUiThread
                 if (requestVersion != streamRequestVersion || requestVersion != zoomStatusRequestVersion) return@runOnUiThread
                 zoomControls.update(state)
-                renderZoomState()
+                renderPreviewStatus()
             }
         }
     }
 
-    private fun renderZoomState() {
+    @SuppressLint("SetTextI18n")
+    private fun renderPreviewStatus() {
         val state = zoomControls.peerState
-        binding.spinnerVideoZoom.isEnabled = state.supportsFloatZoom
-        binding.tvVideoZoomCapability.setText(when {
-            state.capabilities == null -> R.string.video_zoom_unknown
-            state.supportsFloatZoom -> R.string.video_zoom_supported
-            else -> R.string.video_zoom_unsupported
-        })
-        val actual = state.appliedRatio?.let { getString(R.string.video_zoom_actual, it) }
-            ?: getString(R.string.video_zoom_actual_unknown)
-        binding.tvVideoZoomActual.text = currentConfig?.zoomRatio?.let {
-            getString(R.string.video_zoom_requested, it, actual)
-        } ?: actual
+        val width = actualFrameWidth
+        val height = actualFrameHeight
+        val ratio = state.appliedRatio
+        if (binding.swZoomIntegerCompat.isChecked) {
+            binding.tvVideoZoomActual.text =
+                if (width > 0 && height > 0) {
+                    getString(R.string.video_preview_resolution, width, height)
+                } else {
+                    getString(R.string.video_preview_resolution_waiting)
+                }
+            return
+        }
+        binding.tvVideoZoomActual.text = when {
+            width <= 0 || height <= 0 -> ratio?.let {
+                getString(R.string.video_preview_status_resolution_waiting, it)
+            } ?: getString(R.string.video_preview_status_waiting)
+
+            ratio != null -> getString(
+                R.string.video_preview_status,
+                width,
+                height,
+                ratio,
+            )
+
+            else -> getString(
+                R.string.video_preview_status_zoom_waiting,
+                width,
+                height,
+            )
+        }
     }
 
     /**
@@ -952,7 +1071,7 @@ class VideoReceiveActivity : ComponentActivity() {
         if (width == actualFrameWidth && height == actualFrameHeight) return
         actualFrameWidth = width
         actualFrameHeight = height
-        runOnUiThread { renderActualResolution() }
+        runOnUiThread { renderPreviewStatus() }
     }
 
     /**
@@ -962,33 +1081,7 @@ class VideoReceiveActivity : ComponentActivity() {
     private fun clearActualFrameSize() {
         actualFrameWidth = 0
         actualFrameHeight = 0
-        renderActualResolution()
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun renderActualResolution() {
-        val requested = currentConfig?.resolution
-        val width = actualFrameWidth
-        val height = actualFrameHeight
-        if (requested == null || width <= 0 || height <= 0) {
-            binding.tvVideoActualResolution.setText(R.string.video_resolution_actual_unknown)
-            return
-        }
-        val text = StringBuilder(
-            getString(
-                R.string.video_resolution_actual,
-                requested.width,
-                requested.height,
-                width,
-                height,
-            )
-        )
-        // 交叉相乘比较宽高比以避开浮点误差；不一致说明眼镜端按其他尺寸重采样过。
-        // Compare aspect ratios by cross-multiplication to avoid float error; a mismatch means the glasses resampled another size.
-        if (requested.width * height != requested.height * width) {
-            text.append('\n').append(getString(R.string.video_resolution_aspect_mismatch))
-        }
-        binding.tvVideoActualResolution.text = text.toString()
+        renderPreviewStatus()
     }
 
     private val nv21Listener = object : IMessageListener {
@@ -1090,7 +1183,7 @@ class VideoReceiveActivity : ComponentActivity() {
         actualFrameHeight = geometry.displayHeight
         runOnUiThread {
             if (currentConfig?.previewMode != PreviewMode.H264) return@runOnUiThread
-            renderActualResolution()
+            renderPreviewStatus()
             applyH264SurfaceFitCenter(geometry.displayWidth, geometry.displayHeight)
         }
     }
