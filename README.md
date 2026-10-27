@@ -2,7 +2,9 @@
 
 [中文 README](README.zh-CN.md)
 
-An example project for Rokid Glass3, covering the glasses SDK, phone and glasses coordination, industry applications, and audio/video streaming.
+An example project for Rokid Glass3, covering the glasses SDK, phone and glasses coordination, scenario applications, and audio/video streaming.
+
+The current `main` branch uses SDK version `2.2.2-E`.
 
 ## Glass Demo · glassdemo
 
@@ -16,17 +18,17 @@ Demonstrates connecting an Android phone to the glasses, two-way messaging and f
 
 [View the Phone Demo documentation](glass3sdkphonedemo/README.en.md)
 
-## Industry Application · Hazard Recognition
-
-Runs on the glasses and uses Wi-Fi to call a vision model for fire-safety hazard recognition, showing the live preview and recognition results without a phone app. DeepSeek is provided only as an integration example; developers can configure or integrate another vision model.
-
-[View the Hazard Recognition Demo documentation](industry/hazard-recognition/README.md)
-
-## Audio/Video Capture and Browser Streaming · glass3-media-streaming
+## Scenario Application · Audio/Video Streaming
 
 Demonstrates capturing NV21 video frames and PCM audio from the glasses and sending them to a PC browser through WebRTC. The raw media capture implementation can also be used independently as a reference.
 
-[View the audio/video capture and streaming documentation](glass3-media-streaming/README.md)
+[View the audio/video capture and streaming documentation](scenario/glass3-media-streaming/README.md)
+
+## Scenario Application · Hazard Recognition
+
+Runs on the glasses and uses Wi-Fi to call a vision model for fire-safety hazard recognition, showing the live preview and recognition results without a phone app. DeepSeek is provided only as an integration example; developers can configure or integrate another vision model.
+
+[View the Hazard Recognition Demo documentation](scenario/hazard-recognition/README.md)
 
 ## Example Usage Notice
 

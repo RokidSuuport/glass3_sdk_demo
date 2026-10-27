@@ -2,7 +2,9 @@
 
 [English README](README.md)
 
-面向 Rokid Glass3 的示例工程，涵盖眼镜 SDK、手机与眼镜协同、行业应用和音视频传输。
+面向 Rokid Glass3 的示例工程，涵盖眼镜 SDK、手机与眼镜协同、场景应用和音视频传输。
+
+当前 `main` 分支使用的 SDK 版本为 `2.2.2-E`。
 
 ## 眼镜端 Demo · glassdemo
 
@@ -16,17 +18,17 @@
 
 [查看手机端 Demo 说明](glass3sdkphonedemo/README.zh-CN.md)
 
-## 行业应用 · 隐患识别
-
-运行在眼镜上，通过 Wi-Fi 调用视觉大模型识别消防隐患，展示现场预览和识别结果，无需手机 App。DeepSeek 仅作接入示例，开发者可自行配置或接入其他视觉模型。
-
-[查看隐患识别 Demo 说明](industry/hazard-recognition/README.md)
-
-## 音视频采集与浏览器传输 · glass3-media-streaming
+## 场景应用 · 音视频传输
 
 演示获取眼镜 NV21 视频帧和 PCM 音频，并通过 WebRTC 将音视频传输到 PC 浏览器；也可单独参考原始媒体采集功能。
 
-[查看音视频采集与传输说明](glass3-media-streaming/README.md)
+[查看音视频采集与传输说明](scenario/glass3-media-streaming/README.md)
+
+## 场景应用 · 隐患识别
+
+运行在眼镜上，通过 Wi-Fi 调用视觉大模型识别消防隐患，展示现场预览和识别结果，无需手机 App。DeepSeek 仅作接入示例，开发者可自行配置或接入其他视觉模型。
+
+[查看隐患识别 Demo 说明](scenario/hazard-recognition/README.md)
 
 ## 示例使用声明
 
