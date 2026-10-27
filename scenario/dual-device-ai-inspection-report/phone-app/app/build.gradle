@@ -1,0 +1,87 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.jetbrains.kotlin.android)
+}
+
+android {
+    namespace 'com.rokid.phone'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.rokid.phone"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        debug {
+            // 保留默认调试配置，便于安装和断点调试。
+            // Retain the default debug configuration for installation and breakpoint debugging.
+        }
+
+        release {
+            // Demo 默认关闭代码压缩；集成到正式应用时可按需启用 R8。
+            // Code shrinking is disabled by default in the Demo; enable R8 as needed when integrating into a production application.
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        // 混淆/裁剪验证专用构建类型：配置与 release 相同，只把 R8 与资源裁剪打开。
+        // Dedicated build type for obfuscation/shrinking verification: same as release but with R8 and resource shrinking enabled.
+        // 用法 / Usage: ./gradlew assembleReleaseObfuscated
+        releaseObfuscated {
+            initWith release
+            matchingFallbacks = ['release']
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    viewBinding {
+        enable = true
+    }
+    packaging {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+    packagingOptions {
+        // 确保只保留第一个遇到的so文件
+        // Keep only the first occurrence of each shared library file.
+        pickFirst 'lib/arm64-v8a/libc++_shared.so'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
+    implementation 'androidx.activity:activity-ktx:1.9.0'
+    testImplementation 'junit:junit:4.13.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation ("com.rokid.security:phone.sdk:2.2.2-E") {
+        exclude group: "org.slf4j"
+    }
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+}

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    android:padding="16px">
+
+    <TextView
+        android:id="@+id/tvVoiceTip"
+        android:layout_width="0dp"
+        android:layout_height="68px"
+        android:layout_marginStart="12px"
+        android:gravity="center_vertical|start"
+        android:text="@string/demo_voice_recognition_hint"
+        android:textColor="@color/ident_button_text"
+        android:textSize="16px"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/layoutPreview"
+        app:layout_constraintTop_toTopOf="@id/layoutPreview" />
+
+    <FrameLayout
+        android:id="@+id/layoutPreview"
+        android:layout_width="112px"
+        android:layout_height="68px"
+        android:layout_marginTop="48px"
+        android:background="@drawable/shape_main_message_unselect_bg"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.rokid.glass.camera.CameraSurfacePreviewView
+            android:id="@+id/previewView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ImageView
+            android:id="@+id/ivImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@android:color/transparent"
+            android:scaleType="fitCenter"
+            android:visibility="gone"
+            tools:ignore="ContentDescription" />
+    </FrameLayout>
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12px"
+        android:background="@android:color/transparent"
+        android:fillViewport="true"
+        android:padding="10px"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutPreview">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_ai_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:textColor="#ff40FF5E"
+                android:textSize="16px"
+                tools:text="识别内容" />
+
+            <LinearLayout
+                android:id="@+id/layoutStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8px"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/iv_load"
+                    android:layout_width="16px"
+                    android:layout_height="16px"
+                    android:src="@mipmap/icon_id_load" />
+
+                <TextView
+                    android:id="@+id/tv_load_tips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/green_normal_70"
+                    android:textSize="14px"
+                    tools:text="提示" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

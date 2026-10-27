@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 配置可共享的文件路径，根据实际需求添加 -->
+    <!-- Configure shareable file paths and add entries as needed. -->
+
+    <!-- 1. 应用内部存储的 files 目录 -->
+    <!-- 1. The files directory in the application's internal storage. -->
+    <files-path
+        name="my_files"
+    path="." />
+    <!-- "." 表示整个 files 目录 -->
+    <!-- "." represents the entire files directory. -->
+
+    <!-- 2. 应用内部存储的 cache 目录 -->
+    <!-- 2. The cache directory in the application's internal storage. -->
+    <cache-path
+        name="my_cache"
+        path="." />
+
+    <!-- 3. 外部存储的根目录（需申请存储权限） -->
+    <!-- 3. The root of external storage (storage permission required). -->
+    <external-path
+        name="external_storage"
+        path="." />
+
+    <!-- 4. 外部存储中应用私有目录（推荐，无需额外权限） -->
+    <!-- 4. The application's private external storage directory (recommended; no additional permission required). -->
+    <external-files-path
+        name="external_app_files"
+        path="." />
+
+    <!-- 对应 Context.getExternalFilesDir() -->
+    <!-- Corresponds to Context.getExternalFilesDir(). -->
+    <external-path
+        name="external_files"
+        path="." />
+</paths>

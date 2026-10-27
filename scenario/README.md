@@ -6,5 +6,6 @@
 | --- | --- | --- | --- |
 | 音视频传输 | [glass3-media-streaming](glass3-media-streaming/) | 眼镜采集 NV21 视频和 PCM 音频 → WebRTC 传输到 PC 浏览器 | 2.2.0-E |
 | 隐患识别 | [hazard-recognition](hazard-recognition/) | 实时预览 → NV21 抽帧 → 视觉大模型分析 → 眼镜显示结果 | 2.2.0-E |
+| 双端隐患识别 | [dual-device-ai-inspection-report](dual-device-ai-inspection-report/) | 眼镜采集现场画面 → 隐患识别 → 结果与图片同步手机 → 生成 PDF 报告 | 2.2.2-E |
 
 后续可在这里新增其他场景应用目录；目前不提取公共模块，待多个应用存在稳定的复用需求后再拆分。

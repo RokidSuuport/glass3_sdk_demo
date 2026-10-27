@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_voice_recognition_hint">实时预览 · 说“识别”或单击触摸板/指环开始识别</string>
+    <string name="demo_camera_preview_failed">相机预览失败（%1$d）：%2$s</string>
+    <string name="demo_vision_analyzing">正在分析当前画面…</string>
+    <string name="demo_sdk_fallback_unavailable">AI 问答 SDK 服务不可用</string>
+    <string name="demo_sdk_fallback_empty">AI 问答 SDK 没有返回巡检结果</string>
+    <string name="demo_sdk_fallback_failed">AI 问答 SDK 识别失败（%1$d）</string>
+    <string name="demo_vision_engine_invalid">vision.engine 参数无效：%1$s，请使用 auto、api 或 sdk</string>
+    <string name="demo_sdk_fallback_stream_placeholder">报告标题：正在分析现场\n巡检摘要：等待 AI 问答 SDK 返回\n隐患问题：正在接收模型结果\n法律依据：等待画面分析完成\n整改建议：等待模型结果</string>
+    <string name="demo_sdk_fallback_inspection_prompt">请检查眼镜当前拍摄的工业现场画面。只使用图片中有直接可见证据的内容，不推断未显示的参数、许可、维修记录或人员行为。不得输出商品名称、价格、品牌推荐或采购链接。严格输出五行纯文本，不要 Markdown，不要增加其他段落：\n报告标题：12至20字的具体现场标题\n巡检摘要：40字以内概括现场状态\n隐患问题：写明对象、位置和可见异常；没有明确隐患时写“未见明显隐患”\n法律依据：写明明确适用的法规或标准；无法确认时写“需结合属地法规、行业标准核实”\n整改建议：最多3项可执行、可复核的措施，使用1. 2. 3.编号\n不得编造法律条号或直接作违法认定。</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample data extraction rules file; uncomment and customize as necessary.
+   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   for details.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Demo 不声明额外的云端备份规则。 -->
+        <!-- The Demo declares no additional cloud backup rules. -->
+    </cloud-backup>
+</data-extraction-rules>

@@ -1,0 +1,47 @@
+package com.rokid.phone.data
+
+
+import com.rokid.security.phone.sdk.base.utils.other.ktx.call
+import kotlinx.coroutines.flow.MutableStateFlow
+
+object GlobalData {
+    /**
+     * p2p连接状态
+     * P2P connection state.
+     */
+    val p2pConnectState = MutableStateFlow(false)
+
+    /**
+     * 蓝牙连接状态
+     * Bluetooth connection state.
+     */
+    val btConnectState = MutableStateFlow(false)
+
+    /**
+     * sdk 初始化状态
+     * SDK initialization state.
+     */
+    val sdkInitState = MutableStateFlow(false)
+
+    fun setP2pConnectState(state: Boolean) {
+        p2pConnectState.call(state)
+    }
+
+    fun setBtConnectState(state: Boolean) {
+        btConnectState.call(state)
+    }
+
+    fun isGlassConnect(): Boolean {
+        return p2pConnectState.value && btConnectState.value
+    }
+
+    fun setSdkInitState(state: Boolean) {
+        sdkInitState.call(state)
+    }
+
+    fun reset() {
+        setP2pConnectState(false)
+        setBtConnectState(false)
+        setSdkInitState(false)
+    }
+}

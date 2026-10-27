@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">隐患识别</string>
+    <string name="demo_voice_recognition_hint">Live preview · Say “识别” or click the touchpad/ring to start</string>
+    <string name="demo_camera_preview_failed">Camera preview failed (%1$d): %2$s</string>
+    <string name="demo_vision_analyzing">Analyzing the current frame…</string>
+    <string name="demo_sdk_fallback_unavailable">AI Chat SDK is unavailable</string>
+    <string name="demo_sdk_fallback_empty">AI Chat SDK returned no inspection result</string>
+    <string name="demo_sdk_fallback_failed">AI Chat SDK recognition failed (%1$d)</string>
+    <string name="demo_vision_engine_invalid">Invalid vision.engine value: %1$s. Use auto, api, or sdk</string>
+    <string name="demo_sdk_fallback_stream_placeholder">Report title: Analyzing the scene\nInspection summary: Waiting for the AI Chat SDK\nHazard findings: Receiving the model result\nLegal basis: Waiting for image analysis\nRecommended actions: Waiting for the model response</string>
+    <string name="demo_sdk_fallback_inspection_prompt">Inspect the industrial scene captured by the glasses. Use only directly visible evidence and do not infer hidden parameters, permits, maintenance records, or behavior. Do not output product names, prices, brand recommendations, or purchase links. Reply with exactly five plain-text lines and no Markdown:\nReport title: A specific 8–16 word title\nInspection summary: One sentence under 60 words\nHazard findings: Object, location, and visible abnormality; write “No obvious hazard visible” when none is evident\nLegal basis: Cite a clearly applicable regulation or standard; write “Verify local regulations and industry standards” when uncertain\nRecommended actions: Up to three executable and verifiable actions, numbered 1. 2. 3.\nDo not invent article numbers or make legal conclusions.</string>
+</resources>
