@@ -30,6 +30,12 @@
 
 [查看隐患识别 Demo 说明](scenario/hazard-recognition/README.md)
 
+## 场景应用 · 双端隐患识别
+
+由眼镜端采集现场画面并识别隐患，手机端接收结果和图片、管理查验记录并生成 PDF 报告。本示例使用 SDK 版本 `2.2.2-E`。
+
+[查看双端隐患识别说明](scenario/dual-device-ai-inspection-report/README.md)
+
 ## 示例使用声明
 
 各工程仅提供代码参考和使用示例，不强制采用相同方案。开发者可按实际需求调整实现，具体用法见各工程 README。

@@ -30,6 +30,12 @@ Runs on the glasses and uses Wi-Fi to call a vision model for fire-safety hazard
 
 [View the Hazard Recognition Demo documentation](scenario/hazard-recognition/README.md)
 
+## Scenario Application · Dual-Device Hazard Recognition
+
+Combines a glasses app for capturing and recognizing on-site hazards with a phone app for receiving results and images, managing inspection records, and generating PDF reports. This example uses SDK version `2.2.2-E`.
+
+[View the dual-device hazard recognition documentation](scenario/dual-device-ai-inspection-report/README.md)
+
 ## Example Usage Notice
 
 Each project provides code references and usage examples only; developers are not required to follow the same approach. Adapt the implementation to your needs and refer to the README in each project for details.
