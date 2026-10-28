@@ -1,5 +1,7 @@
 # 手机端隐患识别报告
 
+中文 | [English](README.en.md)
+
 手机端负责连接眼镜并管理巡检报告。主页面提供蓝牙连接、P2P、电量、AI 查验、相册和设置入口。
 
 ## 使用方式
@@ -9,7 +11,7 @@
 3. 在配对页等待蓝牙和 P2P 都显示已连接，配对完成后会自动回到主页。
 4. 点击“AI 查验”，选择一条巡检记录生成 PDF，然后保存或打开报告。
 
-“相册”会展示眼镜传到手机的照片和视频。主页右上角的螺丝帽进入设置，页面按原白板结构展示设备信息、连接状态和版本信息。
+“相册”会展示眼镜传到手机的照片和视频。主页右上角的齿轮图标进入设置，用于查看眼镜设备信息和进入设备管理功能。
 
 ## 构建与安装
 
@@ -35,7 +37,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 - `DeviceLinkerManager.kt`：蓝牙连接以及识图结果、图片接收。
 - `classicbt/`：附近的 Glass3 设备扫描。
 - `GalleryActivity.kt`：接收和展示眼镜传来的照片、视频。
-- `SettingActivity.kt`：设备信息、连接状态和电量。
+- `SettingActivity.kt`：眼镜设备信息和设置入口。
 - `ai/AiVisionActivity.kt`：记录列表、选择和报告生成。
 - `ai/AiVisionPdfGenerator.kt`：巡检 PDF 排版与输出。
 - `ai/AiVisionStore.kt`：本地记录持久化。

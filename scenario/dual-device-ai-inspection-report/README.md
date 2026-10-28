@@ -1,5 +1,7 @@
 # 双端 AI 查验与手机报告 Demo
 
+中文 | [English](README.en.md)
+
 项目名：`dual-device-ai-inspection-report`
 
 这个项目把隐患查验的眼镜端和手机端整理成了两个独立 App。眼镜负责看现场、查验隐患并把结果传给手机；手机负责连接眼镜、保存记录和生成 PDF 报告。
@@ -8,8 +10,8 @@
 
 | 应用 | 主要用途 |
 |---|---|
-| `glass-app` | 实时预览、离线“识别”指令、触摸板/指环触发、调用视觉模型或 SDK |
-| `phone-app` | 蓝牙/P2P 连接、电量状态、AI 记录与报告、相册和设置 |
+| [`glass-app`](glass-app/README.md) | 实时预览、离线“识别”指令、触摸板/指环触发、调用视觉模型或 SDK |
+| [`phone-app`](phone-app/README.md) | 蓝牙/P2P 连接、电量状态、AI 记录与报告、相册和设置 |
 
 安装包放在 `artifacts`：
 

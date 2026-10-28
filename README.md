@@ -22,19 +22,19 @@ Demonstrates connecting an Android phone to the glasses, two-way messaging and f
 
 Demonstrates capturing NV21 video frames and PCM audio from the glasses and sending them to a PC browser through WebRTC. The raw media capture implementation can also be used independently as a reference.
 
-[View the audio/video capture and streaming documentation](scenario/glass3-media-streaming/README.md)
+[View the audio/video capture and streaming documentation](scenario/glass3-media-streaming/README.en.md)
 
 ## Scenario Application · Hazard Recognition
 
 Runs on the glasses and uses Wi-Fi to call a vision model for fire-safety hazard recognition, showing the live preview and recognition results without a phone app. DeepSeek is provided only as an integration example; developers can configure or integrate another vision model.
 
-[View the Hazard Recognition Demo documentation](scenario/hazard-recognition/README.md)
+[View the Hazard Recognition Demo documentation](scenario/hazard-recognition/README.en.md)
 
-## Scenario Application · Dual-Device Hazard Recognition
+## Scenario Application · Dual-Device AI Inspection
 
 Combines a glasses app for capturing and recognizing on-site hazards with a phone app for receiving results and images, managing inspection records, and generating PDF reports. This example uses SDK version `2.2.2-E`.
 
-[View the dual-device hazard recognition documentation](scenario/dual-device-ai-inspection-report/README.md)
+[View the dual-device AI inspection documentation](scenario/dual-device-ai-inspection-report/README.en.md)
 
 ## Example Usage Notice
 

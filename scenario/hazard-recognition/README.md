@@ -1,5 +1,7 @@
 # 隐患识别 Demo（九小场所消防）
 
+中文 | [English](README.en.md)
+
 独立眼镜端 APK，包名 `com.rokid.industry.hazardrecognition`，应用名“隐患识别”。眼镜通过 Wi-Fi 直接调用视觉大模型，无需手机 App。原有眼镜与手机 Demo 不受影响。
 
 ## 示例使用声明
