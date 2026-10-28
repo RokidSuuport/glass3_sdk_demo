@@ -2,7 +2,7 @@
 
 [English README](README.md)
 
-面向 Rokid Glass3 的示例工程，涵盖眼镜 SDK、手机与眼镜协同、场景应用和音视频传输。
+面向 Rokid Glass3 的示例工程，涵盖眼镜 SDK、手机与眼镜协同和场景应用。
 
 当前 `main` 分支使用的 SDK 版本为 `2.2.2-E`。
 

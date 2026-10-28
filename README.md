@@ -2,7 +2,7 @@
 
 [中文 README](README.zh-CN.md)
 
-An example project for Rokid Glass3, covering the glasses SDK, phone and glasses coordination, scenario applications, and audio/video streaming.
+An example project for Rokid Glass3, covering the glasses SDK, phone and glasses coordination, and scenario applications.
 
 The current `main` branch uses SDK version `2.2.2-E`.
 
