@@ -1,4 +1,4 @@
-# 手机端隐患识别报告
+# 双端 AI 查验手机端
 
 中文 | [English](README.en.md)
 
@@ -11,7 +11,16 @@
 3. 在配对页等待蓝牙和 P2P 都显示已连接，配对完成后会自动回到主页。
 4. 点击“AI 查验”，选择一条巡检记录生成 PDF，然后保存或打开报告。
 
-“相册”会展示眼镜传到手机的照片和视频。主页右上角的齿轮图标进入设置，用于查看眼镜设备信息和进入设备管理功能。
+## 相册与设置
+
+相册和设置沿用本仓库原手机端 Demo（`glass3sdkphonedemo`）的实现。
+
+- **相册**：展示眼镜通过 P2P 或蓝牙传到手机的照片和视频，显示文件接收进度，接收完成后更新列表并按修改时间倒序排列。
+- **图片预览**：点击照片进入应用内预览，支持左右滑动切换和双击缩放。
+- **视频播放**：视频缩略图带有标记，点击后调用手机上可处理视频的播放器；没有可用播放器时显示提示。
+- **设置**：点击主页右上角齿轮，查看眼镜名称、设备 SN 和系统版本，并进入外设连接或系统升级页面。
+- **外设连接**：先连接眼镜蓝牙，再进入设置中的外设连接页面，扫描并选择蓝牙指环进行连接；关闭连接开关会停止扫描并断开已连接指环。
+- **系统升级（OTA）**：沿用原 Demo 的系统升级流程，进入页面前需要眼镜蓝牙和 P2P 均已连接。
 
 ## 构建与安装
 
@@ -30,6 +39,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | 接收巡检结果和图片 | `PSecuritySDK.getMessageService()` | `addMessageListener()`，处理 `IMessageListener.onClassicBTTextMessage()` 和 `onBTStreamDataReceived()` |
 | 电量与设备信息 | `AbsMessageService` | 发送 `GET_SYSTEM_INFO`、`POWER_UPDATE` 消息，解析 `SYSTEM_INFO_RESPONSE` |
 | 相册文件 | `getFileOperater()` / `getBtFileOperater()` | `addFileReceiveV2Listener()` 接收 P2P 或蓝牙文件 |
+| 蓝牙指环 | `PSecuritySDK.getBluetoothRingService()` | `addClientListener()`、`startScan()`、`stopScan()`、`connectToServer()`、`disconnect()` |
 
 ## 实现位置
 
@@ -37,7 +47,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 - `DeviceLinkerManager.kt`：蓝牙连接以及识图结果、图片接收。
 - `classicbt/`：附近的 Glass3 设备扫描。
 - `GalleryActivity.kt`：接收和展示眼镜传来的照片、视频。
-- `SettingActivity.kt`：眼镜设备信息和设置入口。
+- `ImagePreviewActivity.kt`：图片滑动预览和双击缩放。
+- `SettingActivity.kt`：眼镜设备信息、外设连接和系统升级入口。
+- `ui/DeviceLinerActivity.kt`：蓝牙指环扫描、连接和状态展示。
+- `system/ui/SystemOtaActivity.kt`：系统升级页面。
+- `system/viewmodel/SystemViewModel.kt`、`system/OtaManager.kt`：升级状态、通知和 P2P 恢复处理。
 - `ai/AiVisionActivity.kt`：记录列表、选择和报告生成。
 - `ai/AiVisionPdfGenerator.kt`：巡检 PDF 排版与输出。
 - `ai/AiVisionStore.kt`：本地记录持久化。

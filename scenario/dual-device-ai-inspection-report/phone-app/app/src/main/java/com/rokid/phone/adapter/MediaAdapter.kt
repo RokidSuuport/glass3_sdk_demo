@@ -1,37 +1,53 @@
 package com.rokid.phone.adapter
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.rokid.phone.databinding.ItemMediaBinding
+import com.rokid.phone.R
 import java.io.File
 
 class MediaAdapter(
-    private val files: List<File>,
-    private val onClick: (File) -> Unit,
-) : RecyclerView.Adapter<MediaAdapter.Holder>() {
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        val binding = ItemMediaBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false,
-        )
-        return Holder(binding)
+    private val mediaList: List<File>,
+    // 新增点击回调
+    // Add a click callback.
+    private val onItemClick: (File) -> Unit
+) : RecyclerView.Adapter<MediaAdapter.MediaViewHolder>() {
+    inner class MediaViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val thumbnail: ImageView = itemView.findViewById(R.id.thumbnail)
+        val videoTag: ImageView = itemView.findViewById(R.id.video_tag)
     }
 
-    override fun onBindViewHolder(holder: Holder, position: Int) {
-        val file = files[position]
-        holder.binding.tvType.text = file.extension.uppercase()
-        Glide.with(holder.binding.ivMedia)
-            .load(file)
-            .centerCrop()
-            .into(holder.binding.ivMedia)
-        holder.binding.root.setOnClickListener { onClick(file) }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MediaViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_media, parent, false)
+        return MediaViewHolder(view)
     }
 
-    override fun getItemCount(): Int = files.size
+    override fun onBindViewHolder(holder: MediaViewHolder, position: Int) {
+        val file = mediaList[position]
+        val context = holder.itemView.context
 
-    class Holder(val binding: ItemMediaBinding) : RecyclerView.ViewHolder(binding.root)
+        if (isVideo(file)) {
+            holder.videoTag.visibility = View.VISIBLE
+        } else {
+            holder.videoTag.visibility = View.GONE
+        }
+        // 图片或视频缩略图
+        // Image or video thumbnail.
+        Glide.with(context).load(file).thumbnail(0.1f).into(holder.thumbnail)
+        // 点击事件
+        // Click event.
+        holder.itemView.setOnClickListener {
+            onItemClick(file)
+        }
+    }
+
+    private fun isVideo(file: File): Boolean {
+        val name = file.name.lowercase()
+        return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov")
+    }
+
+    override fun getItemCount(): Int = mediaList.size
 }

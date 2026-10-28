@@ -20,6 +20,7 @@ import com.rokid.phone.SettingActivity
 import com.rokid.phone.ai.AiVisionActivity
 import com.rokid.phone.base.BaseActivity
 import com.rokid.phone.data.DeviceStatus
+import com.rokid.phone.data.GlobalEvent
 import com.rokid.phone.data.GlobalData
 import com.rokid.phone.databinding.LayoutMainPhoneBinding
 import com.rokid.phone.ui.classicbt.ui.ClassicBtActivity
@@ -120,6 +121,9 @@ class MainPhoneActivity : BaseActivity<LayoutMainPhoneBinding>() {
                     DeviceStatus.charging.collect { updateBattery() }
                 }
             }
+        }
+        lifecycleScope.launch {
+            GlobalEvent.autoConnectionEvent.collect { scheduleAutoConnect() }
         }
         continueStartup()
     }

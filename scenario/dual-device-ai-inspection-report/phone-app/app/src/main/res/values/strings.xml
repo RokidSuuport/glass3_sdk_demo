@@ -10,7 +10,7 @@
     <string name="demo_bluetooth_is_off">Bluetooth is off</string>
     <string name="demo_sdk_init_failed">Failed to initialize the phone SDK</string>
     <string name="demo_bluetooth_connected">Bluetooth connected</string>
-    <string name="demo_bluetooth_disconnected">Bluetooth disconnected</string>
+    <string name="demo_bluetooth_disconnected">Bluetooth disconnected!</string>
     <string name="demo_connect_glasses">Connect glasses</string>
     <string name="demo_reconnect_glasses">Change glasses</string>
     <string name="demo_connecting_glasses">Connecting to glasses…</string>

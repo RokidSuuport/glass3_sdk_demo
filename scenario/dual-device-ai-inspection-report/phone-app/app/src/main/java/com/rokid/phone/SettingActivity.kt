@@ -1,67 +1,61 @@
 package com.rokid.phone
 
+import com.rokid.phone.utils.demoString
+import com.rokid.phone.R
+
+import android.content.Intent
 import android.os.Bundle
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import android.widget.Toast
 import com.rokid.phone.base.BaseActivity
-import com.rokid.phone.data.DeviceStatus
 import com.rokid.phone.data.GlobalData
 import com.rokid.phone.databinding.ActivitySettingBinding
-import com.rokid.phone.utils.demoString
-import kotlinx.coroutines.launch
+import com.rokid.phone.system.ui.SystemOtaActivity
+import com.rokid.phone.utils.SystemGlobalConstant
+import com.rokid.phone.ui.DeviceLinerActivity
+
 
 class SettingActivity : BaseActivity<ActivitySettingBinding>() {
-    override fun initViewBinding(): ActivitySettingBinding =
-        ActivitySettingBinding.inflate(layoutInflater)
 
     override fun onInit(savedInstanceState: Bundle?) {
-        binding.btnBack.setOnClickListener { finish() }
-        binding.tvDeviceName.text = DeviceLinkerManager.getDeviceName()
-        binding.tvAppVersion.text =
-            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0"
-        observeStatus()
-        DeviceLinkerManager.refreshDeviceStatus()
-    }
-
-    private fun observeStatus() {
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { DeviceStatus.deviceId.collect { binding.tvDeviceSn.text = it.ifBlank { "-" } } }
-                launch { DeviceStatus.systemVersion.collect { binding.tvSystemVersion.text = it.ifBlank { "-" } } }
-                launch { DeviceStatus.powerValue.collect { updateBattery() } }
-                launch { DeviceStatus.charging.collect { updateBattery() } }
-                launch { GlobalData.btConnectState.collect { updateBluetooth(it) } }
-                launch { GlobalData.p2pConnectState.collect { updateP2p(it) } }
+        binding.clOta.setOnClickListener {
+            if (!GlobalData.btConnectState.value) {
+                Toast.makeText(this, demoString(R.string.demo_connect_the_bluetooth_device_first), Toast.LENGTH_LONG).show()
+                return@setOnClickListener
             }
+            if (!GlobalData.p2pConnectState.value) {
+                Toast.makeText(this, demoString(R.string.demo_connect_p2p_first), Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            startActivity(Intent(this, SystemOtaActivity::class.java))
         }
-    }
 
-    private fun updateBattery() {
-        val power = DeviceStatus.powerValue.value
-        binding.tvBatteryStatus.text = if (power <= 0) {
-            demoString(R.string.demo_battery_unknown)
-        } else {
-            demoString(
-                if (DeviceStatus.charging.value) {
-                    R.string.demo_battery_charging_short
-                } else {
-                    R.string.demo_battery_level_short
-                },
-                power,
-            )
+        binding.clDeviceLinker.setOnClickListener {
+            if (!GlobalData.btConnectState.value) {
+                Toast.makeText(this, demoString(R.string.demo_connect_the_bluetooth_device_first), Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            var intent = Intent(this, DeviceLinerActivity::class.java)
+            startActivity(intent)
         }
+        binding.layoutTitle.ivBack.setOnClickListener {
+            finish()
+        }
+        binding.tvDeviceName.text = DeviceLinkerManager.getDeviceName()
+        binding.tvDeviceSn.text = SystemGlobalConstant.deviceId
+        binding.tvDeviceSystem.text = SystemGlobalConstant.version
+        DeviceLinkerManager.addSystemInfoListener(systemInfoListener)
+        DeviceLinkerManager.getGlassSystemInfoMsg()
     }
 
-    private fun updateP2p(connected: Boolean) {
-        binding.tvP2PStatus.text = demoString(
-            if (connected) R.string.demo_p2p_connected_short else R.string.demo_p2p_disconnected_short,
-        )
+    private val systemInfoListener = { binding.tvDeviceSystem.text = SystemGlobalConstant.version }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        DeviceLinkerManager.removeSystemInfoListener(systemInfoListener)
     }
 
-    private fun updateBluetooth(connected: Boolean) {
-        binding.tvBluetoothStatus.text = demoString(
-            if (connected) R.string.demo_bluetooth_connected else R.string.demo_bluetooth_disconnected,
-        )
+    override fun initViewBinding(): ActivitySettingBinding {
+        return ActivitySettingBinding.inflate(layoutInflater)
     }
+
 }

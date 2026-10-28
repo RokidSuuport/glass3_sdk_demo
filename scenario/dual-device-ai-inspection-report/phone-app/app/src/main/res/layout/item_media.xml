@@ -2,25 +2,20 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="120dp"
-    android:layout_margin="4dp"
-    android:background="@drawable/rounded_corner_bg"
-    android:foreground="?attr/selectableItemBackground">
+    android:layout_margin="2dp">
 
     <ImageView
-        android:id="@+id/ivMedia"
+        android:id="@+id/thumbnail"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@null"
         android:scaleType="centerCrop" />
 
-    <TextView
-        android:id="@+id/tvType"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|top"
-        android:background="#88000000"
-        android:paddingHorizontal="6dp"
-        android:paddingVertical="2dp"
-        android:textColor="@color/white"
-        android:textSize="10sp" />
+    <ImageView
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="right"
+        android:layout_margin="10dp"
+        android:id="@+id/video_tag"
+        android:src="@drawable/video_tag" />
+
 </FrameLayout>

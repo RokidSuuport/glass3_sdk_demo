@@ -33,6 +33,10 @@
         android:name="android.hardware.bluetooth"
         android:required="true" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
@@ -65,12 +69,12 @@
         <activity
             android:name=".GalleryActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
-            android:exported="false" />
+            android:exported="false" android:theme="@style/Theme.PhoneDemoPages" />
 
         <activity
             android:name=".SettingActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
-            android:exported="false" />
+            android:exported="false" android:theme="@style/Theme.PhoneDemoPages" />
 
         <activity
             android:name=".PairingActivity"
@@ -81,6 +85,29 @@
             android:name=".ui.classicbt.ui.ClassicBtActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
             android:exported="false" />
+
+        <activity
+            android:name=".ImagePreviewActivity"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name=".ui.DeviceLinerActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:exported="false" android:theme="@style/Theme.PhoneDemoPages" />
+
+        <activity
+            android:name=".system.ui.SystemOtaActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:screenOrientation="portrait" android:theme="@style/Theme.PhoneDemoPages" />
+
+        <activity
+            android:name=".ui.BtWifiConnectActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+            android:exported="false" android:theme="@style/Theme.PhoneDemoPages" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

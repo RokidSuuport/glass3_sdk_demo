@@ -10,7 +10,7 @@
     <string name="demo_bluetooth_is_off">蓝牙未开启</string>
     <string name="demo_sdk_init_failed">手机端 SDK 初始化失败</string>
     <string name="demo_bluetooth_connected">蓝牙已连接</string>
-    <string name="demo_bluetooth_disconnected">蓝牙未连接</string>
+    <string name="demo_bluetooth_disconnected">蓝牙未连接！</string>
     <string name="demo_connect_glasses">连接眼镜</string>
     <string name="demo_reconnect_glasses">更换眼镜</string>
     <string name="demo_connecting_glasses">正在连接眼镜…</string>
@@ -28,7 +28,7 @@
     <string name="demo_gallery_empty">还没有收到照片或视频</string>
     <string name="demo_settings">设置</string>
     <string name="demo_device_name">设备名称</string>
-    <string name="demo_serial_number">设备序列号</string>
+    <string name="demo_serial_number">序列号</string>
     <string name="demo_system_version">系统版本</string>
     <string name="demo_device_information">设备信息</string>
     <string name="demo_connection_status">连接状态</string>

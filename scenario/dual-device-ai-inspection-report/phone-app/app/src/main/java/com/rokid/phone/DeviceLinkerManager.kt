@@ -24,6 +24,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import android.os.Handler
+import android.os.Looper
+import com.rokid.phone.utils.RKSystemInfo
+import com.rokid.phone.utils.SystemGlobalConstant
+import com.rokid.phone.utils.SPUtil
+import com.rokid.phone.utils.SpKeyConstant
+import java.util.concurrent.CopyOnWriteArraySet
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -36,6 +43,19 @@ object DeviceLinkerManager {
     private const val KEY_ADDRESS = "bluetooth_address"
     private const val KEY_NAME = "bluetooth_name"
     private const val DEFAULT_NAME = "Rokid Glass3"
+
+    private val systemCallSet = CopyOnWriteArraySet<() -> Unit>()
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    fun addSystemInfoListener(callback: () -> Unit) { systemCallSet.add(callback) }
+    fun removeSystemInfoListener(callback: () -> Unit) { systemCallSet.remove(callback) }
+    fun getGlassSystemInfoMsg() = refreshDeviceStatus()
+
+    fun saveBlueToothDeviceInfo(device: BluetoothDeviceInfo) = saveDevice(device)
+
+    fun saveP2pDevice(device: WifiP2pDevice) {
+        SPUtil.getInstance(MyApplication.instance).putString(SpKeyConstant.WifiP2pDevice_key, gson.toJson(device))
+    }
 
     private val gson = Gson()
     private val pendingResults = ConcurrentHashMap<String, AiVisionRelayPayload>()
@@ -227,8 +247,35 @@ object DeviceLinkerManager {
     private fun handleSystemInfo(msg: String) {
         val custom = CustomMessage.fromClassicBtPayload(gson, msg) ?: return
         when (custom.type) {
-            MESSAGE_SYSTEM_INFO_RESPONSE -> DeviceStatus.updateFromJson(custom.message)
-            MESSAGE_POWER_UPDATE -> DeviceStatus.updateFromJson(custom.message, updatePowerOnly = true)
+            MESSAGE_SYSTEM_INFO_RESPONSE -> {
+                DeviceStatus.updateFromJson(custom.message)
+                val systemInfo = runCatching { gson.fromJson(custom.message, RKSystemInfo::class.java) }.getOrNull()
+                if (systemInfo != null) {
+                    SystemGlobalConstant.osType = systemInfo.osType
+                    SystemGlobalConstant.cpuType = systemInfo.cpuType
+                    SystemGlobalConstant.version = systemInfo.version
+                    SystemGlobalConstant.isCharge = systemInfo.isCharge
+                    SystemGlobalConstant.powerValue = systemInfo.powerValue
+                    SystemGlobalConstant.brightness = systemInfo.brightness
+                    SystemGlobalConstant.maxBrightness = systemInfo.maxBrightness
+                    SystemGlobalConstant.isAutoBrightness = systemInfo.isAutoBrightness
+                    SystemGlobalConstant.curVolume = systemInfo.curVolume
+                    SystemGlobalConstant.maxVolume = systemInfo.maxVolume
+                    SystemGlobalConstant.glassRingConnected = systemInfo.glassRingConnected
+                    SystemGlobalConstant.glassRingBluetoothDeviceName = systemInfo.glassRingBluetoothDeviceName
+
+                    SystemGlobalConstant.deviceTypeId = systemInfo.deviceTypeId
+                    SystemGlobalConstant.deviceId = systemInfo.deviceId
+                    SPUtil.getInstance(MyApplication.instance.baseContext)
+                        .putString(SpKeyConstant.DEVICE_ID, SystemGlobalConstant.deviceId)
+                    mainHandler.post { systemCallSet.forEach { it.invoke() } }
+                }
+            }
+            MESSAGE_POWER_UPDATE -> {
+                DeviceStatus.updateFromJson(custom.message, updatePowerOnly = true)
+                SystemGlobalConstant.isCharge = DeviceStatus.charging.value
+                SystemGlobalConstant.powerValue = DeviceStatus.powerValue.value
+            }
         }
     }
 

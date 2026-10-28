@@ -11,7 +11,7 @@ This project contains two independent apps for hazard inspection. The glasses ca
 | App | Purpose |
 | --- | --- |
 | [glass-app](glass-app/README.en.md) | Live preview, the offline voice command “识别” (shi bie, meaning “recognize”), touchpad/ring triggers, and calls to a vision model or the SDK |
-| [phone-app](phone-app/README.en.md) | Bluetooth/P2P connections, battery status, AI inspection records and reports, gallery, and settings |
+| [phone-app](phone-app/README.en.md) | Bluetooth/P2P connections, battery status, AI inspection records and reports, gallery, accessory connection, and system updates |
 
 The APK names used in `artifacts` are:
 
@@ -27,7 +27,7 @@ dual-ai-inspection-phone-report-debug.apk
 3. Open the glasses app and say “识别” (shi bie), or tap the touchpad/ring once.
 4. The results are synchronized to the phone. Open **AI Inspection**, select a record, and generate a report.
 
-The phone home screen also shows the glasses battery and P2P status, with shortcuts to the gallery and settings.
+The phone home screen also shows the glasses battery and P2P status. The gallery and settings use the original phone Demo implementation: the gallery displays transfer progress, supports swiping between images and double-tap zoom, and opens videos in an external player. Settings provides device information, Bluetooth ring connection, and system updates. Accessory connection requires the glasses Bluetooth connection; system updates require both Bluetooth and P2P. See the [phone app usage guide](phone-app/README.en.md).
 
 If no vision model is configured, the glasses app uses the SDK fallback. With your own model configured, it can call an image-capable Chat Completions endpoint directly.
 
